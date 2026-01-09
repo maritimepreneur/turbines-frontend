@@ -27,14 +27,14 @@ export default function LoginForm() {
       <label className="text-xs font-semibold text-black">Email Address</label>
       <input
         type="email"
-        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 rounded-xl  focus:outline-none"
+        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 text-black rounded-xl  focus:outline-none"
       />
 
       {/* Password */}
       <label className="text-xs text-black font-semibold">Password</label>
       <input
         type="password"
-        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 rounded-xl focus:outline-none"
+        className="w-full mt-1 mb-4 px-4 py-2 border text-black border-blue-400 rounded-xl focus:outline-none"
       />
 
       {/* Remember & Forgot */}
