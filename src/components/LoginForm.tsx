@@ -43,7 +43,7 @@ export default function LoginForm() {
           <input type="checkbox" className=" border-2 border-blue-500 accent-blue-500 rounded-sm"/>
           Remember me
         </label>
-        <Link href="#" className="text-blue-500 ">
+        <Link href="/forgot-password" className="text-blue-500 ">
           Forgot password?
         </Link>
       </div>
