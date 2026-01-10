@@ -49,9 +49,12 @@ export default function CheckEmail() {
       </div>
 
       {/* Next Button */}
-      <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4">
-        Next
-      </button>
+      <Link href="/new-password" className="text-blue-500 font-medium">
+        <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4">
+          Next
+        </button>      
+      </Link>
+      
 
       {/* Resend Code */}
       <p className="text-xs text-center text-black mb-4">
