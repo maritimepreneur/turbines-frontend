@@ -51,10 +51,12 @@ export default function NewPassword() {
       </div>
 
       {/* Reset Button */}
-      <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4">
-        Reset Password
-      </button>
-
+      <Link href="/login" className="text-blue-500 font-medium">
+        <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4">
+          Reset Password
+        </button>      
+      </Link>
+      
       {/* Back to Login */}
       <p className="text-xs text-center text-black flex items-center justify-center gap-2">
         <FontAwesomeIcon icon={faArrowLeftLong} className="w-4 h-4" />
