@@ -1,4 +1,3 @@
-import Image from "next/image";
 import RoleCard from "@/components/RoleCard"
 import { Briefcase, Wallet, Settings } from "lucide-react"
 
@@ -12,39 +11,42 @@ export default function Home() {
       </p>
 
       {/* Cards */}
-      <div className="flex
-    flex-col        /* MOBILE: vertikal */
-    sm:flex-row     /* DESKTOP: horizontal */
-    gap-6
-    w-full
-    max-w-5xl
-    justify-center
-    items-stretch   /* BIAR FULL WIDTH MOBILE */
-">
+      <div
+        className="
+          flex
+          flex-col        /* MOBILE: vertikal */
+          sm:flex-row     /* DESKTOP: horizontal */
+          gap-6
+          w-full
+          max-w-5xl
+          justify-center
+          items-stretch   /* BIAR FULL WIDTH MOBILE */
+        "
+      >
         <RoleCard
-        title="BizDev"
-        color="bg-sky-500"
-        textColor="text-sky-500"
-        icon={<Briefcase size={20} />}
+          title="BizDev"
+          color="bg-sky-500"
+          textColor="text-sky-500"
+          icon={<Briefcase size={20} />}
+          href="/bizdev/new-leads"
         />
 
         <RoleCard
-        title="Finance"
-        color="bg-green-500"
-        textColor="text-green-500"
-        icon={<Wallet size={20} />}
+          title="Finance"
+          color="bg-green-500"
+          textColor="text-green-500"
+          icon={<Wallet size={20} />}
+          href="/finance/invoice"
         />
 
         <RoleCard
-        title="Operation"
-        color="bg-orange-500"
-        textColor="text-orange-500"
-        icon={<Settings size={20} />}
+          title="Operation"
+          color="bg-orange-500"
+          textColor="text-orange-500"
+          icon={<Settings size={20} />}
+          href="/operation/quotation"
         />
       </div>
     </main>
-  );
+  )
 }
-
-
-
