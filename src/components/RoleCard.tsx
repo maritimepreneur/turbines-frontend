@@ -1,8 +1,11 @@
+import Link from "next/link"
+
 type RoleCardProps = {
   title: string
   color: string
   textColor: string
   icon: React.ReactNode
+  href: string
 }
 
 export default function RoleCard({
@@ -10,10 +13,13 @@ export default function RoleCard({
   color,
   textColor,
   icon,
+  href,
 }: RoleCardProps) {
   return (
-    <div
+    <Link
+      href={href}
       className="
+        block
         w-full 
         sm:w-44 
         md:w-48
@@ -25,6 +31,10 @@ export default function RoleCard({
         duration-200 
         hover:shadow-lg 
         hover:-translate-y-1
+        focus:outline-none
+        focus:ring-2
+        focus:ring-offset-2
+        focus:ring-sky-400
       "
     >
       {/* Header */}
@@ -68,6 +78,6 @@ export default function RoleCard({
       >
         {title}
       </div>
-    </div>
+    </Link>
   )
 }

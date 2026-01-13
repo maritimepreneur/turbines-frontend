@@ -1,4 +1,5 @@
 import Sidebar from "@/components/Sidebar";
+import "../globals.css";
 
 export default function DashboardLayout({
   children,
@@ -12,3 +13,4 @@ export default function DashboardLayout({
     </div>
   );
 }
+
