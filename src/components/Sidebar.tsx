@@ -29,7 +29,11 @@ export default function Sidebar() {
   useEffect(() => {
     const newOpenMenus: { [key: string]: boolean } = {};
     visibleMenuItems.forEach((item) => {
-      if (item.subMenu) newOpenMenus[item.label] = pathname.startsWith(item.href);
+      if (item.subMenu) {
+        // Cek apakah pathname cocok dengan salah satu submenu
+        const isSubmenuActive = item.subMenu.some(sub => pathname.startsWith(sub.href));
+        newOpenMenus[item.label] = isSubmenuActive;
+      }
     });
     setOpenMenus(newOpenMenus);
   }, [pathname, visibleMenuItems]);
