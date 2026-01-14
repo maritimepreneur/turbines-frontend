@@ -92,13 +92,15 @@ export default function CheckEmail() {
           />
         ))}
       </div>
-
+      <Link href="/new-password" className="text-blue-500 font-medium">
       <button
         onClick={handleSubmit}
         className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4"
       >
         Next
       </button>
+      </Link>
+      
 
       <p className="text-xs text-center text-black mb-4">
         Didn't get any code?{" "}
