@@ -29,7 +29,11 @@ export default function Sidebar() {
   useEffect(() => {
     const newOpenMenus: { [key: string]: boolean } = {};
     visibleMenuItems.forEach((item) => {
-      if (item.subMenu) newOpenMenus[item.label] = pathname.startsWith(item.href);
+      if (item.subMenu) {
+        // Cek apakah pathname cocok dengan salah satu submenu
+        const isSubmenuActive = item.subMenu.some(sub => pathname.startsWith(sub.href));
+        newOpenMenus[item.label] = isSubmenuActive;
+      }
     });
     setOpenMenus(newOpenMenus);
   }, [pathname, visibleMenuItems]);
@@ -70,7 +74,7 @@ export default function Sidebar() {
 
             <div
               className={`ml-8 mt-1 space-y-1 overflow-hidden transition-all duration-300
-                ${openMenus[item.label] ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}
+                ${openMenus[item.label] ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}
               `}
             >
               {item.subMenu.map((sub) => (
@@ -145,6 +149,11 @@ const MENU_ITEMS = [
       { label: "New Leads", href: "/bizdev/new-leads" },
       { label: "Pipelines", href: "/bizdev/pipelines" },
       { label: "Partner List", href: "/bizdev/partner-list" },
+      { label: "Contact List", href: "/bizdev/contact-list" },
+      { label: "Projects", href: "/bizdev/projects" },
+      { label: "Proposals", href: "/bizdev/proposals" },
+      { label: "Approvals", href: "/bizdev/approvals" },
+      { label: "Agreements", href: "/bizdev/agreements" },
     ],
   },
   {
