@@ -55,9 +55,12 @@ export default function SignupForm() {
       />
 
       {/* Button */}
-      <button className="w-full  bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl  font-medium mb-4">
-        Register
-      </button>
+      <Link href="/login" className="text-blue-500 font-medium">
+        <button className="w-full  bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl  font-medium mb-4">
+          Register
+        </button>        
+      </Link>
+      
       <p className="text-xs text-center text-black flex items-center justify-center gap-2">
         <FontAwesomeIcon icon={faArrowLeftLong} className="w-5 h-5" />
         <Link href="/login" className="text-blue-500 font-medium">
