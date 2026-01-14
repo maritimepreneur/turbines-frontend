@@ -74,7 +74,7 @@ export default function Sidebar() {
 
             <div
               className={`ml-8 mt-1 space-y-1 overflow-hidden transition-all duration-300
-                ${openMenus[item.label] ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}
+                ${openMenus[item.label] ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}
               `}
             >
               {item.subMenu.map((sub) => (
@@ -149,6 +149,11 @@ const MENU_ITEMS = [
       { label: "New Leads", href: "/bizdev/new-leads" },
       { label: "Pipelines", href: "/bizdev/pipelines" },
       { label: "Partner List", href: "/bizdev/partner-list" },
+      { label: "Contact List", href: "/bizdev/contact-list" },
+      { label: "Projects", href: "/bizdev/projects" },
+      { label: "Proposals", href: "/bizdev/proposals" },
+      { label: "Approvals", href: "/bizdev/approvals" },
+      { label: "Agreements", href: "/bizdev/agreements" },
     ],
   },
   {
