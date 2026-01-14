@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeftLong, faCheck, faFilter } from "@fortawesome/free-solid-svg-icons";
 
@@ -27,9 +28,11 @@ export default function NewLeadsPage() {
             />
           </div>
 
-          <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm">
-            + Add
-          </button>
+          <Link href="/bizdev/add-leads">
+            <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+              + Add
+            </button>
+          </Link>
         </div>
 
         {/* Table */}
