@@ -1,5 +1,7 @@
 "use client"
-
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeftLong, faCheck, faFilter } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
@@ -63,6 +65,9 @@ const leadsData: Lead[] = [
     lastUpdate: "20-05-2024",
   },
 ]
+
+
+const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false)
@@ -128,9 +133,11 @@ export default function NewLeadsPage() {
             />
           </div>
 
-          <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
-            + Add
-          </button>
+          <Link href="/bizdev/add-leads">
+            <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+              + Add
+            </button>
+          </Link>
         </div>
 
         {/* Filter Panel */}
