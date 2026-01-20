@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Pagination } from "@/components/table/Pagination"
+import { useTableFilters } from "@/hooks/useTableFilters"
 
 export default function PipelinesPage() {
   const [selectedLead, setSelectedLead] = useState('Pt Mahakarya');
@@ -12,7 +14,14 @@ export default function PipelinesPage() {
     { name: 'Pt Indofood', date: '12-10-2025' },
     { name: 'Pt Logistics', date: '12-10-2025' }
   ];
+  const {
 
+      currentPage,
+      paginatedData,
+      filteredData,
+      totalPages,
+      setCurrentPage,
+    } = useTableFilters(leads, 5)
   return (
     <div>
       {/* Header */}
@@ -94,12 +103,13 @@ export default function PipelinesPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-center items-center gap-2 pt-4">
-              <button className="px-2 py-1 text-gray-700">&lt;</button>
-              <button className="w-8 h-8 text-white rounded" style={{ backgroundColor: '#00A6FB' }}>1</button>
-              <button className="px-2 py-1 text-gray-700">&gt;</button>
-              <span className="text-sm text-gray-700 ml-2">1-5 of 12</span>
-            </div>
+            <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={filteredData.length}
+                      itemsPerPage={5}
+                      onPageChange={setCurrentPage}
+                    />
           </div>
 
           {/* Right: Detail Form */}

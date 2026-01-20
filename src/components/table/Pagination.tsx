@@ -1,59 +1,54 @@
-"use client"
-
-type Props = {
+interface PaginationProps {
   currentPage: number
+  totalPages: number
   totalItems: number
   itemsPerPage: number
   onPageChange: (page: number) => void
 }
 
-export default function Pagination({
+export function Pagination({
   currentPage,
+  totalPages,
   totalItems,
   itemsPerPage,
   onPageChange,
-}: Props) {
-  const totalPages = Math.ceil(totalItems / itemsPerPage)
-
-  if (totalPages <= 1) return null
+}: PaginationProps) {
+  const startItem = totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems)
 
   return (
     <div className="flex justify-between items-center mt-4 text-sm">
       <p className="text-slate-400">
-        Showing {(currentPage - 1) * itemsPerPage + 1}–
-        {Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
-        {totalItems}
+        Showing {startItem}–{endItem} of {totalItems} entries
       </p>
 
       <div className="flex gap-1">
         <button
           disabled={currentPage === 1}
           onClick={() => onPageChange(currentPage - 1)}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-slate-50 transition"
         >
           Prev
         </button>
 
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-          (page) => (
-            <button
-              key={page}
-              onClick={() => onPageChange(page)}
-              className={`px-3 py-1 border rounded ${
-                page === currentPage
-                  ? "bg-sky-500 text-white border-sky-500"
-                  : ""
-              }`}
-            >
-              {page}
-            </button>
-          )
-        )}
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            className={`px-3 py-1 border rounded transition ${
+              currentPage === page
+                ? "bg-sky-500 text-white border-sky-500"
+                : "hover:bg-slate-50"
+            }`}
+          >
+            {page}
+          </button>
+        ))}
 
         <button
-          disabled={currentPage === totalPages}
+          disabled={currentPage === totalPages || totalPages === 0}
           onClick={() => onPageChange(currentPage + 1)}
-          className="px-3 py-1 border rounded disabled:opacity-50"
+          className="px-3 py-1 border rounded disabled:opacity-50 hover:bg-slate-50 transition"
         >
           Next
         </button>
