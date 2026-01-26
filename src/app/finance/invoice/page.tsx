@@ -1,46 +1,73 @@
 "use client"
-
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeftLong, faCheck, faFilter, faFilePdf } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
-type Proposals = {
-  id: string
-  company_name: string
-  company_initial: string
-  company_industrial:string
-  contacts:[string]
-  company_type: [string]
-}
+type Lead = {
+  number: string;
+  id: string;
+  clientname: string;
+  creationdate: string;
+  invoiceperiod: string;
+  grandtotal: string;
+  status: string;
+};
 
-const ProposalsData: Proposals[] = [
+const leadsData: Lead[] = [
   {
-    id: "ID/001/LD/2024",
-    company_name: "Pt Mahakarya",
-    company_initial: "MHK",
-    company_industrial: "Manufacturing",
-    contacts: ["083-xxx-xxx-xxx"],
-    company_type: ["Client"]
+    number: "POXXXX",
+    id: "ID001",
+    clientname: "Client A",
+    creationdate: "2023-01-01",
+    invoiceperiod: "January 2023",
+    grandtotal: "Rp. 1.xxx.xxx",
+    status: "Pre Invoice",
   },
   {
-    id: "ID/002/LD/2024",
-    company_name: "Pt Indofood",
-    company_initial: "IDF",
-    company_industrial: "Food & Beverage",
-    contacts: ["081-xxx-xxx-xxx"],
-    company_type: ["Partner"]
+    number: "POXXXX",
+    id: "ID001",
+    clientname: "Client A",
+    creationdate: "2023-01-01",
+    invoiceperiod: "January 2023",
+    grandtotal: "Rp. 1.xxx.xxx",
+    status: "Pre Invoice",
   },
   {
-    id: "ID/003/LD/2024",
-    company_name: "Pt Logistics",
-    company_initial: "LOG",
-    company_industrial: "Logistics",
-    contacts: ["082-xxx-xxx-xxx"],
-    company_type: ["Vendor"]
+    number: "POXXXX",
+    id: "ID001",
+    clientname: "Client A",
+    creationdate: "2023-01-01",
+    invoiceperiod: "January 2023",
+    grandtotal: "Rp. 1.xxx.xxx",
+    status: "Pre Invoice",
   },
-]
+  {
+    number: "POXXXX",
+    id: "ID001",
+    clientname: "Client A",
+    creationdate: "2023-01-01",
+    invoiceperiod: "January 2023",
+    grandtotal: "Rp. 1.xxx.xxx",
+    status: "Pre Invoice",
+  },
+  {
+    number: "POXXXX",
+    id: "ID001",
+    clientname: "Client A",
+    creationdate: "2023-01-01",
+    invoiceperiod: "January 2023",
+    grandtotal: "Rp. 1.xxx.xxx",
+    status: "Pre Invoice",
+  },
+];
+
+
+const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false)
@@ -59,14 +86,12 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
-  } = useTableFilters(ProposalsData, 5)
+  } = useTableFilters(leadsData, 5)
 
   const fieldOptions = [
-    { label: "Industry", value: "industry" },
-    { label: "PIC", value: "pic" },
-    { label: "Period", value: "period" },
-    { label: "Company", value: "company" },
+    { label: "Period", value: "invoiceperiod" },
     { label: "Name", value: "name" },
+    { label: "Status", value: "status" },
   ]
 
   return (
@@ -74,100 +99,117 @@ export default function NewLeadsPage() {
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm text-slate-400">
-          Bizdev / <span className="text-slate-600">Proposals</span>
+          Finance / <span className="text-slate-600">Quotation</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Proposals</h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">Quotation</h1>
       </div>
 
-      {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowFilter(!showFilter)}
-              className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
+      {/* Navigation Tabs */}
+      <div className="border-b border-gray-400 mb-4">
+        <nav className="flex space-x-8 px-6 pt-4">
+          <button className="pb-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
+            Pre Invoice
+          </button>
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+            Invoice
+          </button>
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+            Canceled
+          </button>
+        </nav>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowFilter(!showFilter)}
+            className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Filter
-              {filters.length > 0 && (
-                <span className="bg-white text-sky-500 rounded-full px-2 py-0.5 text-xs font-semibold">
-                  {filters.length}
-                </span>
-              )}
-            </button>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            Filter
+            {filters.length > 0 && (
+              <span className="bg-white text-sky-500 rounded-full px-2 py-0.5 text-xs font-semibold">
+                {filters.length}
+              </span>
+            )}
+          </button>
 
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Search name or company..."
-            />
-          </div>
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search name or company..."
+          />
+        </div>
 
+        <Link href="/finance/purchase/purchase-form">
           <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
             + Add
           </button>
-        </div>
+        </Link>
+      </div>
 
-        {/* Filter Panel */}
-        <FilterPanel
-          show={showFilter}
-          filters={filters}
-          onAddFilter={addFilter}
-          onRemoveFilter={removeFilter}
-          onUpdateField={updateFilterField}
-          onUpdateValue={updateFilterValue}
-          onResetAll={resetFilters}
-          fieldOptions={fieldOptions}
-        />
+      {/* Filter Panel */}
+      <FilterPanel
+        show={showFilter}
+        filters={filters}
+        onAddFilter={addFilter}
+        onRemoveFilter={removeFilter}
+        onUpdateField={updateFilterField}
+        onUpdateValue={updateFilterValue}
+        onResetAll={resetFilters}
+        fieldOptions={fieldOptions}
+      />
 
+      {/* Card */}
+      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
         {/* Table */}
         <table className="w-full text-sm border-t border-slate-200">
           <thead className="bg-slate-50">
             <tr className="border-b">
-              <th className="text-left py-3 px-3">ID</th>
-              <th className="text-left py-3 px-3">Company Name</th>
-              <th className="text-left py-3 px-3">Initial</th>
-              <th className="text-left py-3 px-3">Industry</th>
-              <th className="text-left py-3 px-3">Contact</th>
-              <th className="text-left py-3 px-3">Type</th>
-              <th className="text-left py-3 px-3">Action</th>
+              <th className="text-left py-3 px-3">Invoice Number</th>
+              <th className="text-left py-3 px-3">Company ID</th>
+              <th className="text-left py-3 px-3">Client Name</th>
+              <th className="text-left py-3 px-3">Creation Date</th>
+              <th className="text-left py-3 px-3">Invoice Period</th>
+              <th className="text-left py-3 px-3">Grand Total</th>
+              <th className="text-left py-3 px-3">Status</th>
             </tr>
           </thead>
 
           <tbody>
             {paginatedData.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">
+                <td colSpan={8} className="text-center py-6 text-slate-400">
                   No data found
                 </td>
               </tr>
             )}
 
             {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.company_name}</td>
-                <td className="py-3 px-3">{item.company_initial}</td>
-                <td className="py-3 px-3">{item.company_industrial}</td>
-                <td className="py-3 px-3">{item.contacts.join(", ")}</td>
-                <td className="py-3 px-3">{item.company_type.join(", ")}</td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-4">
-                    <button className="text-sky-500 hover:text-sky-700">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button className="text-red-500 hover:text-red-700">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
+              <tr
+                key={item.number}
+                className="border-b hover:bg-slate-50 transition"
+              >
+                <td className="py-3 px-3">{item.number}</td>
+                <td className="py-3 px-3 font-medium">{item.id}</td>
+                <td className="py-3 px-3">{item.clientname}</td>
+                <td className="py-3 px-3">{item.creationdate}</td>
+                <td className="py-3 px-3">{item.invoiceperiod}</td>
+                <td className="py-3 px-3">{item.grandtotal}</td>
+                <td className="py-3 px-3">{item.status}</td>
               </tr>
             ))}
           </tbody>
@@ -183,5 +225,5 @@ export default function NewLeadsPage() {
         />
       </div>
     </div>
-  )
+  );
 }
