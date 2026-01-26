@@ -6,7 +6,7 @@ import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
-type Partners = {
+type Proposals = {
   id: string
   company_name: string
   company_initial: string
@@ -15,7 +15,7 @@ type Partners = {
   company_type: [string]
 }
 
-const PartnersData: Partners[] = [
+const ProposalsData: Proposals[] = [
   {
     id: "ID/001/LD/2024",
     company_name: "Pt Mahakarya",
@@ -59,7 +59,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
-  } = useTableFilters(PartnersData, 5)
+  } = useTableFilters(ProposalsData, 5)
 
   const fieldOptions = [
     { label: "Industry", value: "industry" },

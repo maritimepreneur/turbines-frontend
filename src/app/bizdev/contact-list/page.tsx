@@ -12,36 +12,31 @@ type Contacts = {
   emails: string
   phone_numbers:string
   company:[string]
+  type:[string]
+
 }
 
-const PartnersData: Contacts[] = [
+const ContactsData: Contacts[] = [
   {
-    id: "ID/001/LD/2024",
-    company_name: "Pt Mahakarya",
-    company_initial: "MHK",
-    company_industrial: "Manufacturing",
-    contacts: ["083-xxx-xxx-xxx"],
-    company_type: ["Client"]
+    id: "ID/001/CT/2024",
+    name: "Budi Santoso",
+    emails: "budi@mahakarya.co.id",
+    phone_numbers: "0812-xxx-xxxx",
+    company: ["PT Mahakarya"],
+    type: ["Client"],
   },
   {
-    id: "ID/002/LD/2024",
-    name: "Pt Indofood",
-    company_initial: "IDF",
-    company_industrial: "Food & Beverage",
-    contacts: ["081-xxx-xxx-xxx"],
-    company_type: ["Partner"]
-  },
-  {
-    id: "ID/003/LD/2024",
-    company_name: "Pt Logistics",
-    company_initial: "LOG",
-    company_industrial: "Logistics",
-    contacts: ["082-xxx-xxx-xxx"],
-    company_type: ["Vendor"]
+    id: "ID/002/CT/2024",
+    name: "Siti Aisyah",
+    emails: "siti@digibluecamp.id",
+    phone_numbers: "0821-xxx-xxxx",
+    company: ["Digibluecamp"],
+    type: ["Partner"],
   },
 ]
 
-export default function NewLeadsPage() {
+
+export default function ContactsPage() {
   const [showFilter, setShowFilter] = useState(false)
 
   const {
@@ -58,7 +53,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
-  } = useTableFilters(PartnersData, 5)
+  } = useTableFilters(ContactsData, 5)
 
   const fieldOptions = [
     { label: "Industry", value: "industry" },
@@ -127,10 +122,10 @@ export default function NewLeadsPage() {
           <thead className="bg-slate-50">
             <tr className="border-b">
               <th className="text-left py-3 px-3">ID</th>
-              <th className="text-left py-3 px-3">Company Name</th>
-              <th className="text-left py-3 px-3">Initial</th>
-              <th className="text-left py-3 px-3">Industry</th>
-              <th className="text-left py-3 px-3">Contact</th>
+              <th className="text-left py-3 px-3">Name</th>
+              <th className="text-left py-3 px-3">Email</th>
+              <th className="text-left py-3 px-3">Phone</th>
+              <th className="text-left py-3 px-3">Company</th>
               <th className="text-left py-3 px-3">Type</th>
               <th className="text-left py-3 px-3">Action</th>
             </tr>
@@ -148,11 +143,11 @@ export default function NewLeadsPage() {
             {paginatedData.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50 transition">
                 <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.company_name}</td>
-                <td className="py-3 px-3">{item.company_initial}</td>
-                <td className="py-3 px-3">{item.company_industrial}</td>
-                <td className="py-3 px-3">{item.contacts.join(", ")}</td>
-                <td className="py-3 px-3">{item.company_type.join(", ")}</td>
+                <td className="py-3 px-3 font-medium">{item.name}</td>
+                <td className="py-3 px-3">{item.emails}</td>
+                <td className="py-3 px-3">{item.phone_numbers}</td>
+                <td className="py-3 px-3">{item.company.join(", ")}</td>
+                <td className="py-3 px-3">{item.type.join(", ")}</td>
                 <td className="py-3 px-3">
                   <div className="flex gap-4">
                     <button className="text-sky-500 hover:text-sky-700">

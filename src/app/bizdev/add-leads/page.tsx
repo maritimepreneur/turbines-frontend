@@ -18,7 +18,7 @@ export default function AddLeadsPage() {
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-4">
         <nav className="flex space-x-8 px-6 pt-4">
-          <button className="pb-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
+          <button className="pb-2 px-1 border-b-2 border-blue-500 text-black font-medium text-sm">
             General Info
           </button>
           <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
