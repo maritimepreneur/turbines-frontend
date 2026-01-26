@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { Pagination } from "@/components/table/Pagination"
-import { useTableFilters } from "@/hooks/useTableFilters"
+import { useState, useMemo } from 'react';
+import { Pagination } from "@/components/table/Pagination";
+import { useTableFilters } from "@/hooks/useTableFilters";
+import GeneralInfo from "@/components/pipelines/GeneralInfo";
+import Quotation from "@/components/pipelines/Quotation";
+import PurchaseOrder from "@/components/pipelines/PurchaseOrder";
+import Invoice from "@/components/pipelines/Invoice";
 
 export default function PipelinesPage() {
   const [selectedLead, setSelectedLead] = useState('Pt Mahakarya');
   const [activeTab, setActiveTab] = useState('General Info');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeStage, setActiveStage] = useState('New lead');
 
   const stages = ['New lead', 'Introduction', 'Presentation', 'Quotation', 'Follow Up', 'MoU', 'Execution'];
   const leads = [
@@ -14,14 +20,32 @@ export default function PipelinesPage() {
     { name: 'Pt Indofood', date: '12-10-2025' },
     { name: 'Pt Logistics', date: '12-10-2025' }
   ];
-  const {
 
-      currentPage,
-      paginatedData,
-      filteredData,
-      totalPages,
-      setCurrentPage,
-    } = useTableFilters(leads, 5)
+  // Filter leads by search
+  const filteredLeads = useMemo(() => {
+    return leads.filter(
+      (lead) =>
+        lead.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [leads, searchQuery]);
+
+  const {
+    currentPage,
+    paginatedData,
+    totalPages,
+    setCurrentPage,
+  } = useTableFilters(filteredLeads, 5);
+
+  const renderRightDetail = () => {
+    switch (activeTab) {
+      case 'General Info': return <GeneralInfo />;
+      case 'Quotation': return <Quotation />;
+      case 'Purchase Order': return <PurchaseOrder />;
+      case 'Invoice': return <Invoice />;
+      default: return null;
+    }
+  };
+
   return (
     <div>
       {/* Header */}
@@ -29,9 +53,7 @@ export default function PipelinesPage() {
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Pipelines</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">
-          Pipelines
-        </h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">Pipelines</h1>
       </div>
 
       {/* Main Content */}
@@ -41,19 +63,18 @@ export default function PipelinesPage() {
           {stages.map((stage) => (
             <button
               key={stage}
+              onClick={() => setActiveStage(stage)}
               className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${
-                stage === 'New lead'
-                  ? 'text-white'
-                  : 'bg-gray-100 text-gray-600'
+                activeStage === stage ? 'text-white' : 'bg-gray-100 text-gray-600'
               }`}
-              style={stage === 'New lead' ? { backgroundColor: '#00A6FB' } : {}}
+              style={activeStage === stage ? { backgroundColor: '#00A6FB' } : {}}
             >
               {stage}
             </button>
           ))}
         </div>
 
-        {/* Search and Add Button */}
+        {/* Search */}
         <div className="flex justify-end mb-4">
           <div className="relative">
             <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,6 +83,8 @@ export default function PipelinesPage() {
             <input
               type="text"
               placeholder="Search name or company..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 border rounded-lg text-sm w-64 text-gray-700 placeholder-gray-400"
             />
           </div>
@@ -71,21 +94,18 @@ export default function PipelinesPage() {
           {/* Left: Lead Cards */}
           <div className="flex flex-col justify-between h-full">
             <div className="space-y-3">
-              {/* Add New Lead Button */}
               <div className="flex justify-center">
                 <button className="px-6 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2" style={{ backgroundColor: '#00A6FB' }}>
                   + Add New Lead
                 </button>
               </div>
 
-              {leads.map((lead) => (
+              {paginatedData.map((lead) => (
                 <div
                   key={lead.name}
                   onClick={() => setSelectedLead(lead.name)}
                   className={`p-4 rounded-lg cursor-pointer flex items-center justify-between ${
-                    selectedLead === lead.name
-                      ? 'text-white'
-                      : 'bg-gray-50 text-gray-800'
+                    selectedLead === lead.name ? 'text-white' : 'bg-gray-50 text-gray-800'
                   }`}
                   style={selectedLead === lead.name ? { backgroundColor: '#00A6FB' } : {}}
                 >
@@ -104,162 +124,65 @@ export default function PipelinesPage() {
 
             {/* Pagination */}
             <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      totalItems={filteredData.length}
-                      itemsPerPage={5}
-                      onPageChange={setCurrentPage}
-                    />
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredLeads.length}
+              itemsPerPage={5}
+              onPageChange={setCurrentPage}
+            />
           </div>
 
-          {/* Right: Detail Form */}
+          {/* Right: Detail */}
           <div className="col-span-2 space-y-6">
-            {/* Top Card: Stage, Status, Cancel Reason */}
+            {/* Top Card */}
             <div className="border rounded-lg p-6 bg-white">
-              {/* Stage and Status */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="text-sm text-gray-600 block mb-2">STAGE</label>
-                  <select className="w-full px-3 py-2 border rounded-lg text-sm">
-                    <option>New lead</option>
+                  <label className="text-sm text-black block mb-2">STAGE</label>
+                  <select className="w-full px-3 py-2 border rounded-lg text-sm text-black" value={activeStage} onChange={(e) => setActiveStage(e.target.value)}>
+                    {stages.map((stage) => (
+                      <option key={stage} value={stage}>{stage}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm text-gray-600 block mb-2">STATUS</label>
-                  <select className="w-full px-3 py-2 border rounded-lg text-sm">
+                  <select className="w-full px-3 py-2 border rounded-lg text-sm text-black">
                     <option>Cold lead</option>
                   </select>
                 </div>
               </div>
-
-              {/* Cancel Reason */}
               <div>
                 <label className="text-sm text-gray-600 block mb-2">CANCEL REASON</label>
-                <select className="w-full px-3 py-2 border rounded-lg text-sm">
+                <select className="w-full px-3 py-2 border rounded-lg text-sm text-black">
                   <option>None</option>
                 </select>
               </div>
             </div>
 
-            {/* Bottom Card: Tabs and Form */}
+            {/* Bottom Card: Tabs & Dynamic Form */}
             <div className="border rounded-lg p-6 bg-white">
-
-              {/* Tabs */}
               <div className="flex gap-6 border-b mb-6">
-              {['General Info', 'Quotation', 'Purchase Order', 'Invoice'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-3 text-sm ${
-                    activeTab === tab
-                      ? 'border-b-2'
-                      : 'text-gray-500'
-                  }`}
-                  style={activeTab === tab ? { color: '#00A6FB', borderColor: '#00A6FB' } : {}}
-                >
-                  {tab}
-                </button>
-              ))}
+                {['General Info', 'Quotation', 'Purchase Order', 'Invoice'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`pb-3 text-sm ${
+                      activeTab === tab ? 'border-b-2' : 'text-gray-500'
+                    }`}
+                    style={activeTab === tab ? { color: '#00A6FB', borderColor: '#00A6FB' } : {}}
+                  >
+                    {tab}
+                  </button>
+                ))}
               </div>
 
-              {/* General Info Form */}
-              {activeTab === 'General Info' && (
-                <div className="space-y-4">
-                {/* Company Info */}
-                <div>
-                  <label className="text-sm text-gray-600 block mb-2">Company Name</label>
-                  <input
-                    type="text"
-                    value="Pt Mahakarya"
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                </div>
+              <div className="min-h-[300px]">{renderRightDetail()}</div>
 
-                <div>
-                  <label className="text-sm text-gray-600 block mb-2">Company Initial</label>
-                  <input
-                    type="text"
-                    placeholder="Enter initial..."
-                    className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 block mb-2">Company Type</label>
-                  <select className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400">
-                    <option>Select type...</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 block mb-2">Company Industry</label>
-                  <select className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400">
-                    <option>Select industry...</option>
-                  </select>
-                </div>
-
-                {/* Contact Details */}
-                <div className="pt-4">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                    👤 CONTACT DETAILS
-                  </h3>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Role</label>
-                      <select className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400">
-                        <option>Select role...</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Name</label>
-                      <input
-                        type="text"
-                        placeholder="Full name"
-                        className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Email</label>
-                      <input
-                        type="email"
-                        placeholder="email@company.com"
-                        className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Phone Number</label>
-                      <input
-                        type="text"
-                        placeholder="+62..."
-                        className="w-full px-3 py-2 border rounded-lg text-sm text-gray-400"
-                      />
-                    </div>
-
-                    {/* Attachment and Log History */}
-                    <div className="flex justify-between items-center pt-4">
-                      <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
-                        Attachment +
-                      </button>
-                      <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
-                        Log History & Comments
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-center gap-3 pt-6">
-                  <button className="text-white px-6 py-2 rounded-lg" style={{ backgroundColor: '#00A6FB' }}>
-                    Submit
-                  </button>
-                  <button className="text-gray-700 px-6 py-2 border rounded-lg">Cancel</button>
-                  </div>
-                </div>
-              )}
+              <div className="flex justify-center gap-3 pt-6">
+                <button className="text-white px-6 py-2 rounded-lg" style={{ backgroundColor: '#00A6FB' }}>Submit</button>
+                <button className="text-gray-700 px-6 py-2 border rounded-lg">Cancel</button>
+              </div>
             </div>
           </div>
         </div>

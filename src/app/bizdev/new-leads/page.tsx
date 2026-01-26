@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeftLong, faCheck, faFilter } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react"
@@ -70,6 +71,7 @@ const leadsData: Lead[] = [
 const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
+  const router = useRouter();
   const [showFilter, setShowFilter] = useState(false)
 
   const {
@@ -95,6 +97,12 @@ export default function NewLeadsPage() {
     { label: "Company", value: "company" },
     { label: "Name", value: "name" },
   ]
+
+  // Handler untuk navigasi ke general-info
+  const handleIdClick = (leadId: string) => {
+    router.push(`/bizdev/new-leads/general-info?id=${leadId}`);
+  }
+
 
   return (
     <div>
@@ -133,7 +141,7 @@ export default function NewLeadsPage() {
             />
           </div>
 
-          <Link href="/bizdev/add-leads">
+          <Link href="/bizdev/new-leads/add-leads">
             <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
               + Add
             </button>
@@ -178,7 +186,14 @@ export default function NewLeadsPage() {
 
             {paginatedData.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
+                <td className="py-3 px-3">
+                  <button
+                    onClick={() => handleIdClick(item.id)}
+                    className="text-sky-500 hover:text-sky-700 font-medium hover:underline transition"
+                  >
+                    {item.id}
+                  </button>
+                </td>
                 <td className="py-3 px-3 font-medium">{item.name}</td>
                 <td className="py-3 px-3">{item.pic}</td>
                 <td className="py-3 px-3">{item.company}</td>

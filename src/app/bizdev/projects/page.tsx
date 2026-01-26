@@ -6,43 +6,47 @@ import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
-type Partners = {
+type Projects = {
   id: string
-  company_name: string
-  company_initial: string
-  company_industrial:string
-  contacts:[string]
-  company_type: [string]
+  project_type: string
+  payment_type: string
+  name:string
+  location:string
+  type:string
+  duration:string
+  start_data:string
+  end_date:string
+  description:string
+  contact_id:string
+  partners_id:string
+  lead_id:string
+  contact:string
+  partners:string
+  lead:string
 }
 
-const PartnersData: Partners[] = [
+const ProjectsData: Projects[] = [
   {
-    id: "ID/001/LD/2024",
-    company_name: "Pt Mahakarya",
-    company_initial: "MHK",
-    company_industrial: "Manufacturing",
-    contacts: ["083-xxx-xxx-xxx"],
-    company_type: ["Client"]
-  },
-  {
-    id: "ID/002/LD/2024",
-    company_name: "Pt Indofood",
-    company_initial: "IDF",
-    company_industrial: "Food & Beverage",
-    contacts: ["081-xxx-xxx-xxx"],
-    company_type: ["Partner"]
-  },
-  {
-    id: "ID/003/LD/2024",
-    company_name: "Pt Logistics",
-    company_initial: "LOG",
-    company_industrial: "Logistics",
-    contacts: ["082-xxx-xxx-xxx"],
-    company_type: ["Vendor"]
+    id: "PRJ-001",
+    project_type: "Internal",
+    payment_type: "Monthly",
+    name: "Website Turbines",
+    location: "Jakarta",
+    type: "Development",
+    duration: "6 Months",
+    start_data: "2025-01-01",
+    end_date: "2025-06-30",
+    description: "Pengembangan website manajemen turbines",
+    contact_id: "CNT-001",
+    partners_id: "PT-001",
+    lead_id: "LD-001",
+    contact: "Budi Santoso",
+    partners: "PT Mahakarya",
+    lead: "Andi Wijaya",
   },
 ]
 
-export default function NewLeadsPage() {
+export default function ProjectsPage() {
   const [showFilter, setShowFilter] = useState(false)
 
   const {
@@ -59,7 +63,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
-  } = useTableFilters(PartnersData, 5)
+  } = useTableFilters(ProjectsData, 5)
 
   const fieldOptions = [
     { label: "Industry", value: "industry" },
@@ -127,13 +131,13 @@ export default function NewLeadsPage() {
         <table className="w-full text-sm border-t border-slate-200">
           <thead className="bg-slate-50">
             <tr className="border-b">
-              <th className="text-left py-3 px-3">ID</th>
-              <th className="text-left py-3 px-3">Company Name</th>
-              <th className="text-left py-3 px-3">Initial</th>
-              <th className="text-left py-3 px-3">Industry</th>
-              <th className="text-left py-3 px-3">Contact</th>
-              <th className="text-left py-3 px-3">Type</th>
-              <th className="text-left py-3 px-3">Action</th>
+              <th className="text-center py-3 px-3">ID</th>
+              <th className="text-center py-3 px-3">Project Name</th>
+              <th className="text-center py-3 px-3">Project Type</th>
+              <th className="text-center py-3 px-3">Payment</th>
+              <th className="text-center py-3 px-3">Duration</th>
+              <th className="py-3 px-3 text-center">Period</th>
+              <th className="text-center py-3 px-3">Action</th>
             </tr>
           </thead>
 
@@ -148,12 +152,14 @@ export default function NewLeadsPage() {
 
             {paginatedData.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.company_name}</td>
-                <td className="py-3 px-3">{item.company_initial}</td>
-                <td className="py-3 px-3">{item.company_industrial}</td>
-                <td className="py-3 px-3">{item.contacts.join(", ")}</td>
-                <td className="py-3 px-3">{item.company_type.join(", ")}</td>
+                <td className="py-3 px-3 text-center">{item.id}</td>
+                <td className="py-3 px-3 font-medium text-center">{item.name}</td>
+                <td className="py-3 px-3 text-center">{item.project_type}</td>
+                <td className="py-3 px-3 text-center">{item.payment_type}</td>
+                <td className="py-3 px-3 text-center">{item.duration}</td>
+                <td className="py-3 px-3 text-center">
+                  {item.start_data} – {item.end_date}
+                </td>
                 <td className="py-3 px-3">
                   <div className="flex gap-4">
                     <button className="text-sky-500 hover:text-sky-700">
