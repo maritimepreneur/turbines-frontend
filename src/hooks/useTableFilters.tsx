@@ -1,0 +1,94 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import { FilterItem } from "@/components/table/FilterPanel"
+
+export function useTableFilters<T extends Record<string, any>>(
+  data: T[],
+  itemsPerPage: number = 10
+) {
+  const [filters, setFilters] = useState<FilterItem[]>([])
+  const [search, setSearch] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const addFilter = () => {
+    const newFilter: FilterItem = {
+      id: Date.now().toString(),
+      field: Object.keys(data[0] || {})[0] || "",
+      value: "",
+    }
+    setFilters([...filters, newFilter])
+  }
+
+  const removeFilter = (id: string) => {
+    setFilters(filters.filter((f) => f.id !== id))
+  }
+
+  const updateFilterField = (id: string, field: string) => {
+    setFilters(filters.map((f) => (f.id === id ? { ...f, field, value: "" } : f)))
+  }
+
+  const updateFilterValue = (id: string, value: string) => {
+    setFilters(filters.map((f) => (f.id === id ? { ...f, value } : f)))
+    setCurrentPage(1)
+  }
+
+  const resetFilters = () => {
+    setFilters([])
+    setCurrentPage(1)
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setCurrentPage(1)
+  }
+
+  // Filter data
+  const filteredData = useMemo(() => {
+    return data.filter((item) => {
+      // Apply filters
+      const matchFilters = filters.every((filter) => {
+        if (!filter.value) return true
+        return item[filter.field]
+          ?.toString()
+          .toLowerCase()
+          .includes(filter.value.toLowerCase())
+      })
+
+      // Apply search
+      const matchSearch = Object.values(item).some((val) =>
+        val?.toString().toLowerCase().includes(search.toLowerCase())
+      )
+
+      return matchFilters && matchSearch
+    })
+  }, [data, filters, search])
+
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const paginatedData = useMemo(() => {
+    return filteredData.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+  }, [filteredData, currentPage, itemsPerPage])
+
+  return {
+    // States
+    filters,
+    search,
+    currentPage,
+    filteredData,
+    paginatedData,
+    totalPages,
+    
+    // Actions
+    addFilter,
+    removeFilter,
+    updateFilterField,
+    updateFilterValue,
+    resetFilters,
+    setSearch: handleSearchChange,
+    setCurrentPage,
+  }
+}
