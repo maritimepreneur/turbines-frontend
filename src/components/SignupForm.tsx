@@ -1,72 +1,213 @@
-import Link from "next/link";
-import Image from "next/image";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeftLong } from "@fortawesome/free-solid-svg-icons";
+// components/SignUpForm.tsx
+'use client';
 
-export default function SignupForm() {
+import { useState, FormEvent } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+export default function SignUpForm() {
+  const router = useRouter();
+  
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirm_password: '',
+    role: 'USER', // default role
+  });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError('');
+
+    // Validasi password match
+    if (formData.password !== formData.confirm_password) {
+      setError('Password dan konfirmasi password tidak cocok');
+      return;
+    }
+
+    // Validasi password minimal 6 karakter
+    if (formData.password.length < 6) {
+      setError('Password minimal 6 karakter');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          confirm_password: formData.confirm_password,
+          role: formData.role,
+        }),
+      });
+
+      const data = await response.json();
+
+      // Cek response success
+      if (data.code === 201 || data.code === 200) {
+        // Sign up berhasil, redirect ke login
+        router.push('/login?registered=true');
+      } else {
+        // Error dari API
+        throw new Error(data.message || 'Registrasi gagal');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat registrasi');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div>
+    <form onSubmit={handleSubmit}>
       {/* Logo */}
-      <div className="flex justify-center">
+      <div className="mb-6 flex justify-center">
         <Image
           src="/logo_marmud.png"
           alt="Logo Maritim Muda"
           width={120}
           height={40}
+          style={{ width: 'auto', height: 'auto' }}
         />
       </div>
 
       {/* Title */}
       <h1 className="text-xl text-black font-semibold italic mb-2 text-center">
-        SignUp
+        Create Account
       </h1>
-
       <p className="text-black text-xs mb-6 text-center">
-        Complete the form below to register
+        Sign up to get started with Turbines
       </p>
 
-      {/* Name */}
-      <label className="text-xs font-semibold text-black">Name</label>
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-xs text-red-600">{error}</p>
+        </div>
+      )}
+
+      {/* Username */}
+      <label className="text-xs font-semibold text-black">Username</label>
       <input
-        type="email"
-        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 rounded-xl text-black  focus:outline-none"
+        type="text"
+        value={formData.username}
+        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+        disabled={isLoading}
+        required
+        placeholder="Enter your username"
+        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 text-black rounded-xl focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
       />
+
       {/* Email */}
-      <label className="text-xs font-semibold text-black">Email Address</label>
+      <label className="text-xs font-semibold text-black">Email</label>
       <input
         type="email"
-        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 rounded-xl text-black  focus:outline-none"
+        value={formData.email}
+        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        disabled={isLoading}
+        required
+        placeholder="Enter your email"
+        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 text-black rounded-xl focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
       />
 
       {/* Password */}
-      <label className="text-xs text-black font-semibold">Password</label>
-      <input
-        type="password"
-        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 rounded-xl text-black focus:outline-none"
-      />
+      <div>
+        <label className="text-xs text-black font-semibold">
+          Password
+        </label>
+
+        <div className="relative mt-1 mb-4">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            value={formData.password}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
+            disabled={isLoading}
+            required
+            placeholder="Enter your password"
+            className="w-full px-4 py-2 pr-10 border text-black border-blue-400 rounded-xl focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-gray-500 hover:text-gray-700"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+      </div>
+
 
       {/* Confirm Password */}
-      <label className="text-xs text-black font-semibold">
-        Confirm Password
-      </label>
-      <input
-        type="password"
-        className="w-full mt-1 mb-4 px-4 py-2 border border-blue-400 rounded-xl text-black focus:outline-none"
-      />
+      <div>
+        <label className="text-xs text-black font-semibold">
+          Confirm Password
+        </label>
+
+        <div className="relative mt-1 mb-4">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirm_password}
+            onChange={(e) =>
+              setFormData({ ...formData, confirm_password: e.target.value })
+            }
+            disabled={isLoading}
+            required
+            placeholder="Confirm your password"
+            className="w-full px-4 py-2 pr-10 border text-black border-blue-400 rounded-xl focus:outline-none disabled:opacity-50"
+          />
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowConfirmPassword(!showConfirmPassword)
+            }
+            className="absolute right-3 inset-y-0 flex items-center text-gray-500 hover:text-gray-700"
+          >
+            {showConfirmPassword ? (
+              <EyeOff size={18} />
+            ) : (
+              <Eye size={18} />
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* Button */}
-      <Link href="/login" className="text-blue-500 font-medium">
-        <button className="w-full  bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl  font-medium mb-4">
-          Register
-        </button>        
-      </Link>
-      
-      <p className="text-xs text-center text-black flex items-center justify-center gap-2">
-        <FontAwesomeIcon icon={faArrowLeftLong} className="w-5 h-5" />
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl font-medium mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition"
+      >
+        {isLoading ? 'Creating Account...' : 'Sign Up'}
+      </button>
+
+      {/* Login Link */}
+      <p className="text-xs text-center text-black">
+        Already have an account?{' '}
         <Link href="/login" className="text-blue-500 font-medium">
-          Back to Login
+          Login
         </Link>
       </p>
-    </div>
+    </form>
   );
 }

@@ -2,7 +2,9 @@
 
 import Image from "next/image"; 
 import Link from "next/link"; 
-import { usePathname } from "next/navigation"; 
+import { usePathname } from "next/navigation";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAuth } from "@/contexts/AuthContext"; 
 import { useState, useEffect, useMemo } from "react";
 import {
   LayoutGrid,
@@ -122,6 +124,7 @@ const MENU_ITEMS = [
 
 function UserSection() {
   const [open, setOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   return (
     <div className="relative border-t pt-4 mt-4">
@@ -148,8 +151,8 @@ function UserSection() {
         <div className="absolute bottom-14 left-0 w-full bg-white border rounded-xl shadow-lg p-3 text-sm z-50">
           {/* User Info */}
           <div className="pb-2 border-b">
-            <p className="font-semibold text-slate-800">John Doe</p>
-            <p className="text-xs text-slate-500">Admin</p>
+            <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
+            <p className="text-xs text-gray-500">{user?.role}</p>
           </div>
 
           {/* Actions */}
@@ -162,14 +165,13 @@ function UserSection() {
               <Users size={16} className="text-black"/>
               <span className="text-black">User Profile</span>
             </Link>
-            <Link href="/login" className="text-blue-500 font-medium">
-              <button
+            <button
+              onClick={logout}
               className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-red-600 hover:bg-red-50 transition"
             >
               <LogOut size={16} />
-              Logout
+              <span className="hidden sm:inline">Logout</span>
             </button>    
-            </Link>
           </div>
         </div>
       )}
