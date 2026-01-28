@@ -177,7 +177,7 @@ export default function PipelinesPage() {
                 ))}
               </div>
 
-              <div className="min-h-[300px]">{renderRightDetail()}</div>
+              <div className="min-h-75">{renderRightDetail()}</div>
 
               <div className="flex justify-center gap-3 pt-6">
                 <button className="text-white px-6 py-2 rounded-lg" style={{ backgroundColor: '#00A6FB' }}>Submit</button>

@@ -3,6 +3,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import axiosInstance from '@/lib/axios';
 
 // Interface untuk User
 interface User {
@@ -38,9 +39,6 @@ interface LoginResponse {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// URL API - GANTI SESUAI API LU!
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -62,30 +60,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Function Login
+  // Function Login menggunakan Axios
   const login = async (identifier: string, password: string) => {
     try {
-      console.log('Attempting login to:', `${API_URL}/api/auth/login`);
-      console.log('With credentials:', { identifier, password: '***' });
+      // console.log('🚀 Attempting login with axios...');
+      // console.log('📧 Identifier:', identifier);
 
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          identifier,
-          password,
-        }),
+      // Gunakan axiosInstance dari lib/axios.ts
+      const response = await axiosInstance.post<LoginResponse>('/api/auth/login', {
+        identifier,
+        password,
       });
 
-      console.log('Response status:', response.status);
+      // console.log('📦 Response status:', response.status);
+      // console.log('📊 Response data:', response.data);
 
-      const data: LoginResponse = await response.json();
-      console.log('Response data:', data);
+      const data = response.data;
 
-      // Cek kalo response success (cek data.code, bukan response.ok)
+      // Cek kalo response success (cek data.code)
       if (data.code === 200 && data.data) {
+        // console.log('✅ Login successful!');
+        // console.log('👤 User:', data.data.user);
+        // console.log('🔑 Token received');
+
         // Simpan token & user ke localStorage
         localStorage.setItem('access_token', data.data.access_token);
         localStorage.setItem('refresh_token', data.data.refresh_token);
@@ -96,21 +93,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRefreshToken(data.data.refresh_token);
         setUser(data.data.user);
 
-        console.log('Login successful!');
+        // console.log('💾 Data saved to localStorage');
       } else {
         // Kalo code bukan 200, throw error dengan pesan dari API
-        // Ubah pesan bahasa Inggris jadi Indonesia
+        // console.error('❌ Login failed with code:', data.code);
+        
         const errorMessage = data.message === 'Invalid credentials' 
           ? 'Username atau password salah' 
           : data.message || 'Gagal login, silakan coba lagi';
         
         throw new Error(errorMessage);
       }
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      // console.error('❌ Login error:', error);
       
-      // Throw error dengan message yang jelas
-      if (error instanceof Error) {
+      // Handle axios error
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        console.error('Server error:', status, data);
+        
+        if (status === 401) {
+          throw new Error('Username atau password salah');
+        } else if (status === 422) {
+          throw new Error('Data yang dimasukkan tidak valid');
+        } else if (data?.message) {
+          // Translate common error messages
+          const errorMessage = data.message === 'Invalid credentials' 
+            ? 'Username atau password salah' 
+            : data.message;
+          throw new Error(errorMessage);
+        } else {
+          throw new Error('Gagal login, silakan coba lagi');
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('No response from server');
+        throw new Error('Tidak dapat terhubung ke server');
+      } else if (error.message) {
+        // Error in setting up request or custom error
         throw error;
       } else {
         throw new Error('Terjadi kesalahan saat login');
@@ -118,20 +141,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Function Logout
-  const logout = () => {
-    // Hapus dari localStorage
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
+  // Function Logout menggunakan Axios
+  const logout = async () => {
+    try {
+      // console.log('🚪 Logging out...');
+      
+      // Call logout API (optional - jika backend punya endpoint logout)
+      // await axiosInstance.post('/api/auth/logout');
+      
+    } catch (error) {
+      console.error('Logout API error:', error);
+      // Tetap lanjut logout walaupun API error
+    } finally {
+      // Hapus dari localStorage
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
 
-    // Reset state
-    setAccessToken(null);
-    setRefreshToken(null);
-    setUser(null);
+      // Reset state
+      setAccessToken(null);
+      setRefreshToken(null);
+      setUser(null);
 
-    // Redirect ke login
-    router.push('/login');
+      // console.log('✅ Logged out successfully');
+
+      // Redirect ke login
+      router.push('/login');
+    }
   };
 
   const isAuthenticated = !!accessToken && !!user;
