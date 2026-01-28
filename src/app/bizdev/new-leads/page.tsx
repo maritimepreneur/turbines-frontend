@@ -1,8 +1,109 @@
+"use client"
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeftLong, faCheck, faFilter } from "@fortawesome/free-solid-svg-icons";
+import { useState } from "react"
+import { SearchBar } from "@/components/table/SearchBar"
+import { FilterPanel } from "@/components/table/FilterPanel"
+import { Pagination } from "@/components/table/Pagination"
+import { useTableFilters } from "@/hooks/useTableFilters"
+
+type Lead = {
+  id: string
+  name: string
+  pic: string
+  company: string
+  period: string
+  industry: string
+  lastUpdate: string
+}
+
+const leadsData: Lead[] = [
+  {
+    id: "ID/001/LD/2024",
+    name: "John Doe",
+    pic: "Alice",
+    company: "Lorem Corp",
+    period: "Aug 2025",
+    industry: "Tech Services",
+    lastUpdate: "24-05-2024",
+  },
+  {
+    id: "ID/002/LD/2024",
+    name: "Jane Smith",
+    pic: "Bob",
+    company: "Ipsum Solutions",
+    period: "Sep 2025",
+    industry: "Logistics",
+    lastUpdate: "23-05-2024",
+  },
+  {
+    id: "ID/003/LD/2024",
+    name: "Michael Brown",
+    pic: "Charlie",
+    company: "Global Trade Inc",
+    period: "Oct 2025",
+    industry: "Finance",
+    lastUpdate: "22-05-2024",
+  },
+  {
+    id: "ID/004/LD/2024",
+    name: "Emily Davis",
+    pic: "Diana",
+    company: "Tech Solutions",
+    period: "Nov 2025",
+    industry: "Tech Services",
+    lastUpdate: "21-05-2024",
+  },
+  {
+    id: "ID/005/LD/2024",
+    name: "William Johnson",
+    pic: "Eve",
+    company: "LogiCorp",
+    period: "Dec 2025",
+    industry: "Logistics",
+    lastUpdate: "20-05-2024",
+  },
+]
+
+
+const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
+  const router = useRouter();
+  const [showFilter, setShowFilter] = useState(false)
+
+  const {
+    filters,
+    search,
+    currentPage,
+    paginatedData,
+    filteredData,
+    totalPages,
+    addFilter,
+    removeFilter,
+    updateFilterField,
+    updateFilterValue,
+    resetFilters,
+    setSearch,
+    setCurrentPage,
+  } = useTableFilters(leadsData, 5)
+
+  const fieldOptions = [
+    { label: "Industry", value: "industry" },
+    { label: "PIC", value: "pic" },
+    { label: "Period", value: "period" },
+    { label: "Company", value: "company" },
+    { label: "Name", value: "name" },
+  ]
+
+  // Handler untuk navigasi ke general-info
+  const handleIdClick = (leadId: string) => {
+    router.push(`/bizdev/new-leads/general-info?id=${leadId}`);
+  }
+
+
   return (
     <div>
       {/* Header */}
@@ -17,87 +118,116 @@ export default function NewLeadsPage() {
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-4">
-          <div className="gap-3 flex ">
-            <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-            <FontAwesomeIcon icon={faFilter} className="w-3 h-3 text-white" />
-              <span className="text-center">Filter</span>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowFilter(!showFilter)}
+              className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filter
+              {filters.length > 0 && (
+                <span className="bg-white text-sky-500 rounded-full px-2 py-0.5 text-xs font-semibold">
+                  {filters.length}
+                </span>
+              )}
             </button>
-            <input
-              placeholder="Search..."
-              className="px-4 py-2 border rounded-lg text-sm w-64 text-black"
+
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Search name or company..."
             />
           </div>
 
-          <Link href="/bizdev/add-leads">
+          <Link href="/bizdev/new-leads/add-leads">
             <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
               + Add
             </button>
           </Link>
         </div>
 
+        {/* Filter Panel */}
+        <FilterPanel
+          show={showFilter}
+          filters={filters}
+          onAddFilter={addFilter}
+          onRemoveFilter={removeFilter}
+          onUpdateField={updateFilterField}
+          onUpdateValue={updateFilterValue}
+          onResetAll={resetFilters}
+          fieldOptions={fieldOptions}
+        />
+
         {/* Table */}
         <table className="w-full text-sm border-t border-slate-200">
-        {/* TABLE HEADER */}
-        <thead className="bg-slate-50 text-slate-900">
-        <tr className="border-b border-slate-200">
-            <th className="text-left py-3 px-3 font-semibold">ID</th>
-            <th className="text-left py-3 px-3 font-semibold">Name</th>
-            <th className="text-left py-3 px-3 font-semibold">PIC</th>
-            <th className="text-left py-3 px-3 font-semibold">Company Name</th>
-            <th className="text-left py-3 px-3 font-semibold">Period</th>
-            <th className="text-left py-3 px-3 font-semibold">Industry</th>
-            <th className="text-left py-3 px-3 font-semibold">Last Update</th>
-            <th className="text-left py-3 px-3 font-semibold">Action</th>
-        </tr>
-        </thead>
-
-        {/* TABLE BODY */}
-        <tbody className="text-slate-900">
-            <tr className="border-b hover:bg-slate-50 transition">
-            <td className="py-3 px-3">ID/001/LD/2024</td>
-            <td className="py-3 px-3 font-medium">John Doe</td>
-            <td className="py-3 px-3">xxxxx</td>
-            <td className="py-3 px-3">Lorem Corp</td>
-            <td className="py-3 px-3">Aug 2025</td>
-            <td className="py-3 px-3">Tech Services</td>
-            <td className="py-3 px-3">24-05-2024</td>
-            <td className="py-3 px-3 text-center">✏️ 🗑️</td>
+          <thead className="bg-slate-50">
+            <tr className="border-b">
+              <th className="text-left py-3 px-3">ID</th>
+              <th className="text-left py-3 px-3">Name</th>
+              <th className="text-left py-3 px-3">PIC</th>
+              <th className="text-left py-3 px-3">Company</th>
+              <th className="text-left py-3 px-3">Period</th>
+              <th className="text-left py-3 px-3">Industry</th>
+              <th className="text-left py-3 px-3">Last Update</th>
+              <th className="text-left py-3 px-3">Action</th>
             </tr>
+          </thead>
 
-            <tr className="border-b hover:bg-slate-50 transition">
-            <td className="py-3 px-3">ID/002/LD/2024</td>
-            <td className="py-3 px-3 font-medium">Jane Smith</td>
-            <td className="py-3 px-3">xxxxx</td>
-            <td className="py-3 px-3">Ipsum Solutions</td>
-            <td className="py-3 px-3">Sep 2025</td>
-            <td className="py-3 px-3">Logistics</td>
-            <td className="py-3 px-3">23-05-2024</td>
-            <td className="py-3 px-3 text-center">✏️ 🗑️</td>
-            </tr>
+          <tbody>
+            {paginatedData.length === 0 && (
+              <tr>
+                <td colSpan={8} className="text-center py-6 text-slate-400">
+                  No data found
+                </td>
+              </tr>
+            )}
 
-            <tr className="hover:bg-slate-50 transition">
-            <td className="py-3 px-3">ID/003/LD/2024</td>
-            <td className="py-3 px-3 font-medium">Michael Brown</td>
-            <td className="py-3 px-3">xxxxx</td>
-            <td className="py-3 px-3">Global Trade Inc</td>
-            <td className="py-3 px-3">Oct 2025</td>
-            <td className="py-3 px-3">Finance</td>
-            <td className="py-3 px-3">22-05-2024</td>
-            <td className="py-3 px-3 text-center">✏️ 🗑️</td>
-            </tr>
-        </tbody>
+            {paginatedData.map((item) => (
+              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
+                <td className="py-3 px-3">
+                  <button
+                    onClick={() => handleIdClick(item.id)}
+                    className="text-sky-500 hover:text-sky-700 font-medium hover:underline transition"
+                  >
+                    {item.id}
+                  </button>
+                </td>
+                <td className="py-3 px-3 font-medium">{item.name}</td>
+                <td className="py-3 px-3">{item.pic}</td>
+                <td className="py-3 px-3">{item.company}</td>
+                <td className="py-3 px-3">{item.period}</td>
+                <td className="py-3 px-3">{item.industry}</td>
+                <td className="py-3 px-3">{item.lastUpdate}</td>
+                <td className="py-3 px-3">
+                  <div className="flex gap-4">
+                    <button className="text-sky-500 hover:text-sky-700">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button className="text-red-500 hover:text-red-700">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
 
-        {/* Footer */}
-        <div className="flex justify-between mt-4 text-sm text-slate-400">
-          <p>Showing 1 to 3 of 50 entries</p>
-          <div className="flex gap-2">
-            <button className="px-3 py-1 border rounded">1</button>
-            <button className="px-3 py-1 border rounded">2</button>
-            <button className="px-3 py-1 border rounded">3</button>
-          </div>
-        </div>
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredData.length}
+          itemsPerPage={5}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </div>
-  );
+  )
 }
