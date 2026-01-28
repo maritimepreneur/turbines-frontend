@@ -6,91 +6,55 @@ import { usePathname } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext"; 
 import { useState, useEffect, useMemo } from "react";
-import { LayoutGrid, TrendingUp, ChevronDown, Wallet, TextQuote, BookText, ShoppingBasket, Settings, LogOut, Users } from "lucide-react";
-
-// ===== Sidebar Component =====
+import {
+  LayoutGrid,
+  TrendingUp,
+  Briefcase,
+  Handshake,
+  Users,
+  UserCircle,
+  FolderKanban,
+  FileText,
+  CheckCircle,
+  Wallet,
+  BarChart3,
+  Settings,
+  UsersRound,
+  LogOut,
+} from "lucide-react";
 export default function Sidebar() {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({});
 
-  // Filter menu berdasarkan route/module
   const visibleMenuItems = useMemo(() => {
     if (pathname.startsWith("/bizdev")) {
-      return MENU_ITEMS.filter((item) => item.label === "Dashboard" || item.label === "Bisdev");
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "bizdev"
+      );
     }
     if (pathname.startsWith("/finance")) {
-      return MENU_ITEMS.filter((item) => item.label === "Dashboard" || item.label === "Quotation" || item.label === "Purchase Order" || item.label === "Invoice");
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "finance"
+      );
     }
     if (pathname.startsWith("/operation")) {
-      return MENU_ITEMS.filter((item) => item.label === "Dashboard" || item.label === "Operation");
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "operation"
+      );
     }
-    return MENU_ITEMS; // default, misal homepage
+    return MENU_ITEMS;
   }, [pathname]);
 
-  // Buka otomatis sub-menu sesuai route
-  useEffect(() => {
-    const newOpenMenus: { [key: string]: boolean } = {};
-    visibleMenuItems.forEach((item) => {
-      if (item.subMenu) {
-        // Cek apakah pathname cocok dengan salah satu submenu
-        const isSubmenuActive = item.subMenu.some(sub => pathname.startsWith(sub.href));
-        newOpenMenus[item.label] = isSubmenuActive;
-      }
-    });
-    setOpenMenus(newOpenMenus);
-  }, [pathname, visibleMenuItems]);
-
   return (
-<aside className="w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col">
-    {/* Logo */}
-    <div className="flex items-center gap-3 mb-10">
-      <Image src="/logo_marmud.png" alt="Logo Maritim Muda" width={70} height={40} />
-      <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
-    </div>
+    <aside className="w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col">
+      {/* Logo */}
+      <div className="flex items-center gap-3 mb-10">
+        <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
+        <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
+      </div>
 
-    {/* Menu */}
-    <nav className="space-y-1 text-sm text-slate-600 flex-1">
-      {visibleMenuItems.map((item) =>
-        item.subMenu ? (
-          <div key={item.label}>
-            <button
-              onClick={() =>
-                setOpenMenus((prev) => ({
-                  ...prev,
-                  [item.label]: !prev[item.label],
-                }))
-              }
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-slate-100 transition"
-            >
-              <div className="flex items-center gap-3 font-medium">
-                {item.icon}
-                {item.label}
-              </div>
-              <ChevronDown
-                size={16}
-                className={`transition-transform duration-200 ${
-                  openMenus[item.label] ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-
-            <div
-              className={`ml-8 mt-1 space-y-1 overflow-hidden transition-all duration-300
-                ${openMenus[item.label] ? "max-h-screen opacity-100" : "max-h-0 opacity-0"}
-              `}
-            >
-              {item.subMenu.map((sub) => (
-                <MenuLink
-                  key={sub.href}
-                  href={sub.href}
-                  label={sub.label}
-                  active={pathname === sub.href}
-                  sub
-                />
-              ))}
-            </div>
-          </div>
-        ) : (
+      {/* Menu */}
+      <nav className="space-y-1 text-sm text-slate-600 flex-1">
+        {visibleMenuItems.map((item) => (
           <MenuLink
             key={item.href}
             href={item.href}
@@ -98,35 +62,28 @@ export default function Sidebar() {
             icon={item.icon}
             active={pathname === item.href}
           />
-        )
-      )}
-    </nav>
+        ))}
+      </nav>
 
-    {/* ===== USER SECTION ===== */}
-    <UserSection />
-  </aside>
-);
+      <UserSection />
+    </aside>
+  );
 }
-
-// ===== Menu Link Component =====
 function MenuLink({
   href,
   label,
   icon,
   active,
-  sub,
 }: {
   href: string;
   label: string;
   icon?: React.ReactNode;
   active: boolean;
-  sub?: boolean;
 }) {
   return (
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition
-        ${sub ? "text-sm" : ""}
         ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
       `}
     >
@@ -136,52 +93,32 @@ function MenuLink({
   );
 }
 
-// ===== Menu Items =====
 const MENU_ITEMS = [
+  // COMMON
   {
     label: "Dashboard",
     href: "/dashboard",
     icon: <LayoutGrid size={18} />,
+    module: "common",
   },
-  {
-    label: "Bisdev",
-    href: "/bizdev/new-leads",
-    icon: <TrendingUp size={18} />,
-    subMenu: [
-      { label: "New Leads", href: "/bizdev/new-leads" },
-      { label: "Pipelines", href: "/bizdev/pipelines" },
-      { label: "Partner List", href: "/bizdev/partner-list" },
-      { label: "Contact List", href: "/bizdev/contact-list" },
-      { label: "Projects", href: "/bizdev/projects" },
-      { label: "Proposals", href: "/bizdev/proposals" },
-      { label: "Approvals", href: "/bizdev/approvals" },
-      { label: "Agreements", href: "/bizdev/agreements" },
-    ],
-  },
-  {
-    label: "Quotation",
-    href: "/finance/quotation",
-    icon: <TextQuote size={18} />,
-  },
-  {
-    label: "Purchase Order",
-    href: "/finance/purchase",
-    icon: <ShoppingBasket size={18} />,
-  },
-  {
-    label: "Invoice",
-    href: "/finance/invoice",
-    icon: <BookText size={18} />,
-  },
-  {
-    label: "Operation",
-    href: "/operation/projects",
-    icon: <Settings size={18} />,
-    subMenu: [
-      { label: "Projects", href: "/operation/projects" },
-      { label: "Teams", href: "/operation/teams" },
-    ],
-  },
+
+  // BIZDEV
+  { label: "New Leads", href: "/bizdev/new-leads", icon: <TrendingUp size={18} />, module: "bizdev" },
+  { label: "Pipelines", href: "/bizdev/pipelines",icon: <FolderKanban size={18} />, module: "bizdev" },
+  { label: "Partner List", href: "/bizdev/partner-list",icon: <Handshake size={18} />, module: "bizdev" },
+  { label: "Contact List", href: "/bizdev/contact-list",icon: <Users size={18} />, module: "bizdev" },
+  { label: "Projects", href: "/bizdev/projects",icon: <Briefcase size={18} />, module: "bizdev" },
+  { label: "Proposals", href: "/bizdev/proposals",icon: <FileText size={18} />, module: "bizdev" },
+  { label: "Approvals", href: "/bizdev/approvals",icon: <CheckCircle size={18} />, module: "bizdev" },
+  { label: "Agreements", href: "/bizdev/agreements",icon: <FileText size={18} />, module: "bizdev" },
+
+  // FINANCE
+  { label: "Invoices", href: "/finance/invoices", icon: <Wallet size={18} />, module: "finance" },
+  { label: "Reports", href: "/finance/reports", module: "finance" },
+
+  // OPERATION
+  { label: "Projects", href: "/operation/projects", icon: <Settings size={18} />, module: "operation" },
+  { label: "Teams", href: "/operation/teams", module: "operation" },
 ];
 
 function UserSection() {
@@ -204,7 +141,8 @@ function UserSection() {
         />
 
         <span className="text-sm font-medium text-slate-800">
-          John Doe
+          <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
+          <p className="text-xs text-gray-500">{user?.role}</p>
         </span>
       </button>
 
@@ -240,5 +178,6 @@ function UserSection() {
     </div>
   );
 }
+
 
 

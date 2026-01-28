@@ -9,7 +9,7 @@ export default function Home() {
   const { user, logout } = useAuth();
 
   return (
-    // <ProtectedRoute>
+    <ProtectedRoute>
       <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 sm:px-0 relative">
 
         {/* Welcome Message - Mobile */}
@@ -62,6 +62,6 @@ export default function Home() {
           />
         </div>
       </main>
-    // {/* </ProtectedRoute> */}
+    </ProtectedRoute>
   );
 }
