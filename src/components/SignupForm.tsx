@@ -6,8 +6,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from "lucide-react";
+import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://turbines-murex.vercel.app';
 
 export default function SignUpForm() {
   const router = useRouter();
@@ -23,7 +24,6 @@ export default function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,32 +44,29 @@ export default function SignUpForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          confirm_password: formData.confirm_password,
-          role: formData.role,
-        }),
+      const response = await axios.post(`${API_URL}/api/auth/register`, {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        confirm_password: formData.confirm_password,
+        role: formData.role,
       });
 
-      const data = await response.json();
-
       // Cek response success
-      if (data.code === 201 || data.code === 200) {
+      if (response.data.code === 201 || response.data.code === 200) {
         // Sign up berhasil, redirect ke login
         router.push('/login?registered=true');
       } else {
         // Error dari API
-        throw new Error(data.message || 'Registrasi gagal');
+        throw new Error(response.data.message || 'Registrasi gagal');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat registrasi');
+      if (axios.isAxiosError(err)) {
+        // Handle axios error
+        setError(err.response?.data?.message || err.message || 'Terjadi kesalahan saat registrasi');
+      } else {
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat registrasi');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +129,6 @@ export default function SignUpForm() {
         <label className="text-xs text-black font-semibold">
           Password
         </label>
-
         <div className="relative mt-1 mb-4">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -145,7 +141,6 @@ export default function SignUpForm() {
             placeholder="Enter your password"
             className="w-full px-4 py-2 pr-10 border text-black border-blue-400 rounded-xl focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
           />
-
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
@@ -155,7 +150,6 @@ export default function SignUpForm() {
           </button>
         </div>
       </div>
-
 
       {/* Confirm Password */}
       <div>
