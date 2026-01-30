@@ -71,6 +71,7 @@ const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false)
+  const [activeTab, setActiveTab] = useState("Pending")
 
   const {
     filters,
@@ -107,18 +108,19 @@ export default function NewLeadsPage() {
       {/* Navigation Tabs */}
       <div className="border-b border-gray-400 mb-4">
         <nav className="flex space-x-8 px-6 pt-4">
-          <button className="pb-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm">
-            Pending
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            New
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Aproved
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Rejected
-          </button>
+          {["Pending", "New", "Approved", "Rejected"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === tab
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </nav>
       </div>
 
@@ -206,7 +208,14 @@ export default function NewLeadsPage() {
                 key={item.number}
                 className="border-b hover:bg-slate-50 transition"
               >
-                <td className="py-3 px-3">{item.number}</td>
+                <td className="py-3 px-3">
+                  <Link
+                    href={`/finance/purchase/purchase-form?number=${item.number}`}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    {item.number}
+                  </Link>
+                </td>
                 <td className="py-3 px-3 font-medium">{item.name}</td>
                 <td className="py-3 px-3">{item.projectname}</td>
                 <td className="py-3 px-3">{item.total}</td>
