@@ -66,7 +66,7 @@ export default function Home() {
             color="bg-cyan-500"
             textColor="text-cyan-500"
             icon={<User2 size={20} />}
-            href="/hr/attendance"
+            href="/human-resources/attendance"
           />
           <RoleCard
             title="Employee"
