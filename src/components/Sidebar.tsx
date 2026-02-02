@@ -21,6 +21,7 @@ import {
   Settings,
   UsersRound,
   LogOut,
+  User2
 } from "lucide-react";
 export default function Sidebar() {
   const pathname = usePathname();
@@ -39,6 +40,16 @@ export default function Sidebar() {
     if (pathname.startsWith("/operation")) {
       return MENU_ITEMS.filter(
         (item) => item.module === "common" || item.module === "operation"
+      );
+    }
+    if (pathname.startsWith("/humanresources")) {
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "humanresources"
+      );
+    }
+    if (pathname.startsWith("/employee")) {
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "employee"
       );
     }
     return MENU_ITEMS;
@@ -118,6 +129,20 @@ const MENU_ITEMS = [
 
   // OPERATION
   { label: "Projects", href: "/operation/projects", icon: <Settings size={18} />, module: "operation" },
+  { label: "Teams", href: "/operation/teams", module: "operation" },
+
+  // HUMAN RESOURCES
+  {
+    label: "",
+    href: "/hr/attendance",
+    icon: <User2 size={18} />,
+    subMenu: [
+      { label: "Attendance", href: "/hr/attendance" },
+      { label: "Teams", href: "/operation/teams" },
+    ],
+  },
+    // OPERATION
+  { label: "Attendance", href: "/operation/projects", icon: <Settings size={18} />, module: "operation" },
   { label: "Teams", href: "/operation/teams", module: "operation" },
 ];
 
