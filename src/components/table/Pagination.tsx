@@ -18,7 +18,7 @@ export function Pagination({
 
   return (
     <div className="flex justify-between items-center mt-4 text-sm">
-      <p className="text-slate-400">
+      <p className="text-slate-400 px-2">
         Showing {startItem}–{endItem} of {totalItems} entries
       </p>
 
