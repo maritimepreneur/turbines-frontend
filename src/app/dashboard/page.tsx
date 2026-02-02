@@ -66,14 +66,14 @@ export default function Home() {
             color="bg-cyan-500"
             textColor="text-cyan-500"
             icon={<User2 size={20} />}
-            href="/hr"
+            href="/hr/attendance"
           />
           <RoleCard
             title="Employee"
             color="bg-yellow-500"
             textColor="text-yellow-500"
             icon={<UserCircle2 size={20} />}
-            href="/employee"
+            href="/employee/attendance"
           />
         </div>
       </main>
