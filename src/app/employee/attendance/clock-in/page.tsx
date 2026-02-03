@@ -3,23 +3,21 @@
 import { useState, useEffect } from "react"
 import { Clock, MapPin, User, CheckCircle, DoorOpen } from "lucide-react";
 import Image from "next/image"
+import LocationMap from "@/components/LocationMap"
+import type { AttendanceLocation } from "@/types/location"
 
 export default function ClockInPage() {
   const [clockedIn, setClockedIn] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [location, setLocation] = useState<string>("Mendapatkan lokasi...")
+  const [location, setLocation] = useState<string>("")
+  const [coordinates, setCoordinates] = useState<AttendanceLocation | null>(null)
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
-
-    // Simulate getting location
-    setTimeout(() => {
-      setLocation("Jakarta Selatan, DKI Jakarta")
-    }, 2000)
 
     return () => clearInterval(timer)
   }, [])
@@ -45,7 +43,7 @@ export default function ClockInPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4">
         <p className="text-sm text-slate-400">
           Employee / Attendance /{" "}
           <span className="text-slate-600">Clock In</span>
@@ -61,8 +59,8 @@ export default function ClockInPage() {
             <Image
               src="/api/placeholder/80/80"
               alt="Profile"
-              width={80}
-              height={80}
+              width={65}
+              height={65}
               className="rounded-full border-4 border-white shadow-sm"
             />
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white"></div>
@@ -74,28 +72,73 @@ export default function ClockInPage() {
         </div>
 
         {/* Time Display */}
-        <div className="text-center mb-6">
-          <Clock size={48} className="mx-auto mb-3 text-sky-500" />
-          <div className="text-4xl font-bold text-slate-800 mb-2">
-            {currentTime.toLocaleTimeString("id-ID")}
-          </div>
-          <div className="text-slate-600">
-            {currentTime.toLocaleDateString("id-ID", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+        <div className="text-center mb-4 relative">
+          {/* Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 rounded-2xl -z-10"></div>
+          
+          <div className="py-2 px-6">
+            {/* Animated Clock Icon */}
+            <div className="relative inline-block mb-2">
+              <div className="absolute inset-0 bg-sky-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-sky-400 to-blue-500 p-4 rounded-full shadow-lg">
+                <Clock size={25} className="text-white" strokeWidth={2.5} />
+              </div>
+            </div>
+            
+            {/* Time */}
+            <div className="mb-3">
+              <div className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-clip-text text-transparent mb-1 tracking-tight">
+                {currentTime.toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
+              </div>
+              <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                WIB
+              </div>
+            </div>
+            
+            {/* Date */}
+            <div className="flex items-center justify-center gap-2 text-slate-600">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-slate-300"></div>
+              <p className="text-sm font-medium">
+                {currentTime.toLocaleDateString("id-ID", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-slate-300"></div>
+            </div>
           </div>
         </div>
 
-        {/* Location Section */}
-        <div className="flex items-center gap-3 mb-6 p-3 bg-blue-50 rounded-lg">
-          <MapPin size={20} className="text-blue-500" />
-          <div>
+        {/* Location Section with Map */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <MapPin size={18} className="text-blue-600" />
             <p className="text-sm font-medium text-blue-800">Lokasi Saat Ini</p>
-            <p className="text-sm text-blue-600">{location}</p>
           </div>
+          
+          <LocationMap 
+            height="250px"
+            onLocationChange={(lat, lng, address) => {
+              setCoordinates({ lat, lng, address });
+              setLocation(address);
+            }}
+          />
+          
+          {location && coordinates && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-900 font-medium mb-1">Alamat:</p>
+              <p className="text-sm text-blue-700">{location}</p>
+              <p className="text-xs text-blue-500 mt-2">
+                Koordinat: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Action Button */}
