@@ -21,9 +21,20 @@ import {
   Settings,
   UsersRound,
   LogOut,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 export default function Sidebar() {
   const pathname = usePathname();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  const toggleMenu = (menuKey: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuKey) 
+        ? prev.filter(key => key !== menuKey)
+        : [...prev, menuKey]
+    );
+  };
 
   const visibleMenuItems = useMemo(() => {
     if (pathname.startsWith("/bizdev")) {
@@ -41,6 +52,11 @@ export default function Sidebar() {
         (item) => item.module === "common" || item.module === "operation"
       );
     }
+    if (pathname.startsWith("/hr")) {
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "hr"
+      );
+    }
     return MENU_ITEMS;
   }, [pathname]);
 
@@ -54,15 +70,49 @@ export default function Sidebar() {
 
       {/* Menu */}
       <nav className="space-y-1 text-sm text-slate-600 flex-1">
-        {visibleMenuItems.map((item) => (
-          <MenuLink
-            key={item.href}
-            href={item.href}
-            label={item.label}
-            icon={item.icon}
-            active={pathname === item.href}
-          />
-        ))}
+        {visibleMenuItems.map((item) => {
+          if (item.children) {
+            const isExpanded = expandedMenus.includes(item.key!);
+            const hasActiveChild = item.children.some(child => pathname === child.href);
+            return (
+              <div key={item.key}>
+                <button
+                  onClick={() => toggleMenu(item.key!)}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition
+                    ${hasActiveChild ? "bg-blue-100 text-blue-600 font-semibold" : "hover:bg-slate-100"}
+                  `}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    {item.label}
+                  </div>
+                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {isExpanded && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    {item.children.map((child) => (
+                      <MenuLink
+                        key={child.href}
+                        href={child.href}
+                        label={child.label}
+                        active={pathname === child.href}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          return (
+            <MenuLink
+              key={item.href}
+              href={item.href!}
+              label={item.label}
+              icon={item.icon}
+              active={pathname === item.href}
+            />
+          );
+        })}
       </nav>
 
       <UserSection />
@@ -84,7 +134,7 @@ function MenuLink({
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition
-        ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
+        ${active ? "bg-blue-100 text-blue-600 font-semibold" : "hover:bg-slate-100"}
       `}
     >
       {icon}
@@ -116,9 +166,18 @@ const MENU_ITEMS = [
   { label: "Invoices", href: "/finance/invoices", icon: <Wallet size={18} />, module: "finance" },
   { label: "Reports", href: "/finance/reports", module: "finance" },
 
-  // OPERATION
-  { label: "Projects", href: "/operation/projects", icon: <Settings size={18} />, module: "operation" },
-  { label: "Teams", href: "/operation/teams", module: "operation" },
+  // HR
+  { 
+    label: "Attendance", 
+    icon: <UsersRound size={18} />, 
+    module: "hr",
+    key: "attendance",
+    children: [
+      { label: "Recent Activity", href: "/hr/attendance/recent-activity" },
+      { label: "Summary", href: "/hr/attendance/summary" },
+      { label: "Absent", href: "/hr/attendance/absent" },
+    ]
+  },
 ];
 
 function UserSection() {
