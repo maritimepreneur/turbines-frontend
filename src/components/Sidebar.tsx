@@ -31,6 +31,15 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  const toggleMenu = (menuKey: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuKey) 
+        ? prev.filter(key => key !== menuKey)
+        : [...prev, menuKey]
+    );
+  };
 
   const visibleMenuItems = useMemo(() => {
     if (pathname.startsWith("/bizdev")) {
@@ -162,7 +171,7 @@ function MenuLink({
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition
-        ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
+        ${active ? "bg-blue-100 text-blue-600 font-semibold" : "hover:bg-slate-100"}
       `}
     >
       {icon}
