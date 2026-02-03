@@ -9,9 +9,9 @@ export default function SummaryPage() {
   const [showFilter, setShowFilter] = useState(false)
 
   const tabs = [
-    { label: "Recent Activity", href: "/hr/attendance/recent-activity" },
-    { label: "Summary", href: "/hr/attendance/summary" },
-    { label: "Absent", href: "/hr/attendance/absent" },
+    { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
+    { label: "Summary", href: "/human-resources/attendance/summary" },
+    { label: "Absent", href: "/human-resources/attendance/absent" },
   ]
 
   return (

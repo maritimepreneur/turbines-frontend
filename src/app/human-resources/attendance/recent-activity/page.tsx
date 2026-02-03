@@ -4,14 +4,14 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-export default function AbsentPage() {
+export default function RecentActivityPage() {
   const pathname = usePathname()
   const [showFilter, setShowFilter] = useState(false)
 
   const tabs = [
-    { label: "Recent Activity", href: "/hr/attendance/recent-activity" },
-    { label: "Summary", href: "/hr/attendance/summary" },
-    { label: "Absent", href: "/hr/attendance/absent" },
+    { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
+    { label: "Summary", href: "/human-resources/attendance/summary" },
+    { label: "Absent", href: "/human-resources/attendance/absent" },
   ]
 
   return (
@@ -70,31 +70,43 @@ export default function AbsentPage() {
             <tr className="border-b">
               <th className="text-left py-3 px-3">Employee ID</th>
               <th className="text-left py-3 px-3">Employee Name</th>
-              <th className="text-left py-3 px-3">Department</th>
+              <th className="text-left py-3 px-3">Client</th>
               <th className="text-left py-3 px-3">Date</th>
-              <th className="text-left py-3 px-3">Reason</th>
-              <th className="text-left py-3 px-3">Status</th>
+              <th className="text-left py-3 px-3">Clock In</th>
+              <th className="text-left py-3 px-3">Clock Out</th>
+              <th className="text-left py-3 px-3">Action</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b hover:bg-slate-50 transition">
-              <td className="py-3 px-3">EMP003</td>
-              <td className="py-3 px-3">Mike Johnson</td>
-              <td className="py-3 px-3">Finance</td>
+              <td className="py-3 px-3">EMP001</td>
+              <td className="py-3 px-3">John Doe</td>
+              <td className="py-3 px-3">PT Mahakarya</td>
               <td className="py-3 px-3">01 Dec 2025</td>
-              <td className="py-3 px-3">Sick Leave</td>
+              <td className="py-3 px-3 text-blue-600">09:00</td>
+              <td className="py-3 px-3 text-blue-600">18:00</td>
               <td className="py-3 px-3">
-                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Absent</span>
+                <div className="flex gap-2">
+                  <button className="bg-green-500 text-white px-3 py-1 rounded text-xs hover:bg-green-600 transition">
+                    Approve
+                  </button>
+                  <button className="bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600 transition">
+                    Reject
+                  </button>
+                </div>
               </td>
             </tr>
-            <tr className="border-b hover:bg-slate-50 transition">
-              <td className="py-3 px-3">EMP005</td>
-              <td className="py-3 px-3">Sarah Wilson</td>
-              <td className="py-3 px-3">HR</td>
-              <td className="py-3 px-3">30 Nov 2025</td>
-              <td className="py-3 px-3">Personal Leave</td>
+            <tr className="border-b hover:bg-slate-50 transition bg-gray-50">
+              <td className="py-3 px-3 text-gray-500">EMP002</td>
+              <td className="py-3 px-3 text-gray-500">Jane Smith</td>
+              <td className="py-3 px-3 text-gray-500">PT Indofood</td>
+              <td className="py-3 px-3 text-gray-500">01 Dec 2025</td>
+              <td className="py-3 px-3 text-gray-500">08:30</td>
+              <td className="py-3 px-3 text-gray-500">17:30</td>
               <td className="py-3 px-3">
-                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Absent</span>
+                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded text-xs">
+                  Approved
+                </span>
               </td>
             </tr>
           </tbody>
