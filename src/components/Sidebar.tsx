@@ -295,7 +295,12 @@ const MENU_ITEMS = [
   { 
     label: "Attendance", 
     href: "/human-resources/attendance", 
-    icon: <CalendarCheck size={18} />, 
+    icon: <CalendarCheck size={18} />,
+    subMenu: [
+      { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
+      { label: "Summary", href: "/human-resources/attendance/summary" },
+       { label: "Absent", href: "/human-resources/attendance/absent" },
+    ],  
     module: "human-resources" 
   },
   // { 
