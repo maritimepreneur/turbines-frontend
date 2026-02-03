@@ -29,15 +29,6 @@ import {
   CalendarCheck,
 } from "lucide-react";
 
-// Define the MenuItem interface
-interface MenuItem {
-  label: string;
-  href: string;
-  icon?: React.ReactNode;
-  module: string;
-  subMenu?: { label: string; href: string }[];
-}
-
 export default function Sidebar() {
   const pathname = usePathname();
 
@@ -65,11 +56,6 @@ export default function Sidebar() {
     if (pathname.startsWith("/human-resources")) {
       return MENU_ITEMS.filter(
         (item) => item.module === "common" || item.module === "human-resources",
-      );
-    }
-    if (pathname.startsWith("/employee")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "employee" || item.module === "profile"
       );
     }
     return MENU_ITEMS;
@@ -188,7 +174,7 @@ function MenuLink({
   );
 }
 
-const MENU_ITEMS: MenuItem[] = [
+const MENU_ITEMS = [
   // COMMON
   {
     label: "Dashboard",
@@ -262,41 +248,41 @@ const MENU_ITEMS: MenuItem[] = [
   },
 
   // OPERATION
-  { 
-    label: "Projects", 
-    href: "/operation/projects", 
-    icon: <Settings size={18} />, 
-    module: "operation" 
+  {
+    label: "Projects",
+    href: "/operation/projects",
+    icon: <Settings size={18} />,
+    module: "operation",
   },
-  { 
-    label: "Teams", 
+  {
+    label: "Teams",
     href: "/operation/teams",
-    icon: <UsersRound size={18} />, 
-    module: "operation" 
+    icon: <UsersRound size={18} />,
+    module: "operation",
   },
 
   // Employee Management
-  { 
-    label: "Profile", 
-    href: "/employee/profile", 
+  {
+    label: "Profile",
+    href: "/employee/profile",
     icon: <UserCircle size={18} />,
-    module: "employee" 
+    module: "employee",
   },
-  { 
-    label: "Calendar", 
-    href: "/employee/calendar", 
+  {
+    label: "Calendar",
+    href: "/employee/calendar",
     icon: <Calendar size={18} />,
-    module: "employee" 
+    module: "employee",
   },
-  { 
-    label: "Attendance", 
-    href: "/employee/attendance", 
-    icon: <Clock size={18} />,  
+  {
+    label: "Attendance",
+    href: "/employee/attendance/clock-in",
+    icon: <Clock size={18} />,
     subMenu: [
-      { label: "Check In", href: "/employee/check-in" },
-      { label: "Check Out", href: "/employee/check-out" },
-    ], 
-    module: "employee" 
+      { label: "Clock In", href: "/employee/attendance/clock-in" },
+      { label: "Clock Out", href: "/employee/attendance/clock-out" },
+    ],
+    module: "employee",
   },
 
   // Human Resources
@@ -311,15 +297,15 @@ const MENU_ITEMS: MenuItem[] = [
     ],  
     module: "human-resources" 
   },
-  // { 
-  //   label: "My Reports", 
-  //   href: "/human-resources/reports", 
+  // {
+  //   label: "My Reports",
+  //   href: "/human-resources/reports",
   //   icon: <BarChart3 size={18} />,
   //   subMenu: [
   //     { label: "Weekly Report", href: "/human-resources/reports/weekly" },
   //     { label: "Monthly Report", href: "/human-resources/reports/monthly" },
   //   ],
-  //   module: "human-resources" 
+  //   module: "human-resources"
   // },
 ];
 
