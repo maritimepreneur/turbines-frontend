@@ -3,7 +3,7 @@
 import RoleCard from "@/components/RoleCard";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { Briefcase, Wallet, Settings, LogOut } from "lucide-react";
+import { Briefcase, Wallet, Settings, LogOut, User2, UserCircle2 } from "lucide-react";
 
 export default function Home() {
   const { user, logout } = useAuth();
@@ -60,6 +60,23 @@ export default function Home() {
             icon={<Settings size={20} />}
             href="/operation/quotation"
           />
+
+          <RoleCard
+            title="Employee"
+            color="bg-yellow-500"
+            textColor="text-yellow-500"
+            icon={<UserCircle2 size={20} />}
+            href="/employee/attendance"
+          />
+          
+          <RoleCard
+            title="Human Resources"
+            color="bg-cyan-500"
+            textColor="text-cyan-500"
+            icon={<User2 size={20} />}
+            href="/human-resources/attendance"
+          />
+          
         </div>
       </main>
     </ProtectedRoute>
