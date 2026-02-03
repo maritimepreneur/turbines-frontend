@@ -29,6 +29,15 @@ import {
   CalendarCheck,
 } from "lucide-react";
 
+// Define the MenuItem interface
+interface MenuItem {
+  label: string;
+  href: string;
+  icon?: React.ReactNode;
+  module: string;
+  subMenu?: { label: string; href: string }[];
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
 
@@ -179,7 +188,7 @@ function MenuLink({
   );
 }
 
-const MENU_ITEMS = [
+const MENU_ITEMS: MenuItem[] = [
   // COMMON
   {
     label: "Dashboard",
