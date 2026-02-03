@@ -286,11 +286,16 @@ const MENU_ITEMS = [
   },
 
   // Human Resources
-  {
-    label: "Attendance",
-    href: "/human-resources/attendance",
+  { 
+    label: "Attendance", 
+    href: "/human-resources/attendance", 
     icon: <CalendarCheck size={18} />,
-    module: "human-resources",
+    subMenu: [
+      { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
+      { label: "Summary", href: "/human-resources/attendance/summary" },
+       { label: "Absent", href: "/human-resources/attendance/absent" },
+    ],  
+    module: "human-resources" 
   },
   // {
   //   label: "My Reports",
