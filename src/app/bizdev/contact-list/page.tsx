@@ -1,22 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { useTableFilters } from "@/hooks/useTableFilters"
+import { getContactList } from "@/services/contactService"
 
-type Contacts = {
+/* =======================
+   TYPES
+======================= */
+
+// data asli dari API
+type ContactAPI = {
+  id: number
+  name: string
+  emails: string[]
+  phone_numbers: string[]
+  company: string
+  partner_id: number
+  created_at: string
+}
+
+// data yang dipakai UI (table)
+type ContactUI = {
   id: string
   name: string
   emails: string
-  phone_numbers:string
-  company:[string]
-  type:[string]
-
+  phone_numbers: string
+  company: string[]
+  type: string[]
 }
 
-const ContactsData: Contacts[] = [
+/* =======================
+   FALLBACK DATA
+======================= */
+
+const fallbackContacts: ContactUI[] = [
   {
     id: "ID/001/CT/2024",
     name: "Budi Santoso",
@@ -35,10 +57,49 @@ const ContactsData: Contacts[] = [
   },
 ]
 
+/* =======================
+   PAGE
+======================= */
 
 export default function ContactsPage() {
   const [showFilter, setShowFilter] = useState(false)
+  const [contacts, setContacts] = useState<ContactUI[]>([])
+  const [loading, setLoading] = useState(true)
 
+  /* =======================
+     FETCH DATA
+  ======================= */
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const res = await getContactList()
+
+        const mappedContacts: ContactUI[] = res.data.map(
+          (item: ContactAPI) => ({
+            id: `ID/${item.id}/CT/2024`,
+            name: item.name,
+            emails: item.emails?.[0] ?? "-",
+            phone_numbers: item.phone_numbers?.[0] ?? "-",
+            company: [item.company],
+            type: ["Partner"], // sementara (API belum ada)
+          })
+        )
+
+        setContacts(mappedContacts)
+      } catch (error) {
+        console.error("Failed to fetch contacts:", error)
+        setContacts(fallbackContacts)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchContacts()
+  }, [])
+
+  /* =======================
+     TABLE FILTERS
+  ======================= */
   const {
     filters,
     search,
@@ -53,16 +114,16 @@ export default function ContactsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
-  } = useTableFilters(ContactsData, 5)
+  } = useTableFilters(contacts, 5)
 
   const fieldOptions = [
-    { label: "Industry", value: "industry" },
-    { label: "PIC", value: "pic" },
-    { label: "Period", value: "period" },
     { label: "Company", value: "company" },
     { label: "Name", value: "name" },
   ]
 
+  /* =======================
+     RENDER
+  ======================= */
   return (
     <div>
       {/* Header */}
@@ -70,7 +131,9 @@ export default function ContactsPage() {
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Contact List</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Contact List</h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">
+          Contact List
+        </h1>
       </div>
 
       {/* Card */}
@@ -82,9 +145,6 @@ export default function ContactsPage() {
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
               Filter
               {filters.length > 0 && (
                 <span className="bg-white text-sky-500 rounded-full px-2 py-0.5 text-xs font-semibold">
@@ -100,9 +160,11 @@ export default function ContactsPage() {
             />
           </div>
 
-          <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
-            + Add
-          </button>
+          <Link href="/bizdev/contact-list/add-contact">
+            <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+              + Add
+            </button>
+          </Link>
         </div>
 
         {/* Filter Panel */}
@@ -132,7 +194,15 @@ export default function ContactsPage() {
           </thead>
 
           <tbody>
-            {paginatedData.length === 0 && (
+            {loading && (
+              <tr>
+                <td colSpan={7} className="text-center py-6 text-slate-400">
+                  Loading...
+                </td>
+              </tr>
+            )}
+
+            {!loading && paginatedData.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-6 text-slate-400">
                   No data found
@@ -140,30 +210,25 @@ export default function ContactsPage() {
               </tr>
             )}
 
-            {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.name}</td>
-                <td className="py-3 px-3">{item.emails}</td>
-                <td className="py-3 px-3">{item.phone_numbers}</td>
-                <td className="py-3 px-3">{item.company.join(", ")}</td>
-                <td className="py-3 px-3">{item.type.join(", ")}</td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-4">
-                    <button className="text-sky-500 hover:text-sky-700">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button className="text-red-500 hover:text-red-700">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {!loading &&
+              paginatedData.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-b hover:bg-slate-50 transition"
+                >
+                  <td className="py-3 px-3">{item.id}</td>
+                  <td className="py-3 px-3 font-medium">{item.name}</td>
+                  <td className="py-3 px-3">{item.emails}</td>
+                  <td className="py-3 px-3">{item.phone_numbers}</td>
+                  <td className="py-3 px-3">
+                    {item.company.join(", ")}
+                  </td>
+                  <td className="py-3 px-3">
+                    {item.type.join(", ")}
+                  </td>
+                  <td className="py-3 px-3">—</td>
+                </tr>
+              ))}
           </tbody>
         </table>
 

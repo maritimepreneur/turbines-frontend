@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image"; 
-import Link from "next/link"; 
+import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useAuth } from "@/contexts/AuthContext"; 
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useMemo } from "react";
 import {
   LayoutGrid,
@@ -31,40 +31,31 @@ import {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
-
-  const toggleMenu = (menuKey: string) => {
-    setExpandedMenus(prev => 
-      prev.includes(menuKey) 
-        ? prev.filter(key => key !== menuKey)
-        : [...prev, menuKey]
-    );
-  };
 
   const visibleMenuItems = useMemo(() => {
     if (pathname.startsWith("/bizdev")) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "bizdev"
+        (item) => item.module === "common" || item.module === "bizdev",
       );
     }
     if (pathname.startsWith("/finance")) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "finance"
+        (item) => item.module === "common" || item.module === "finance",
       );
     }
     if (pathname.startsWith("/operation")) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "operation"
+        (item) => item.module === "common" || item.module === "operation",
       );
     }
     if (pathname.startsWith("/employee")) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "employee"
+        (item) => item.module === "common" || item.module === "employee",
       );
     }
     if (pathname.startsWith("/human-resources")) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "human-resources"
+        (item) => item.module === "common" || item.module === "human-resources",
       );
     }
     return MENU_ITEMS;
@@ -115,15 +106,18 @@ function MenuLink({
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Check if any submenu item is active
+  const hasActiveSubMenu = subMenu
+    ? subMenu.some((sub) => pathname === sub.href)
+    : false;
+  const isParentActive = active || hasActiveSubMenu;
+
   // Auto-open submenu if any submenu item is active
   useEffect(() => {
-    if (subMenu) {
-      const hasActiveSubMenu = subMenu.some((sub) => pathname === sub.href);
-      if (hasActiveSubMenu) {
-        setIsOpen(true);
-      }
+    if (hasActiveSubMenu) {
+      setIsOpen(true);
     }
-  }, [pathname, subMenu]);
+  }, [hasActiveSubMenu]);
 
   // If has submenu, render as expandable
   if (subMenu && subMenu.length > 0) {
@@ -132,7 +126,7 @@ function MenuLink({
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition
-            ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
+            ${isParentActive ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
           `}
         >
           <div className="flex items-center gap-3">
@@ -171,7 +165,7 @@ function MenuLink({
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition
-        ${active ? "bg-blue-100 text-blue-600 font-semibold" : "hover:bg-slate-100"}
+        ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
       `}
     >
       {icon}
@@ -190,105 +184,105 @@ const MENU_ITEMS = [
   },
 
   // BIZDEV
-  { 
-    label: "New Leads", 
-    href: "/bizdev/new-leads", 
-    icon: <TrendingUp size={18} />, 
-    module: "bizdev" 
+  {
+    label: "New Leads",
+    href: "/bizdev/new-leads",
+    icon: <TrendingUp size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Pipelines", 
+  {
+    label: "Pipelines",
     href: "/bizdev/pipelines",
-    icon: <FolderKanban size={18} />, 
-    module: "bizdev" 
+    icon: <FolderKanban size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Partner List", 
+  {
+    label: "Partner List",
     href: "/bizdev/partner-list",
-    icon: <Handshake size={18} />, 
-    module: "bizdev" 
+    icon: <Handshake size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Contact List", 
+  {
+    label: "Contact List",
     href: "/bizdev/contact-list",
-    icon: <Users size={18} />, 
-    module: "bizdev" 
+    icon: <Users size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Projects", 
+  {
+    label: "Projects",
     href: "/bizdev/projects",
-    icon: <Briefcase size={18} />, 
-    module: "bizdev" 
+    icon: <Briefcase size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Proposals", 
+  {
+    label: "Proposals",
     href: "/bizdev/proposals",
-    icon: <FileText size={18} />, 
-    module: "bizdev" 
+    icon: <FileText size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Approvals", 
+  {
+    label: "Approvals",
     href: "/bizdev/approvals",
-    icon: <CheckCircle size={18} />, 
-    module: "bizdev" 
+    icon: <CheckCircle size={18} />,
+    module: "bizdev",
   },
-  { 
-    label: "Agreements", 
+  {
+    label: "Agreements",
     href: "/bizdev/agreements",
-    icon: <FileText size={18} />, 
-    module: "bizdev" 
+    icon: <FileText size={18} />,
+    module: "bizdev",
   },
 
   // FINANCE
-  { 
-    label: "Invoices", 
-    href: "/finance/invoices", 
-    icon: <Wallet size={18} />, 
-    module: "finance" 
+  {
+    label: "Invoices",
+    href: "/finance/invoices",
+    icon: <Wallet size={18} />,
+    module: "finance",
   },
-  { 
-    label: "Reports", 
+  {
+    label: "Reports",
     href: "/finance/reports",
-    icon: <BarChart3 size={18} />, 
-    module: "finance" 
+    icon: <BarChart3 size={18} />,
+    module: "finance",
   },
 
   // OPERATION
-  { 
-    label: "Projects", 
-    href: "/operation/projects", 
-    icon: <Settings size={18} />, 
-    module: "operation" 
+  {
+    label: "Projects",
+    href: "/operation/projects",
+    icon: <Settings size={18} />,
+    module: "operation",
   },
-  { 
-    label: "Teams", 
+  {
+    label: "Teams",
     href: "/operation/teams",
-    icon: <UsersRound size={18} />, 
-    module: "operation" 
+    icon: <UsersRound size={18} />,
+    module: "operation",
   },
 
   // Employee Management
-  { 
-    label: "Profile", 
-    href: "/employee/profile", 
+  {
+    label: "Profile",
+    href: "/employee/profile",
     icon: <UserCircle size={18} />,
-    module: "employee" 
+    module: "employee",
   },
-  { 
-    label: "Calendar", 
-    href: "/employee/calendar", 
+  {
+    label: "Calendar",
+    href: "/employee/calendar",
     icon: <Calendar size={18} />,
-    module: "employee" 
+    module: "employee",
   },
-  { 
-    label: "Attendance", 
-    href: "/employee/attendance", 
-    icon: <Clock size={18} />,  
+  {
+    label: "Attendance",
+    href: "/employee/attendance/clock-in",
+    icon: <Clock size={18} />,
     subMenu: [
-      { label: "Check In", href: "/employee/check-in" },
-      { label: "Check Out", href: "/employee/check-out" },
-    ], 
-    module: "employee" 
+      { label: "Check In", href: "/employee/attendance/clock-in" },
+      { label: "Check Out", href: "/employee/attendance/clock-out" },
+    ],
+    module: "employee",
   },
 
   // Human Resources
@@ -303,15 +297,15 @@ const MENU_ITEMS = [
     ],  
     module: "human-resources" 
   },
-  // { 
-  //   label: "My Reports", 
-  //   href: "/human-resources/reports", 
+  // {
+  //   label: "My Reports",
+  //   href: "/human-resources/reports",
   //   icon: <BarChart3 size={18} />,
   //   subMenu: [
   //     { label: "Weekly Report", href: "/human-resources/reports/weekly" },
   //     { label: "Monthly Report", href: "/human-resources/reports/monthly" },
   //   ],
-  //   module: "human-resources" 
+  //   module: "human-resources"
   // },
 ];
 
@@ -335,7 +329,9 @@ function UserSection() {
         />
 
         <div className="text-left flex-1">
-          <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
+          <p className="text-sm font-semibold text-gray-800">
+            {user?.username}
+          </p>
           <p className="text-xs text-gray-500">{user?.role}</p>
         </div>
       </button>
@@ -345,7 +341,9 @@ function UserSection() {
         <div className="absolute bottom-14 left-0 w-full bg-white border rounded-xl shadow-lg p-3 text-sm z-50">
           {/* User Info */}
           <div className="pb-2 border-b">
-            <p className="text-sm font-semibold text-gray-800">{user?.username}</p>
+            <p className="text-sm font-semibold text-gray-800">
+              {user?.username}
+            </p>
             <p className="text-xs text-gray-500">{user?.role}</p>
           </div>
 
@@ -356,7 +354,7 @@ function UserSection() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-100 transition"
             >
-              <UserCircle size={16} className="text-black"/>
+              <UserCircle size={16} className="text-black" />
               <span className="text-black">User Profile</span>
             </Link>
             <button
@@ -365,7 +363,7 @@ function UserSection() {
             >
               <LogOut size={16} />
               <span>Logout</span>
-            </button>    
+            </button>
           </div>
         </div>
       )}
