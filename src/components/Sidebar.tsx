@@ -262,8 +262,65 @@ const MENU_ITEMS: MenuItem[] = [
   },
 
   // OPERATION
-  { label: "Projects", href: "/operation/projects", icon: <Settings size={18} />, module: "operation" },
-  { label: "Teams", href: "/operation/teams", module: "operation" },
+  { 
+    label: "Projects", 
+    href: "/operation/projects", 
+    icon: <Settings size={18} />, 
+    module: "operation" 
+  },
+  { 
+    label: "Teams", 
+    href: "/operation/teams",
+    icon: <UsersRound size={18} />, 
+    module: "operation" 
+  },
+
+  // Employee Management
+  { 
+    label: "Profile", 
+    href: "/employee/profile", 
+    icon: <UserCircle size={18} />,
+    module: "employee" 
+  },
+  { 
+    label: "Calendar", 
+    href: "/employee/calendar", 
+    icon: <Calendar size={18} />,
+    module: "employee" 
+  },
+  { 
+    label: "Attendance", 
+    href: "/employee/attendance", 
+    icon: <Clock size={18} />,  
+    subMenu: [
+      { label: "Check In", href: "/employee/check-in" },
+      { label: "Check Out", href: "/employee/check-out" },
+    ], 
+    module: "employee" 
+  },
+
+  // Human Resources
+  { 
+    label: "Attendance", 
+    href: "/human-resources/attendance", 
+    icon: <CalendarCheck size={18} />,
+    subMenu: [
+      { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
+      { label: "Summary", href: "/human-resources/attendance/summary" },
+       { label: "Absent", href: "/human-resources/attendance/absent" },
+    ],  
+    module: "human-resources" 
+  },
+  // { 
+  //   label: "My Reports", 
+  //   href: "/human-resources/reports", 
+  //   icon: <BarChart3 size={18} />,
+  //   subMenu: [
+  //     { label: "Weekly Report", href: "/human-resources/reports/weekly" },
+  //     { label: "Monthly Report", href: "/human-resources/reports/monthly" },
+  //   ],
+  //   module: "human-resources" 
+  // },
 ];
 
 function UserSection() {
