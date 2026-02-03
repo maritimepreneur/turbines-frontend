@@ -5,52 +5,12 @@ import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { useTableFilters } from "@/hooks/useTableFilters"
-
-type Partners = {
-  id: string
-  company_name: string
-  company_initial: string
-  company_industrial:string
-  contacts:[string]
-  company_type: [string]
-  partner_type: [string]
-
-}
-
-const PartnersData: Partners[] = [
-  {
-    id: "ID/001/LD/2024",
-    company_name: "Pt Mahakarya",
-    company_initial: "MHK",
-    company_industrial: "Manufacturing",
-    contacts: ["083-xxx-xxx-xxx"],
-    company_type: ["Client"],
-    partner_type:['service']
-  },
-  {
-    id: "ID/002/LD/2024",
-    company_name: "Pt Indofood",
-    company_initial: "IDF",
-    company_industrial: "Food & Beverage",
-    contacts: ["081-xxx-xxx-xxx"],
-    company_type: ["Partner"],
-    partner_type:['service']
-
-  },
-  {
-    id: "ID/003/LD/2024",
-    company_name: "Pt Logistics",
-    company_initial: "LOG",
-    company_industrial: "Logistics",
-    contacts: ["082-xxx-xxx-xxx"],
-    company_type: ["Vendor"],
-    partner_type:['service']
-
-  },
-]
+import { usePartners, useDeletePartner } from "@/hooks/usePartners"
 
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false)
+  const { data: partners = [], isLoading } = usePartners()
+  const deletePartner = useDeletePartner()
 
   const {
     filters,
@@ -66,15 +26,24 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
-  } = useTableFilters(PartnersData, 5)
+  } = useTableFilters(partners, 5)
+
+  const handleDelete = (id: number) => {
+    if (confirm('Hapus partner ini?')) {
+      deletePartner.mutate(id)
+    }
+  }
 
   const fieldOptions = [
+    { label: "Company Name", value: "name" },
+    { label: "Initials", value: "initials" },
     { label: "Industry", value: "industry" },
-    { label: "PIC", value: "pic" },
-    { label: "Period", value: "period" },
-    { label: "Company", value: "company" },
-    { label: "Name", value: "name" },
+    { label: "Company Type", value: "company_type" },
+    { label: "Partner Type", value: "partner_type" },
+    { label: "Service", value: "service" },
   ]
+
+  if (isLoading) return <div className="p-6">Loading...</div>
 
   return (
     <div>
@@ -109,11 +78,14 @@ export default function NewLeadsPage() {
             <SearchBar
               value={search}
               onChange={setSearch}
-              placeholder="Search name or company..."
+              placeholder="Search company name or initials..."
             />
           </div>
 
-          <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+          <button 
+            onClick={() => window.location.href = '/bizdev/partner-list/add'}
+            className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition"
+          >
             + Add
           </button>
         </div>
@@ -138,7 +110,7 @@ export default function NewLeadsPage() {
               <th className="text-left py-3 px-3">Company Name</th>
               <th className="text-left py-3 px-3">Initial</th>
               <th className="text-left py-3 px-3">Industry</th>
-              <th className="text-left py-3 px-3">Contact</th>
+              <th className="text-left py-3 px-3">Service</th>
               <th className="text-left py-3 px-3">Company Type</th>
               <th className="text-left py-3 px-3">Partner Type</th>
               <th className="text-left py-3 px-3">Action</th>
@@ -157,20 +129,28 @@ export default function NewLeadsPage() {
             {paginatedData.map((item) => (
               <tr key={item.id} className="border-b hover:bg-slate-50 transition">
                 <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.company_name}</td>
-                <td className="py-3 px-3">{item.company_initial}</td>
-                <td className="py-3 px-3">{item.company_industrial}</td>
-                <td className="py-3 px-3">{item.contacts.join(", ")}</td>
-                <td className="py-3 px-3">{item.company_type.join(", ")}</td>
-                <td className="py-3 px-3">{item.partner_type.join(", ")}</td>
+                <td className="py-3 px-3 font-medium">{item.name}</td>
+                <td className="py-3 px-3">{item.initials}</td>
+                <td className="py-3 px-3">{item.industry}</td>
+                <td className="py-3 px-3">{item.service || '-'}</td>
+                <td className="py-3 px-3">{item.company_type}</td>
+                <td className="py-3 px-3">{item.partner_type}</td>
                 <td className="py-3 px-3">
                   <div className="flex gap-4">
-                    <button className="text-sky-500 hover:text-sky-700">
+                    <button 
+                      className="text-sky-500 hover:text-sky-700"
+                      onClick={() => window.location.href = `/bizdev/partner-list/edit?id=${item.id}`}
+                      title="Edit"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    <button className="text-red-500 hover:text-red-700">
+                    <button 
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleDelete(item.id)}
+                      title="Delete"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
