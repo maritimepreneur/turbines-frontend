@@ -115,6 +115,7 @@ export default function LocationMap({
         onLocationChange(latitude, longitude, address);
       }
     };
+    
 
     const errorHandler = (error: GeolocationPositionError) => {
       let errorMessage = "Gagal mendapatkan lokasi";

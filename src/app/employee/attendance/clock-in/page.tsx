@@ -4,9 +4,12 @@ import { useState, useEffect } from "react"
 import { Clock, MapPin, User, CheckCircle, DoorOpen } from "lucide-react";
 import Image from "next/image"
 import LocationMap from "@/components/LocationMap"
+import TimeStamp from "@/components/TimeStamp"
 import type { AttendanceLocation } from "@/types/location"
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ClockInPage() {
+  const { user} = useAuth();
   const [clockedIn, setClockedIn] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -66,7 +69,7 @@ export default function ClockInPage() {
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white"></div>
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Yoel Ginting</h3>
+            <h3 className="font-semibold text-lg">{user?.username}</h3>
             <p className="text-slate-600">Web Developer</p>
           </div>
         </div>
@@ -75,7 +78,7 @@ export default function ClockInPage() {
         <div className="text-center mb-4 relative">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 rounded-2xl -z-10"></div>
-          
+
           <div className="py-2 px-6">
             {/* Animated Clock Icon */}
             <div className="relative inline-block mb-2">
@@ -84,34 +87,8 @@ export default function ClockInPage() {
                 <Clock size={25} className="text-white" strokeWidth={2.5} />
               </div>
             </div>
-            
-            {/* Time */}
-            <div className="mb-3">
-              <div className="text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-clip-text text-transparent mb-1 tracking-tight">
-                {currentTime.toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                })}
-              </div>
-              <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                WIB
-              </div>
-            </div>
-            
-            {/* Date */}
-            <div className="flex items-center justify-center gap-2 text-slate-600">
-              <div className="h-px w-8 bg-gradient-to-r from-transparent to-slate-300"></div>
-              <p className="text-sm font-medium">
-                {currentTime.toLocaleDateString("id-ID", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-              <div className="h-px w-8 bg-gradient-to-l from-transparent to-slate-300"></div>
-            </div>
+
+            <TimeStamp currentTime={currentTime} />
           </div>
         </div>
 
@@ -121,21 +98,22 @@ export default function ClockInPage() {
             <MapPin size={18} className="text-blue-600" />
             <p className="text-sm font-medium text-blue-800">Lokasi Saat Ini</p>
           </div>
-          
-          <LocationMap 
+
+          <LocationMap
             height="250px"
             onLocationChange={(lat, lng, address) => {
               setCoordinates({ lat, lng, address });
               setLocation(address);
             }}
           />
-          
+
           {location && coordinates && (
             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-              <p className="text-xs text-blue-900 font-medium mb-1">Alamat:</p>
+              <p className="text-xs text-blue-900 font-medium mb-1">Lokasi:</p>
               <p className="text-sm text-blue-700">{location}</p>
               <p className="text-xs text-blue-500 mt-2">
-                Koordinat: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+                Koordinat: {coordinates.lat.toFixed(6)},{" "}
+                {coordinates.lng.toFixed(6)}
               </p>
             </div>
           )}
@@ -167,7 +145,7 @@ export default function ClockInPage() {
       </div>
 
       {showConfirmModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-[9999]">
           <div className="bg-white border-2 border-blue-500 rounded-xl p-6 max-w-sm mx-4">
             <div className="text-center">
               <h3 className="text-lg text-black font-semibold mb-2">
@@ -196,7 +174,7 @@ export default function ClockInPage() {
       )}
 
       {showSuccessModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-[9999]">
           <div className="bg-white border-2 border-blue-500 rounded-xl p-6 max-w-sm mx-4">
             <div className="text-center">
               <CheckCircle size={64} className="mx-auto mb-4 text-green-500" />
