@@ -36,52 +36,25 @@ export default function LocationMap({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Reverse geocoding using Nominatim API
+  // Reverse geocoding using ArcGIS (Esri) - High specificity & Free
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
     try {
-      // Add delay to respect Nominatim rate limit (1 req/sec)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-        {
-          headers: {
-            "Accept-Language": "id",
-            "User-Agent": "TurbinesApp/1.0", // Nominatim requires User-Agent
-          },
-        }
+        `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&featureTypes=&location=${lng},${lat}`
       );
 
       if (!response.ok) {
-        console.error("Nominatim API error:", response.status);
+        console.error("Geocoding API error:", response.status);
         return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       }
 
       const data = await response.json();
       
-      // Check if we got a valid address
-      if (data && data.display_name) {
-        return data.display_name;
-      }
-      
-      // Try to construct address from address components
+      // ArcGIS provides very specific addresses in 'address.Match_addr' or 'address.LongLabel'
       if (data && data.address) {
-        const addr = data.address;
-        const parts = [
-          addr.road || addr.street,
-          addr.suburb || addr.neighbourhood,
-          addr.city || addr.town || addr.village,
-          addr.state,
-          addr.country
-        ].filter(Boolean);
-        
-        if (parts.length > 0) {
-          return parts.join(", ");
-        }
+        return data.address.LongLabel || data.address.Match_addr || data.address.Address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       }
       
-      // Fallback to coordinates if no address found
-      console.warn("No address found in response:", data);
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       
     } catch (err) {
