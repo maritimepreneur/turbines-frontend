@@ -7,33 +7,69 @@ import LocationMap from "@/components/LocationMap"
 import TimeStamp from "@/components/TimeStamp"
 import type { AttendanceLocation } from "@/types/location"
 import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/axios";
+
 
 export default function ClockInPage() {
-  const { user} = useAuth();
+  const { user, accessToken } = useAuth();
   const [clockedIn, setClockedIn] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [location, setLocation] = useState<string>("")
   const [coordinates, setCoordinates] = useState<AttendanceLocation | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clockInTime, setClockInTime] = useState<Date | null>(null)
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
+    if (!clockedIn) {
+      const timer = setInterval(() => {
+        setCurrentTime(new Date())
+      }, 1000)
+      return () => clearInterval(timer)
+    }
+  }, [clockedIn])
 
   const handleClockInClick = () => {
     setShowConfirmModal(true)
   }
 
-  const handleConfirmYes = () => {
-    setClockedIn(true)
-    setShowConfirmModal(false)
-    setShowSuccessModal(true)
-  }
+  const handleConfirmYes = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const res = await api.post(
+        "/api/attendances/clock-in",
+        {
+          timestamp: new Date().toISOString(),
+          status: "On Time",
+          desc: "Clock in via web app",
+          latitude: coordinates?.lat ?? 0,
+          longitude: coordinates?.lng ?? 0,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, 
+          },
+        },
+      );
+
+      const clockTime = new Date();
+      setClockInTime(clockTime);
+      setClockedIn(true);
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
+    } catch (error: any) {
+      console.error(error.response?.data || error);
+      alert(
+        error.response?.data?.message ||
+          "Gagal melakukan absensi. Silakan coba lagi.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   const handleConfirmNo = () => {
     setShowConfirmModal(false)
@@ -132,7 +168,7 @@ export default function ClockInPage() {
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {currentTime.toLocaleTimeString("id-ID")}
+              Berhasil absen pada {clockInTime?.toLocaleTimeString("id-ID")}
             </div>
             <button
               disabled
@@ -163,9 +199,10 @@ export default function ClockInPage() {
                 </button>
                 <button
                   onClick={handleConfirmYes}
-                  className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Ya
+                  {isSubmitting ? 'Memproses...' : 'Ya'}
                 </button>
               </div>
             </div>
@@ -183,7 +220,7 @@ export default function ClockInPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi masuk berhasil dicatat pada{" "}
-                {currentTime.toLocaleTimeString("id-ID")}
+                {clockInTime?.toLocaleTimeString("id-ID")}
               </p>
               <button
                 onClick={handleCloseSuccess}
