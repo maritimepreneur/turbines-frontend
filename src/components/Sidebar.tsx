@@ -279,8 +279,8 @@ const MENU_ITEMS = [
     href: "/employee/attendance/clock-in",
     icon: <Clock size={18} />,
     subMenu: [
-      { label: "Check In", href: "/employee/attendance/clock-in" },
-      { label: "Check Out", href: "/employee/attendance/clock-out" },
+      { label: "Clock In", href: "/employee/attendance/clock-in" },
+      { label: "Clock Out", href: "/employee/attendance/clock-out" },
     ],
     module: "employee",
   },
