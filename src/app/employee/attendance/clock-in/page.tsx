@@ -22,17 +22,29 @@ export default function ClockInPage() {
   const [clockInTime, setClockInTime] = useState<Date | null>(null)
 
   useEffect(() => {
-    if (!clockedIn) {
-      const timer = setInterval(() => {
-        setCurrentTime(new Date())
-      }, 1000)
-      return () => clearInterval(timer)
-    }
-  }, [clockedIn])
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   const handleClockInClick = () => {
     setShowConfirmModal(true)
   }
+
+  useEffect(() => {
+    if (user) {
+      // Use Asia/Jakarta timezone for date consistency
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+      const storedDate = localStorage.getItem(`attendance_clock_in_date_${user.id}`);
+      const storedTime = localStorage.getItem(`attendance_clock_in_time_${user.id}`);
+
+      if (storedDate === today && storedTime) {
+        setClockedIn(true);
+        setClockInTime(new Date(storedTime));
+      }
+    }
+  }, [user]);
 
   const handleConfirmYes = async () => {
     setIsSubmitting(true);
@@ -59,6 +71,14 @@ export default function ClockInPage() {
       setClockedIn(true);
       setShowConfirmModal(false);
       setShowSuccessModal(true);
+
+      // Save to localStorage with Asia/Jakarta timezone
+      if (user) {
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+        localStorage.setItem(`attendance_clock_in_date_${user.id}`, today);
+        localStorage.setItem(`attendance_clock_in_time_${user.id}`, clockTime.toISOString());
+      }
+
     } catch (error: any) {
       console.error(error.response?.data || error);
       alert(
@@ -159,16 +179,21 @@ export default function ClockInPage() {
         {!clockedIn ? (
           <button
             onClick={handleClockInClick}
-            className="bg-green-500 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition w-full flex items-center justify-center gap-2"
+            disabled={!location || !coordinates}
+            className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${
+              !location || !coordinates
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-green-500 text-white hover:bg-green-600"
+            }`}
           >
             <DoorOpen size={20} />
-            Absen Masuk
+            {!location || !coordinates ? "Menunggu Lokasi..." : "Absen Masuk"}
           </button>
         ) : (
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {clockInTime?.toLocaleTimeString("id-ID")}
+              Berhasil absen pada {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
             </div>
             <button
               disabled
@@ -220,7 +245,7 @@ export default function ClockInPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi masuk berhasil dicatat pada{" "}
-                {clockInTime?.toLocaleTimeString("id-ID")}
+                {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
               </p>
               <button
                 onClick={handleCloseSuccess}
