@@ -1,5 +1,6 @@
 // lib/axios.ts
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import { logger } from './logger';
 
 const axiosInstance = axios.create({
   baseURL: 'https://turbines-murex.vercel.app',
@@ -12,21 +13,20 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    console.log('📤 Request:', config.method?.toUpperCase(), config.url);
-    
+    logger.request(config.method || 'GET', config.url || '');
+
     // Add auth token if exists
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('🔑 Token attached to request');
       }
     }
 
     return config;
   },
   (error) => {
-    console.error('❌ Request error:', error);
+    logger.error('Request error', error);
     return Promise.reject(error);
   }
 );
@@ -34,13 +34,11 @@ axiosInstance.interceptors.request.use(
 // Response interceptor
 axiosInstance.interceptors.response.use(
   (response) => {
-    console.log('📥 Response:', response.status, response.config.url);
+    logger.response(response.status, response.config.url);
     return response;
   },
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
-
-    // console.error('❌ Response error:', error.response?.status, error.message);
 
     // Handle 401 - Unauthorized (token expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -48,10 +46,10 @@ axiosInstance.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        
+
         if (refreshToken) {
-          console.log('🔄 Attempting token refresh...');
-          
+          logger.info('Attempting token refresh...');
+
           // Try to refresh token
           const response = await axios.post(
             `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
@@ -60,9 +58,9 @@ axiosInstance.interceptors.response.use(
 
           if (response.data.code === 200 && response.data.data?.access_token) {
             const newAccessToken = response.data.data.access_token;
-            
-            console.log('✅ Token refreshed successfully');
-            
+
+            logger.success('Token refreshed successfully');
+
             // Save new token
             localStorage.setItem('access_token', newAccessToken);
 
@@ -70,39 +68,35 @@ axiosInstance.interceptors.response.use(
             if (originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             }
-            
+
             return axiosInstance(originalRequest);
           }
         }
       } catch (refreshError) {
-        console.error('❌ Token refresh failed:', refreshError);
-        
+        logger.error('Token refresh failed', refreshError);
+
         // Refresh failed, logout user
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        
+
         // Redirect to login only if not already on login page
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
-        
+
         return Promise.reject(refreshError);
       }
     }
 
     // Handle other errors
     if (error.response?.status === 403) {
-      console.error('🚫 Forbidden: You do not have permission');
+      logger.error('Forbidden: You do not have permission');
     }
 
     if (error.response?.status === 404) {
-      console.error('🔍 Not Found: Resource does not exist');
+      logger.error('Not Found: Resource does not exist');
     }
-
-    // if (error.response?.status >= 500) {
-    //   console.error('🔥 Server Error: Please try again later');
-    // }
 
     return Promise.reject(error);
   }

@@ -2,7 +2,13 @@
 
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { AxiosError } from "axios";
 import axiosInstance from "@/lib/axios";
+import { logger } from "@/lib/logger";
+import { useModal } from "@/hooks/useModal";
+import { useNotification } from "@/hooks/useNotification";
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
+import { NotificationModal } from "@/components/modals/NotificationModal";
 import Link from "next/link";
 
 type AttendanceDetail = {
@@ -53,30 +59,29 @@ export default function AttendanceDetailPage() {
       setIsLoading(true);
       setError(null);
 
-      console.log("📥 Fetching attendance detail for ID:", attendanceId);
+      logger.info("Fetching attendance detail for ID:", attendanceId);
 
       const response = await axiosInstance.get<AttendanceDetailResponse>(
         `/api/attendances/${attendanceId}`
       );
 
-      console.log("📦 Response:", response.data);
-
       if (response.data.code === 200) {
-        console.log("✅ Attendance detail fetched successfully");
+        logger.success("Attendance detail fetched successfully");
         setAttendance(response.data.data);
       } else {
         throw new Error(response.data.message || "Failed to fetch attendance detail");
       }
-    } catch (err: any) {
-      console.error("❌ Error fetching attendance detail:", err);
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      logger.error("Error fetching attendance detail", error);
 
-      if (err.response?.status === 401) {
+      if (error.response?.status === 401) {
         setError("Session expired. Please login again.");
         router.push("/login");
-      } else if (err.response?.status === 404) {
+      } else if (error.response?.status === 404) {
         setError("Attendance record not found.");
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
       } else {
         setError("Failed to load attendance detail. Please try again.");
       }
@@ -105,7 +110,7 @@ export default function AttendanceDetailPage() {
       if (response.data.code === 200) {
         console.log("✅ Attendance approved successfully");
         console.log("📦 Updated data:", response.data.data);
-        
+
         // Update state dengan data dari response API
         if (response.data.data) {
           setAttendance(response.data.data);
@@ -116,7 +121,7 @@ export default function AttendanceDetailPage() {
             checked: true
           });
         }
-        
+
         alert("Attendance approved successfully!");
       } else {
         throw new Error(response.data.message || "Failed to approve attendance");
@@ -134,54 +139,7 @@ export default function AttendanceDetailPage() {
     }
   };
 
-  const handleReject = async () => {
-    if (!attendance) return;
 
-    const confirmReject = window.confirm(
-      `Are you sure you want to reject attendance for "${attendance.employee_name || 'this employee'}"?`
-    );
-
-    if (!confirmReject) return;
-
-    try {
-      setIsProcessing(true);
-      console.log("❌ Rejecting attendance:", attendance.id);
-
-      const response = await axiosInstance.patch(
-        `/api/attendances/${attendance.id}/reject`
-      );
-
-      if (response.data.code === 200) {
-        console.log("✅ Attendance rejected successfully");
-        console.log("📦 Updated data:", response.data.data);
-        
-        // Update state dengan data dari response API
-        if (response.data.data) {
-          setAttendance(response.data.data);
-        } else {
-          // Fallback jika API tidak return data
-          setAttendance({
-            ...attendance,
-            checked: false
-          });
-        }
-        
-        alert("Attendance rejected successfully!");
-      } else {
-        throw new Error(response.data.message || "Failed to reject attendance");
-      }
-    } catch (err: any) {
-      console.error("❌ Error rejecting attendance:", err);
-
-      if (err.response?.data?.message) {
-        alert(`Failed to reject: ${err.response.data.message}`);
-      } else {
-        alert("Failed to reject attendance. Please try again.");
-      }
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "-";
@@ -445,32 +403,7 @@ export default function AttendanceDetailPage() {
                     </>
                   )}
                 </button>
-                <button
-                  onClick={handleReject}
-                  disabled={isProcessing}
-                  className="w-full bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                      Reject Attendance
-                    </>
-                  )}
-                </button>
+
               </div>
             </div>
           )}
@@ -529,12 +462,14 @@ export default function AttendanceDetailPage() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-slate-500">Location</p>
                   <button
-                    onClick={() =>
-                      openMapLocation(
-                        attendance.clock_in.latitude,
-                        attendance.clock_in.longitude
-                      )
-                    }
+                    onClick={() => {
+                      if (attendance.clock_in?.latitude && attendance.clock_in?.longitude) {
+                        openMapLocation(
+                          attendance.clock_in.latitude,
+                          attendance.clock_in.longitude
+                        );
+                      }
+                    }}
                     className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1"
                   >
                     <svg
@@ -560,8 +495,8 @@ export default function AttendanceDetailPage() {
                   </button>
                 </div>
                 <p className="text-sm font-mono text-slate-700">
-                  {attendance.clock_in.latitude.toFixed(6)},{" "}
-                  {attendance.clock_in.longitude.toFixed(6)}
+                  {attendance.clock_in?.latitude?.toFixed(6) || "0.000000"},{" "}
+                  {attendance.clock_in?.longitude?.toFixed(6) || "0.000000"}
                 </p>
               </div>
             </div>
@@ -614,25 +549,25 @@ export default function AttendanceDetailPage() {
                 </p>
               </div>
 
-              {attendance.clock_out.desc && (
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <p className="text-xs text-slate-500 mb-1">Description</p>
-                  <p className="text-sm text-slate-800">
-                    {attendance.clock_out.desc}
-                  </p>
-                </div>
-              )}
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="text-xs text-slate-500 mb-1">Description</p>
+                <p className={`text-sm ${attendance.clock_out.desc ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                  {attendance.clock_out.desc || "No description provided"}
+                </p>
+              </div>
 
               <div className="bg-slate-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs text-slate-500">Location</p>
                   <button
-                    onClick={() =>
-                      openMapLocation(
-                        attendance.clock_out.latitude,
-                        attendance.clock_out.longitude
-                      )
-                    }
+                    onClick={() => {
+                      if (attendance.clock_out?.latitude && attendance.clock_out?.longitude) {
+                        openMapLocation(
+                          attendance.clock_out.latitude,
+                          attendance.clock_out.longitude
+                        );
+                      }
+                    }}
                     className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1"
                   >
                     <svg
@@ -658,8 +593,8 @@ export default function AttendanceDetailPage() {
                   </button>
                 </div>
                 <p className="text-sm font-mono text-slate-700">
-                  {attendance.clock_out.latitude.toFixed(6)},{" "}
-                  {attendance.clock_out.longitude.toFixed(6)}
+                  {attendance.clock_out?.latitude?.toFixed(6) || "0.000000"},{" "}
+                  {attendance.clock_out?.longitude?.toFixed(6) || "0.000000"}
                 </p>
               </div>
             </div>

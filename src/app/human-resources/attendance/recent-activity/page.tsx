@@ -3,9 +3,14 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
+import { AxiosError } from "axios";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
+import { NotificationModal } from "@/components/modals/NotificationModal";
+import { useModal } from "@/hooks/useModal";
+import { useNotification } from "@/hooks/useNotification";
 import axiosInstance from "@/lib/axios";
 
 type AttendanceRecord = {
@@ -76,6 +81,14 @@ export default function RecentActivityPage() {
     Array<{ id: string; field: string; value: string }>
   >([]);
 
+  // Modal state using custom hooks
+  const confirmModal = useModal<{
+    type: "approve";
+    id: number;
+    employeeName: string;
+  }>();
+  const notify = useNotification();
+
   const fieldOptions = [
     { label: "Employee Name", value: "employee_name" },
     { label: "Status", value: "clock_in.status" },
@@ -86,8 +99,6 @@ export default function RecentActivityPage() {
     try {
       setIsLoading(true);
       setError(null);
-
-      console.log("📥 Fetching attendance data... Page:", page);
 
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
@@ -100,14 +111,7 @@ export default function RecentActivityPage() {
         }
       );
 
-      console.log("📦 Response:", response.data);
-
       if (response.data.code === 200) {
-        console.log(
-          "✅ Attendance data fetched:",
-          response.data.data.list.length,
-          "items"
-        );
         setAttendanceData(response.data.data.list);
         setPagination(response.data.data.pagination);
         setCurrentPage(response.data.data.pagination.current_page);
@@ -115,8 +119,6 @@ export default function RecentActivityPage() {
         throw new Error(response.data.message || "Failed to fetch attendance");
       }
     } catch (err: any) {
-      console.error("❌ Error fetching attendance:", err);
-
       if (err.response?.status === 401) {
         setError("Session expired. Please login again.");
         router.push("/login");
@@ -165,32 +167,32 @@ export default function RecentActivityPage() {
   }, [attendanceData, search, filters]);
 
   const handleApprove = async (id: number, employeeName: string) => {
-    const confirmApprove = window.confirm(
-      `Are you sure you want to approve attendance for "${employeeName || 'this employee'}"?`
-    );
+    confirmModal.open({
+      type: "approve",
+      id,
+      employeeName,
+    });
+  };
 
-    if (!confirmApprove) return;
+  // Function to handle approve action
+  const executeAction = async () => {
+    if (!confirmModal.data) return;
 
+    const { id } = confirmModal.data;
     try {
       setIsProcessing(id);
-      console.log("✅ Approving attendance:", id);
 
-      // Memanggil API untuk approve (set checked = true)
       const response = await axiosInstance.patch(`/api/attendances/${id}/check`);
 
       if (response.data.code === 200) {
-        console.log("✅ Attendance approved successfully");
-        console.log("📦 Updated data:", response.data.data);
-
-        // Update local state dengan data dari response
+        // Update local state with response data
         setAttendanceData(prevData =>
           prevData.map(item => {
             if (item.id === id) {
-              // Gunakan data dari response jika ada
               if (response.data.data) {
                 return { ...item, ...response.data.data };
               } else {
-                // Fallback: manual set checked = true
+                // Fallback: manually set checked status
                 return { ...item, checked: true };
               }
             }
@@ -198,70 +200,16 @@ export default function RecentActivityPage() {
           })
         );
 
-        alert("Attendance approved successfully!");
+        // Show success notification
+        notify.showSuccess("Attendance Approved", "Attendance has been approved successfully!");
       } else {
         throw new Error(response.data.message || "Failed to approve attendance");
       }
-    } catch (err: any) {
-      console.error("❌ Error approving attendance:", err);
-
-      if (err.response?.data?.message) {
-        alert(`Failed to approve: ${err.response.data.message}`);
-      } else {
-        alert("Failed to approve attendance. Please try again.");
-      }
-    } finally {
-      setIsProcessing(null);
-    }
-  };
-
-  const handleReject = async (id: number, employeeName: string) => {
-    const confirmReject = window.confirm(
-      `Are you sure you want to reject attendance for "${employeeName || 'this employee'}"?`
-    );
-
-    if (!confirmReject) return;
-
-    try {
-      setIsProcessing(id);
-      console.log("❌ Rejecting attendance:", id);
-
-      // PERBAIKAN: Menggunakan endpoint yang sama /check
-      // API akan toggle checked value (true -> false, false -> true)
-      const response = await axiosInstance.patch(`/api/attendances/${id}/check`);
-
-      if (response.data.code === 200) {
-        console.log("✅ Attendance rejected successfully");
-        console.log("📦 Updated data:", response.data.data);
-
-        // Update local state dengan data dari response
-        setAttendanceData(prevData =>
-          prevData.map(item => {
-            if (item.id === id) {
-              // Gunakan data dari response jika ada
-              if (response.data.data) {
-                return { ...item, ...response.data.data };
-              } else {
-                // Fallback: manual set checked = false
-                return { ...item, checked: false };
-              }
-            }
-            return item;
-          })
-        );
-
-        alert("Attendance rejected successfully!");
-      } else {
-        throw new Error(response.data.message || "Failed to reject attendance");
-      }
-    } catch (err: any) {
-      console.error("❌ Error rejecting attendance:", err);
-
-      if (err.response?.data?.message) {
-        alert(`Failed to reject: ${err.response.data.message}`);
-      } else {
-        alert("Failed to reject attendance. Please try again.");
-      }
+    } catch (err) {
+      // Type-safe error handling
+      const error = err as AxiosError<{ message?: string }>;
+      const message = error.response?.data?.message || "Failed to approve attendance. Please try again.";
+      notify.showError("Approval Failed", message);
     } finally {
       setIsProcessing(null);
     }
@@ -576,7 +524,7 @@ export default function RecentActivityPage() {
                       }`}
                   >
                     <Link
-                      href={`/human-resources/attendance/${item.id}`}
+                      href={`/human-resources/attendance/recent-activity/${item.id}`}
                       className="hover:text-sky-600 transition cursor-pointer hover:underline"
                     >
                       {item.employee_name || `Employee #${item.employee_id}`}
@@ -619,14 +567,16 @@ export default function RecentActivityPage() {
                   </td>
                   <td className="py-3 px-3">
                     {item.checked ? (
+                      <span className="text-slate-400 text-xs">-</span>
+                    ) : (
                       <button
-                        onClick={() => handleReject(item.id, item.employee_name)}
+                        onClick={() => handleApprove(item.id, item.employee_name)}
                         disabled={isProcessing === item.id}
-                        className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Reject"
+                        className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Approve"
                       >
                         {isProcessing === item.id ? (
-                          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
                         ) : (
                           <svg
                             className="w-4 h-4"
@@ -638,62 +588,11 @@ export default function RecentActivityPage() {
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
+                              d="M5 13l4 4L19 7"
                             />
                           </svg>
                         )}
                       </button>
-                    ) : (
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => handleApprove(item.id, item.employee_name)}
-                          disabled={isProcessing === item.id}
-                          className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Approve"
-                        >
-                          {isProcessing === item.id ? (
-                            <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleReject(item.id, item.employee_name)}
-                          disabled={isProcessing === item.id}
-                          className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Reject"
-                        >
-                          {isProcessing === item.id ? (
-                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
                     )}
                   </td>
                 </tr>
@@ -715,6 +614,25 @@ export default function RecentActivityPage() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.close}
+        onConfirm={executeAction}
+        title="Approve Attendance"
+        message={`Are you sure you want to approve attendance for "${confirmModal.data?.employeeName || 'this employee'}"?`}
+        confirmText="Approve"
+        type="approve"
+      />
+
+      <NotificationModal
+        isOpen={notify.isOpen}
+        onClose={notify.close}
+        title={notify.notification?.title || ""}
+        message={notify.notification?.message || ""}
+        type={notify.notification?.type || "success"}
+      />
     </div>
   );
 } 
