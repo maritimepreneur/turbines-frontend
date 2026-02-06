@@ -3,37 +3,72 @@
 import { useState, useEffect } from "react"
 import { Clock, MapPin, User, CheckCircle, FileText, DoorClosed } from "lucide-react"
 import Image from "next/image"
+import LocationMap from "@/components/LocationMap"
+import TimeStamp from "@/components/TimeStamp"
+import type { AttendanceLocation } from "@/types/location"
+import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/axios";
 
 export default function ClockOutPage() {
+  const { user, accessToken } = useAuth();
   const [clockedIn, setClockedIn] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [location, setLocation] = useState<string>("Mendapatkan lokasi...")
+  const [location, setLocation] = useState<string>("")
+  const [coordinates, setCoordinates] = useState<AttendanceLocation | null>(null)
   const [workDescription, setWorkDescription] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clockOutTime, setClockOutTime] = useState<Date | null>(null)
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    // Simulate getting location
-    setTimeout(() => {
-      setLocation("Jakarta Selatan, DKI Jakarta")
-    }, 2000)
-
-    return () => clearInterval(timer)
-  }, [])
+    if (!clockedIn) {
+      const timer = setInterval(() => {
+        setCurrentTime(new Date())
+      }, 1000)
+      return () => clearInterval(timer)
+    }
+  }, [clockedIn])
 
   const handleClockInClick = () => {
     setShowConfirmModal(true)
   }
 
-  const handleConfirmYes = () => {
-    setClockedIn(true)
-    setShowConfirmModal(false)
-    setShowSuccessModal(true)
-  }
+  const handleConfirmYes = async () => {
+    setIsSubmitting(true);
+
+    try {
+      const res = await api.post(
+        "/api/attendances/clock-out",
+        {
+          timestamp: new Date().toISOString(),
+          status: "On Time",
+          desc: workDescription || "Clock out via web app",
+          latitude: coordinates?.lat ?? 0,
+          longitude: coordinates?.lng ?? 0,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`, 
+          },
+        },
+      );
+
+      const clockTime = new Date();
+      setClockOutTime(clockTime);
+      setClockedIn(true);
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
+    } catch (error: any) {
+      console.error(error.response?.data || error);
+      alert(
+        error.response?.data?.message ||
+          "Gagal melakukan absensi pulang. Silakan coba lagi.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleConfirmNo = () => {
     setShowConfirmModal(false)
@@ -69,34 +104,54 @@ export default function ClockOutPage() {
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white"></div>
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Yoel Ginting</h3>
+            <h3 className="font-semibold text-lg">{user?.username}</h3>
             <p className="text-slate-600">Web Developer</p>
           </div>
         </div>
 
         {/* Time Display */}
-        <div className="text-center mb-6">
-          <Clock size={48} className="mx-auto mb-3 text-sky-500" />
-          <div className="text-4xl font-bold text-slate-800 mb-2">
-            {currentTime.toLocaleTimeString("id-ID")}
-          </div>
-          <div className="text-slate-600">
-            {currentTime.toLocaleDateString("id-ID", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+        <div className="text-center mb-6 relative">
+          {/* Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 rounded-2xl -z-10"></div>
+
+          <div className="py-2 px-6">
+            {/* Animated Clock Icon */}
+            <div className="relative inline-block mb-4">
+              <div className="absolute inset-0 bg-orange-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-orange-400 to-red-500 p-4 rounded-full shadow-lg">
+                <Clock size={25} className="text-white" strokeWidth={2.5} />
+              </div>
+            </div>
+
+            <TimeStamp currentTime={currentTime} />
           </div>
         </div>
 
-        {/* Location Section */}
-        <div className="flex items-center gap-3 mb-6 p-3 bg-blue-50 rounded-lg">
-          <MapPin size={20} className="text-blue-500" />
-          <div>
+        {/* Location Section with Map */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={18} className="text-blue-600" />
             <p className="text-sm font-medium text-blue-800">Lokasi Saat Ini</p>
-            <p className="text-sm text-blue-600">{location}</p>
           </div>
+
+          <LocationMap
+            height="250px"
+            onLocationChange={(lat, lng, address) => {
+              setCoordinates({ lat, lng, address });
+              setLocation(address);
+            }}
+          />
+
+          {location && coordinates && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-900 font-medium mb-1">Address   :</p>
+              <p className="text-sm text-blue-700">{location}</p>
+              <p className="text-xs text-blue-500 mt-2">
+                Koordinat: {coordinates.lat.toFixed(6)},{" "}
+                {coordinates.lng.toFixed(6)}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Work Description Section */}
@@ -129,7 +184,7 @@ export default function ClockOutPage() {
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {currentTime.toLocaleTimeString("id-ID")}
+              Berhasil absen pada {clockOutTime?.toLocaleTimeString("id-ID")}
             </div>
             <button
               disabled
@@ -142,7 +197,7 @@ export default function ClockOutPage() {
       </div>
 
       {showConfirmModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-[9999]">
           <div className="bg-white border-2 border-blue-500 rounded-xl p-6 max-w-sm mx-4">
             <div className="text-center">
               <h3 className="text-lg text-black font-semibold mb-2">
@@ -160,9 +215,10 @@ export default function ClockOutPage() {
                 </button>
                 <button
                   onClick={handleConfirmYes}
-                  className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Ya
+                  {isSubmitting ? 'Memproses...' : 'Ya'}
                 </button>
               </div>
             </div>
@@ -171,7 +227,7 @@ export default function ClockOutPage() {
       )}
 
       {showSuccessModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-opacity-30 flex items-center justify-center z-[9999]">
           <div className="bg-white border-2 border-blue-500 rounded-xl p-6 max-w-sm mx-4">
             <div className="text-center">
               <CheckCircle size={64} className="mx-auto mb-4 text-green-500" />
@@ -180,7 +236,7 @@ export default function ClockOutPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi pulang berhasil dicatat pada{" "}
-                {currentTime.toLocaleTimeString("id-ID")}
+                {clockOutTime?.toLocaleTimeString("id-ID")}
               </p>
               <button
                 onClick={handleCloseSuccess}
