@@ -1,6 +1,23 @@
 'use client'
 
-export default function QuotationForm() {
+interface Lead {
+  id: number
+  name: string
+  period: string
+  description: string
+  contact_id: number | null
+  partner_id: number
+  current_stages: string
+  contact_name: string | null
+  company: string | null
+  partner_name: string
+}
+
+interface QuotationProps {
+  lead?: Lead | null
+}
+
+export default function QuotationForm({ lead }: QuotationProps) {
   return (
     <div className="space-y-4 text-black">
       {/* Quotation Info */}
@@ -88,7 +105,7 @@ export default function QuotationForm() {
         />
       </div>
 
-      
+
     </div>
   )
 }

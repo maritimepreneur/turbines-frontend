@@ -215,10 +215,10 @@ export default function PipelinesPage() {
     )
     
     switch (activeTab) {
-      case 'General Info': return <GeneralInfo } />
-      case 'Quotation': return <Quotation } />
-      case 'Purchase Order': return <PurchaseOrder } />
-      case 'Invoice': return <Invoice } />
+      case 'General Info': return <GeneralInfo lead={selectedLead} />
+      case 'Quotation': return <Quotation lead={selectedLead} />
+      case 'Purchase Order': return <PurchaseOrder lead={selectedLead} />
+      case 'Invoice': return <Invoice lead={selectedLead} />
       default: return null
     }
   }
