@@ -4,7 +4,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
-import Cookies from 'js-cookie'; 
+import Cookies from 'js-cookie';
 // Interface untuk User
 interface User {
   id: number;
@@ -80,10 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRefreshToken(data.data.refresh_token);
         setUser(data.data.user);
       } else {
-        const errorMessage = data.message === 'Invalid credentials' 
-          ? 'Username atau password salah' 
+        const errorMessage = data.message === 'Invalid credentials'
+          ? 'Username atau password salah'
           : data.message || 'Gagal login, silakan coba lagi';
-        
+
         throw new Error(errorMessage);
       }
     } catch (error: any) {

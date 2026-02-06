@@ -27,7 +27,6 @@ interface EmployeeProfile {
     img_url?: string;
     signature_img_url?: string;
     signature_scale?: number;
-    user_id?: number;
 }
 
 const bloodTypeOptions = [
@@ -50,7 +49,6 @@ export default function EmployeeProfilePage() {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [employeeId, setEmployeeId] = useState<number | null>(null);
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
     const [profileData, setProfileData] = useState<EmployeeProfile>({
         full_name: '',
@@ -77,40 +75,27 @@ export default function EmployeeProfilePage() {
     const [profileImage, setProfileImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
 
-    // Helper function to convert date from dd/mm/yyyy to yyyy-mm-dd
     const convertDateToBackendFormat = (dateStr: string): string => {
         if (!dateStr) return '';
-
-        // If already in yyyy-mm-dd format, return as is
         if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return dateStr;
         }
-
-        // If in dd/mm/yyyy format, convert to yyyy-mm-dd
         if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
             const [day, month, year] = dateStr.split('/');
             return `${year}-${month}-${day}`;
         }
-
         return dateStr;
     };
 
-    // Helper function to convert date from yyyy-mm-dd to yyyy-mm-dd (for input type="date")
     const formatDateForInput = (dateStr: string): string => {
         if (!dateStr) return '';
-
-        // Remove time part if exists (e.g., "2000-01-01T00:00:00")
         const datePart = dateStr.split('T')[0];
-
-        // Ensure format is yyyy-mm-dd
         if (datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return datePart;
         }
-
         return '';
     };
 
-    // Helper function to convert blood type from API format (A+, B+) to form value (APLUS, BPLUS)
     const convertBloodTypeFromAPI = (apiBloodType: string): string => {
         const mapping: { [key: string]: string } = {
             'A+': 'APLUS',
@@ -125,7 +110,6 @@ export default function EmployeeProfilePage() {
         return mapping[apiBloodType] || apiBloodType;
     };
 
-    // Helper function to convert blood type from form value (APLUS, BPLUS) to API format (A+, B+)
     const convertBloodTypeToAPI = (formBloodType: string): string => {
         const mapping: { [key: string]: string } = {
             'APLUS': 'A+',
@@ -140,40 +124,16 @@ export default function EmployeeProfilePage() {
         return mapping[formBloodType] || formBloodType;
     };
 
-
-    // Fetch profile on load
     const fetchProfile = async () => {
         try {
             setIsLoading(true);
             setError(null);
 
-            const userStr = localStorage.getItem('user');
-            if (!userStr) {
-                setIsLoading(false);
-                return;
-            }
-
-            const user = JSON.parse(userStr);
-            const userId = user.id;
-            setCurrentUserId(userId);
-
-            console.log('User ID:', userId, '| Role:', user.role);
-
-            // Set default email
-            setProfileData(prev => ({
-                ...prev,
-                email: user.email || '',
-                user_id: userId
-            }));
-
-            // Try to fetch existing profile
             try {
-                // Use dedicated profile endpoint
                 const response = await axiosInstance.get('/api/employees/profile');
 
                 console.log('API Response:', response.data);
 
-                // API returns { code, message, data: { profile } }
                 if (response.data && response.data.data) {
                     const myProfile = response.data.data;
                     console.log('Found profile - Employee Code:', myProfile.employee_code);
@@ -181,12 +141,11 @@ export default function EmployeeProfilePage() {
 
                     setEmployeeId(myProfile.id);
 
-                    // Map all fields explicitly
                     const mappedData: EmployeeProfile = {
                         full_name: myProfile.full_name || '',
                         nickname: myProfile.nickname || '',
                         employee_code: myProfile.employee_code || '',
-                        email: myProfile.email || user.email || '',
+                        email: myProfile.email || '',
                         phone: myProfile.phone || '',
                         handphone: myProfile.handphone || '',
                         whatsapp: myProfile.whatsapp || '',
@@ -204,8 +163,7 @@ export default function EmployeeProfilePage() {
                         img_url: myProfile.img_url || '',
                         signature_img_url: myProfile.signature_img_url || '',
                         signature_scale: myProfile.signature_scale || 1,
-                        id: myProfile.id,
-                        user_id: myProfile.user_id || userId
+                        id: myProfile.id
                     };
 
                     console.log('Mapped data being set to state:', mappedData);
@@ -216,7 +174,6 @@ export default function EmployeeProfilePage() {
                     }
                 }
             } catch (err: any) {
-                // Profile not found - normal for new users
                 console.log('No profile found (normal for new users)');
                 console.log('Error details:', err.response?.status, err.response?.data);
             }
@@ -273,11 +230,6 @@ export default function EmployeeProfilePage() {
             return;
         }
 
-        if (!currentUserId) {
-            setError('User ID not found. Please refresh.');
-            return;
-        }
-
         try {
             setIsSaving(true);
             setError(null);
@@ -285,10 +237,8 @@ export default function EmployeeProfilePage() {
 
             console.log('Saving... Employee ID:', employeeId);
 
-            // Convert birth_date to backend format (yyyy-mm-dd)
             const formattedBirthDate = convertDateToBackendFormat(profileData.birth_date) || '2000-01-01';
 
-            // Prepare payload matching Flask schema
             const payload: any = {
                 full_name: profileData.full_name.trim(),
                 nickname: profileData.nickname?.trim() || profileData.full_name.trim(),
@@ -296,7 +246,7 @@ export default function EmployeeProfilePage() {
                 residence_address: profileData.residence_address?.trim() || '-',
                 permanent_address: profileData.permanent_address?.trim() || '-',
                 birth_place: profileData.birth_place?.trim() || '-',
-                birth_date: formattedBirthDate, // Use formatted date
+                birth_date: formattedBirthDate,
                 religion: profileData.religion || 'ISLAM',
                 blood_type: profileData.blood_type || 'OPLUS',
                 nationality: profileData.nationality?.trim() || 'Indonesian',
@@ -312,7 +262,6 @@ export default function EmployeeProfilePage() {
                 signature_scale: profileData.signature_scale || 1
             };
 
-            // Include employee_code only for updates (not for create)
             if (employeeId && profileData.employee_code) {
                 payload.employee_code = profileData.employee_code;
             }
@@ -323,23 +272,19 @@ export default function EmployeeProfilePage() {
             let response;
 
             if (employeeId) {
-                // Update: PUT /api/employees/{id}
                 console.log('PUT /api/employees/' + employeeId);
                 response = await axiosInstance.put(`/api/employees/${employeeId}`, payload);
             } else {
-                // Create: POST /employees/create (Flask route)
                 console.log('POST /api/employees/create');
                 response = await axiosInstance.post('/api/employees/create', payload);
             }
 
             console.log('Response:', response.data);
 
-            // Flask-RESTX @marshal_with returns object directly
             const savedData = response.data;
 
             setSuccessMessage('Profile saved successfully!');
 
-            // Update local state
             if (!employeeId && savedData.id) {
                 setEmployeeId(savedData.id);
             }
@@ -353,7 +298,6 @@ export default function EmployeeProfilePage() {
                 }));
             }
 
-            // Refresh data
             setTimeout(() => fetchProfile(), 500);
             setTimeout(() => setSuccessMessage(null), 3000);
 
@@ -405,7 +349,6 @@ export default function EmployeeProfilePage() {
             <form onSubmit={handleSubmit}>
 
                 <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-                    {/* Success Message */}
                     {successMessage && (
                         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
                             <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,7 +358,6 @@ export default function EmployeeProfilePage() {
                         </div>
                     )}
 
-                    {/* Error Message */}
                     {error && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
                             <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -449,7 +391,6 @@ export default function EmployeeProfilePage() {
                         </button>
                     </div>
 
-                    {/* Profile Image Upload */}
                     <div className="mb-8 flex justify-center">
                         <div className="text-center">
                             <div className="relative inline-block">
@@ -482,7 +423,6 @@ export default function EmployeeProfilePage() {
                         </div>
                     </div>
 
-                    {/* Profile Details Form */}
                     <div className="grid grid-cols-2 gap-6 mb-6">
                         <div>
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
@@ -580,7 +520,6 @@ export default function EmployeeProfilePage() {
                         </div>
                     </div>
 
-                    {/* Personal Information */}
                     <div className="border-t border-slate-200 pt-6 mb-6">
                         <h3 className="text-lg font-semibold text-black mb-4 border-l-4 border-emerald-500 pl-3">
                             Personal Information
@@ -704,7 +643,6 @@ export default function EmployeeProfilePage() {
                         </div>
                     </div>
 
-                    {/* Address Information */}
                     <div className="border-t border-slate-200 pt-6">
                         <h3 className="text-lg font-semibold text-black mb-4 border-l-4 border-emerald-500 pl-3">
                             Address Information
