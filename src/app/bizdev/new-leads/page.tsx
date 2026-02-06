@@ -470,7 +470,7 @@ export default function NewLeadsPage() {
 
         {/* Pagination - UNIFIED STYLE */}
         <div className="flex items-center justify-end mt-4 pt-4 border-t text-black">
-          {pagination.total_pages > 1 && (
+          {pagination.total_pages > 0 && (
             <Pagination
               currentPage={currentPage}
               totalPages={pagination.total_pages}

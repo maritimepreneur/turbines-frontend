@@ -66,7 +66,7 @@ export default function Home() {
             color="bg-yellow-500"
             textColor="text-yellow-500"
             icon={<UserCircle2 size={20} />}
-            href="/employee/attendance"
+            href="/employee/attendance/clock-in"
           />
           
           <RoleCard

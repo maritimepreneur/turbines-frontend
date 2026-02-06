@@ -215,10 +215,10 @@ export default function PipelinesPage() {
     )
     
     switch (activeTab) {
-      case 'General Info': return <GeneralInfo />
-      case 'Quotation': return <Quotation />
-      case 'Purchase Order': return <PurchaseOrder />
-      case 'Invoice': return <Invoice />
+      case 'General Info': return <GeneralInfo lead={selectedLead} />
+      case 'Quotation': return <Quotation lead={selectedLead} />
+      case 'Purchase Order': return <PurchaseOrder lead={selectedLead} />
+      case 'Invoice': return <Invoice lead={selectedLead} />
       default: return null
     }
   }
@@ -399,9 +399,9 @@ export default function PipelinesPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold truncate">{lead.name}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 text-black${
+                          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${
                             selectedLead?.id === lead.id 
-                              ? 'hover:bg-white bg-white bg-opacity-20 text-gray-600' 
+                              ? 'bg-white bg-opacity-20 text-gray-600' 
                               : 'bg-gray-200 text-gray-600'
                           }`}>
                             #{lead.id}
