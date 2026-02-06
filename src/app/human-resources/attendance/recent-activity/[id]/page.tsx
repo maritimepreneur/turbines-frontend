@@ -9,6 +9,8 @@ import { useModal } from "@/hooks/useModal";
 import { useNotification } from "@/hooks/useNotification";
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
 import { NotificationModal } from "@/components/modals/NotificationModal";
+// import StaticLocationMap from "@/components/StaticLocationMap";
+import LocationMap from "@/components/LocationMap"
 import Link from "next/link";
 
 type AttendanceDetail = {
@@ -19,6 +21,7 @@ type AttendanceDetail = {
     latitude: number;
     longitude: number;
     timestamp: string;
+    address: string;
   };
   clock_out: {
     status: string;
@@ -26,6 +29,7 @@ type AttendanceDetail = {
     longitude: number;
     timestamp: string;
     desc?: string;
+    address: string;
   };
   checked: boolean;
   employee_id: number;
@@ -42,11 +46,17 @@ export default function AttendanceDetailPage() {
   const router = useRouter();
   const params = useParams();
   const attendanceId = params?.id;
+  const [location, setLocation] = useState<string>("");
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number; address: string } | null>(null)
 
   const [attendance, setAttendance] = useState<AttendanceDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Modal state using custom hooks
+  const confirmModal = useModal();
+  const notify = useNotification();
 
   useEffect(() => {
     if (attendanceId) {
@@ -90,26 +100,24 @@ export default function AttendanceDetailPage() {
     }
   };
 
-  const handleApprove = async () => {
+  const handleApprove = () => {
     if (!attendance) return;
+    confirmModal.open();
+  };
 
-    const confirmApprove = window.confirm(
-      `Are you sure you want to approve attendance for "${attendance.employee_name || 'this employee'}"?`
-    );
-
-    if (!confirmApprove) return;
+  const executeApprove = async () => {
+    if (!attendance) return;
 
     try {
       setIsProcessing(true);
-      console.log("✅ Approving attendance:", attendance.id);
+      logger.info("Approving attendance:", attendance.id);
 
       const response = await axiosInstance.patch(
         `/api/attendances/${attendance.id}/check`
       );
 
       if (response.data.code === 200) {
-        console.log("✅ Attendance approved successfully");
-        console.log("📦 Updated data:", response.data.data);
+        logger.success("Attendance approved successfully");
 
         // Update state dengan data dari response API
         if (response.data.data) {
@@ -122,18 +130,17 @@ export default function AttendanceDetailPage() {
           });
         }
 
-        alert("Attendance approved successfully!");
+        // Show success notification
+        notify.showSuccess("Attendance Approved", "Attendance has been approved successfully!");
       } else {
         throw new Error(response.data.message || "Failed to approve attendance");
       }
-    } catch (err: any) {
-      console.error("❌ Error approving attendance:", err);
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      logger.error("Error approving attendance", error);
 
-      if (err.response?.data?.message) {
-        alert(`Failed to approve: ${err.response.data.message}`);
-      } else {
-        alert("Failed to approve attendance. Please try again.");
-      }
+      const message = error.response?.data?.message || "Failed to approve attendance. Please try again.";
+      notify.showError("Approval Failed", message);
     } finally {
       setIsProcessing(false);
     }
@@ -266,6 +273,8 @@ export default function AttendanceDetailPage() {
       </div>
     );
   }
+
+
 
   return (
     <div>
@@ -459,45 +468,22 @@ export default function AttendanceDetailPage() {
               </div>
 
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-slate-500">Location</p>
-                  <button
-                    onClick={() => {
-                      if (attendance.clock_in?.latitude && attendance.clock_in?.longitude) {
-                        openMapLocation(
-                          attendance.clock_in.latitude,
-                          attendance.clock_in.longitude
-                        );
-                      }
+                {attendance.clock_out?.latitude && attendance.clock_out?.longitude && (
+                  <LocationMap
+                    height="250px"
+                    onLocationChange={(lat, lng, address) => {
+                      setCoordinates({ lat, lng, address });
+                      setLocation(address);
                     }}
-                    className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1"
-                  >
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    View on Map
-                  </button>
-                </div>
-                <p className="text-sm font-mono text-slate-700">
-                  {attendance.clock_in?.latitude?.toFixed(6) || "0.000000"},{" "}
-                  {attendance.clock_in?.longitude?.toFixed(6) || "0.000000"}
-                </p>
+                  />
+
+                )}
+                {location && coordinates && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-900 font-medium mb-1">Address :</p>
+                    <p className="text-sm text-blue-700">{location}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -557,50 +543,54 @@ export default function AttendanceDetailPage() {
               </div>
 
               <div className="bg-slate-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-slate-500">Location</p>
-                  <button
-                    onClick={() => {
-                      if (attendance.clock_out?.latitude && attendance.clock_out?.longitude) {
-                        openMapLocation(
-                          attendance.clock_out.latitude,
-                          attendance.clock_out.longitude
-                        );
-                      }
+                {attendance.clock_out?.address && (
+                  <div className="mb-3 p-3 bg-orange-50 rounded-lg">
+                    <p className="text-xs text-slate-500 font-medium mb-1">Address</p>
+                    <p className="text-sm text-slate-700">{attendance.clock_out.address}</p>
+                  </div>
+                )}
+
+                {attendance.clock_out?.latitude && attendance.clock_out?.longitude && (
+                  <LocationMap
+                    height="250px"
+                    onLocationChange={(lat, lng, address) => {
+                      setCoordinates({ lat, lng, address });
+                      setLocation(address);
                     }}
-                    className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1"
-                  >
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    View on Map
-                  </button>
-                </div>
-                <p className="text-sm font-mono text-slate-700">
-                  {attendance.clock_out?.latitude?.toFixed(6) || "0.000000"},{" "}
-                  {attendance.clock_out?.longitude?.toFixed(6) || "0.000000"}
-                </p>
+                  />
+
+                )}
+                {location && coordinates && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs text-blue-900 font-medium mb-1">Address :</p>
+                    <p className="text-sm text-blue-700">{location}</p>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        onClose={confirmModal.close}
+        onConfirm={executeApprove}
+        title="Approve Attendance"
+        message={`Are you sure you want to approve attendance for "${attendance?.employee_name || 'this employee'}"?`}
+        confirmText="Approve"
+        type="approve"
+      />
+
+      <NotificationModal
+        isOpen={notify.isOpen}
+        onClose={notify.close}
+        title={notify.notification?.title || ""}
+        message={notify.notification?.message || ""}
+        type={notify.notification?.type || "success"}
+      />
     </div>
   );
 }

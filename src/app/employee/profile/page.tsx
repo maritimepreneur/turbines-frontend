@@ -1,534 +1,743 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
-import { AxiosError } from "axios";
 
-type EmployeeData = {
+interface EmployeeProfile {
+    id?: number;
     full_name: string;
     nickname: string;
-    residence_address: string;
-    permanent_address: string;
+    employee_code: string;
+    email: string;
+    phone: string;
+    handphone: string;
+    whatsapp: string;
     birth_place: string;
     birth_date: string;
-    religion: "ISLAM" | "CHRISTIAN" | "CATHOLIC" | "HINDU" | "BUDDHA" | "CONFUCIUS" | "OTHER";
-    blood_type: "APLUS" | "AMINUS" | "BPLUS" | "BMINUS" | "ABPLUS" | "ABMINUS" | "OPLUS" | "OMINUS";
+    blood_type: string;
+    religion: string;
     nationality: string;
-    marital_status: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
+    marital_status: string;
     ktp: string;
     driving_license: string;
     npwp: string;
-    phone: string;
-    whatsapp: string;
-    email: string;
-    handphone: string;
-    employee_code: string;
-    img_url: string;
-    signature_img_url: string;
-    signature_scale: number;
-};
+    residence_address: string;
+    permanent_address: string;
+    img_url?: string;
+    signature_img_url?: string;
+    signature_scale?: number;
+    user_id?: number;
+}
+
+const bloodTypeOptions = [
+    { label: 'A+', value: 'APLUS' },
+    { label: 'A-', value: 'AMIN' },
+    { label: 'B+', value: 'BPLUS' },
+    { label: 'B-', value: 'BMIN' },
+    { label: 'AB+', value: 'ABPLUS' },
+    { label: 'AB-', value: 'ABMIN' },
+    { label: 'O+', value: 'OPLUS' },
+    { label: 'O-', value: 'OMIN' }
+];
+const religionOptions = ['ISLAM', 'CHRISTIANITY', 'HINDUISM', 'BUDDHISM', 'CONFUCIANISM', 'OTHER'];
+const maritalStatusOptions = ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED', 'SEPARATED'];
 
 export default function EmployeeProfilePage() {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState<EmployeeData>({
-        full_name: "",
-        nickname: "",
-        residence_address: "",
-        permanent_address: "",
-        birth_place: "",
-        birth_date: "",
-        religion: "ISLAM",
-        blood_type: "APLUS",
-        nationality: "",
-        marital_status: "SINGLE",
-        ktp: "",
-        driving_license: "",
-        npwp: "",
-        phone: "",
-        whatsapp: "",
-        email: "",
-        handphone: "",
-        employee_code: "",
-        img_url: "",
-        signature_img_url: "",
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [employeeId, setEmployeeId] = useState<number | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+
+    const [profileData, setProfileData] = useState<EmployeeProfile>({
+        full_name: '',
+        nickname: '',
+        employee_code: '',
+        email: '',
+        phone: '',
+        handphone: '',
+        whatsapp: '',
+        birth_place: '',
+        birth_date: '',
+        blood_type: '',
+        religion: '',
+        nationality: '',
+        marital_status: '',
+        ktp: '',
+        driving_license: '',
+        npwp: '',
+        residence_address: '',
+        permanent_address: '',
         signature_scale: 1,
     });
 
-    const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-    ) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === "signature_scale" ? parseFloat(value) : value,
-        }));
+    const [profileImage, setProfileImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
+
+    // Helper function to convert date from dd/mm/yyyy to yyyy-mm-dd
+    const convertDateToBackendFormat = (dateStr: string): string => {
+        if (!dateStr) return '';
+
+        // If already in yyyy-mm-dd format, return as is
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return dateStr;
+        }
+
+        // If in dd/mm/yyyy format, convert to yyyy-mm-dd
+        if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+            const [day, month, year] = dateStr.split('/');
+            return `${year}-${month}-${day}`;
+        }
+
+        return dateStr;
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
+    // Helper function to convert date from yyyy-mm-dd to yyyy-mm-dd (for input type="date")
+    const formatDateForInput = (dateStr: string): string => {
+        if (!dateStr) return '';
 
+        // Remove time part if exists (e.g., "2000-01-01T00:00:00")
+        const datePart = dateStr.split('T')[0];
+
+        // Ensure format is yyyy-mm-dd
+        if (datePart.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return datePart;
+        }
+
+        return '';
+    };
+
+    // Helper function to convert blood type from API format (A+, B+) to form value (APLUS, BPLUS)
+    const convertBloodTypeFromAPI = (apiBloodType: string): string => {
+        const mapping: { [key: string]: string } = {
+            'A+': 'APLUS',
+            'A-': 'AMIN',
+            'B+': 'BPLUS',
+            'B-': 'BMIN',
+            'AB+': 'ABPLUS',
+            'AB-': 'ABMIN',
+            'O+': 'OPLUS',
+            'O-': 'OMIN'
+        };
+        return mapping[apiBloodType] || apiBloodType;
+    };
+
+    // Helper function to convert blood type from form value (APLUS, BPLUS) to API format (A+, B+)
+    const convertBloodTypeToAPI = (formBloodType: string): string => {
+        const mapping: { [key: string]: string } = {
+            'APLUS': 'A+',
+            'AMIN': 'A-',
+            'BPLUS': 'B+',
+            'BMIN': 'B-',
+            'ABPLUS': 'AB+',
+            'ABMIN': 'AB-',
+            'OPLUS': 'O+',
+            'OMIN': 'O-'
+        };
+        return mapping[formBloodType] || formBloodType;
+    };
+
+
+    // Fetch profile on load
+    const fetchProfile = async () => {
         try {
-            const response = await axiosInstance.post("/api/employees/create", formData);
+            setIsLoading(true);
+            setError(null);
 
-            if (response.data.code === 200 || response.data.code === 201) {
-                alert("Employee profile created successfully!");
-                // Reset form or redirect
-                setFormData({
-                    full_name: "",
-                    nickname: "",
-                    residence_address: "",
-                    permanent_address: "",
-                    birth_place: "",
-                    birth_date: "",
-                    religion: "ISLAM",
-                    blood_type: "APLUS",
-                    nationality: "",
-                    marital_status: "SINGLE",
-                    ktp: "",
-                    driving_license: "",
-                    npwp: "",
-                    phone: "",
-                    whatsapp: "",
-                    email: "",
-                    handphone: "",
-                    employee_code: "",
-                    img_url: "",
-                    signature_img_url: "",
-                    signature_scale: 1,
-                });
-            } else {
-                throw new Error(response.data.message || "Failed to create profile");
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                setIsLoading(false);
+                return;
             }
-        } catch (err) {
-            const error = err as AxiosError<{ message?: string }>;
-            if (error.response?.data?.message) {
-                alert(`Error: ${error.response.data.message}`);
-            } else {
-                alert("Failed to create employee profile. Please try again.");
+
+            const user = JSON.parse(userStr);
+            const userId = user.id;
+            setCurrentUserId(userId);
+
+            console.log('User ID:', userId, '| Role:', user.role);
+
+            // Set default email
+            setProfileData(prev => ({
+                ...prev,
+                email: user.email || '',
+                user_id: userId
+            }));
+
+            // Try to fetch existing profile
+            try {
+                // Use dedicated profile endpoint
+                const response = await axiosInstance.get('/api/employees/profile');
+
+                console.log('API Response:', response.data);
+
+                // API returns { code, message, data: { profile } }
+                if (response.data && response.data.data) {
+                    const myProfile = response.data.data;
+                    console.log('Found profile - Employee Code:', myProfile.employee_code);
+                    console.log('Full profile data:', myProfile);
+
+                    setEmployeeId(myProfile.id);
+
+                    // Map all fields explicitly
+                    const mappedData: EmployeeProfile = {
+                        full_name: myProfile.full_name || '',
+                        nickname: myProfile.nickname || '',
+                        employee_code: myProfile.employee_code || '',
+                        email: myProfile.email || user.email || '',
+                        phone: myProfile.phone || '',
+                        handphone: myProfile.handphone || '',
+                        whatsapp: myProfile.whatsapp || '',
+                        birth_place: myProfile.birth_place || '',
+                        birth_date: formatDateForInput(myProfile.birth_date || ''),
+                        blood_type: convertBloodTypeFromAPI(myProfile.blood_type || ''),
+                        religion: myProfile.religion || '',
+                        nationality: myProfile.nationality || '',
+                        marital_status: myProfile.marital_status || '',
+                        ktp: myProfile.ktp || '',
+                        driving_license: myProfile.driving_license || '',
+                        npwp: myProfile.npwp || '',
+                        residence_address: myProfile.residence_address || '',
+                        permanent_address: myProfile.permanent_address || '',
+                        img_url: myProfile.img_url || '',
+                        signature_img_url: myProfile.signature_img_url || '',
+                        signature_scale: myProfile.signature_scale || 1,
+                        id: myProfile.id,
+                        user_id: myProfile.user_id || userId
+                    };
+
+                    console.log('Mapped data being set to state:', mappedData);
+                    setProfileData(mappedData);
+
+                    if (myProfile.img_url) {
+                        setImagePreview(myProfile.img_url);
+                    }
+                }
+            } catch (err: any) {
+                // Profile not found - normal for new users
+                console.log('No profile found (normal for new users)');
+                console.log('Error details:', err.response?.status, err.response?.data);
             }
+
+        } catch (err: any) {
+            console.error('Error:', err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
-            <div className="max-w-5xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-black">Employee Profile</h1>
-                    <p className="text-black mt-2">Create new employee profile</p>
+    useEffect(() => {
+        fetchProfile();
+    }, []);
+
+    const handleInputChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    ) => {
+        const { name, value } = e.target;
+        setProfileData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file (JPG or PNG)');
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Image size must be less than 2MB');
+                return;
+            }
+
+            setProfileImage(file);
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!profileData.full_name.trim() || !profileData.email.trim()) {
+            setError('Full Name and Email are required');
+            return;
+        }
+
+        if (!currentUserId) {
+            setError('User ID not found. Please refresh.');
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+            setError(null);
+            setSuccessMessage(null);
+
+            console.log('Saving... Employee ID:', employeeId);
+
+            // Convert birth_date to backend format (yyyy-mm-dd)
+            const formattedBirthDate = convertDateToBackendFormat(profileData.birth_date) || '2000-01-01';
+
+            // Prepare payload matching Flask schema
+            const payload: any = {
+                full_name: profileData.full_name.trim(),
+                nickname: profileData.nickname?.trim() || profileData.full_name.trim(),
+                email: profileData.email.trim(),
+                residence_address: profileData.residence_address?.trim() || '-',
+                permanent_address: profileData.permanent_address?.trim() || '-',
+                birth_place: profileData.birth_place?.trim() || '-',
+                birth_date: formattedBirthDate, // Use formatted date
+                religion: profileData.religion || 'ISLAM',
+                blood_type: profileData.blood_type || 'OPLUS',
+                nationality: profileData.nationality?.trim() || 'Indonesian',
+                marital_status: profileData.marital_status || 'SINGLE',
+                ktp: profileData.ktp?.trim() || '-',
+                driving_license: profileData.driving_license?.trim() || '-',
+                npwp: profileData.npwp?.trim() || '-',
+                phone: profileData.phone?.trim() || '-',
+                whatsapp: profileData.whatsapp?.trim() || '-',
+                handphone: profileData.handphone?.trim() || '-',
+                img_url: profileData.img_url || '',
+                signature_img_url: profileData.signature_img_url || '',
+                signature_scale: profileData.signature_scale || 1
+            };
+
+            // Include employee_code only for updates (not for create)
+            if (employeeId && profileData.employee_code) {
+                payload.employee_code = profileData.employee_code;
+            }
+
+            console.log('Payload:', payload);
+            console.log('Birth date formatted:', formattedBirthDate);
+
+            let response;
+
+            if (employeeId) {
+                // Update: PUT /api/employees/{id}
+                console.log('PUT /api/employees/' + employeeId);
+                response = await axiosInstance.put(`/api/employees/${employeeId}`, payload);
+            } else {
+                // Create: POST /employees/create (Flask route)
+                console.log('POST /api/employees/create');
+                response = await axiosInstance.post('/api/employees/create', payload);
+            }
+
+            console.log('Response:', response.data);
+
+            // Flask-RESTX @marshal_with returns object directly
+            const savedData = response.data;
+
+            setSuccessMessage('Profile saved successfully!');
+
+            // Update local state
+            if (!employeeId && savedData.id) {
+                setEmployeeId(savedData.id);
+            }
+
+            if (savedData.employee_code) {
+                console.log('Employee Code:', savedData.employee_code);
+                setProfileData(prev => ({
+                    ...prev,
+                    employee_code: savedData.employee_code,
+                    id: savedData.id
+                }));
+            }
+
+            // Refresh data
+            setTimeout(() => fetchProfile(), 500);
+            setTimeout(() => setSuccessMessage(null), 3000);
+
+        } catch (err: any) {
+            console.error('Save error:', err);
+
+            if (err.message === 'Network Error') {
+                setError('Network error. Cannot connect to server.');
+            } else if (err.response?.status === 401) {
+                setError('Session expired. Please login again.');
+                setTimeout(() => router.push('/login'), 2000);
+            } else if (err.response?.data?.message) {
+                setError(err.response.data.message);
+            } else {
+                setError('Failed to save profile. Please try again.');
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-semibold text-black">Employee Profile</h1>
+                    <p className="text-sm text-slate-400 mt-1">Update your professional and personal identity.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Profile Photo Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-semibold text-black mb-6">Profile Photo</h2>
-                        <div className="flex flex-col md:flex-row items-center gap-6">
-                            {/* Photo Preview */}
-                            <div className="w-40 h-40 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-sky-100">
-                                {formData.img_url ? (
-                                    <img
-                                        src={formData.img_url}
-                                        alt="Profile"
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <svg
-                                        className="w-20 h-20 text-white"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                        />
-                                    </svg>
-                                )}
-                            </div>
-
-                            {/* Photo URL Input */}
-                            <div className="flex-1 w-full">
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Profile Image URL
-                                </label>
-                                <input
-                                    type="text"
-                                    name="img_url"
-                                    value={formData.img_url}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="https://example.com/photo.jpg"
-                                />
-                                <p className="text-sm text-gray-500 mt-2">
-                                    Enter a valid image URL to display your profile photo
-                                </p>
-                            </div>
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                    <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                            <div className="inline-block w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <p className="text-slate-600">Loading profile data...</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        );
+    }
 
-                    {/* Personal Information Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-semibold text-black mb-6">Personal Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Full Name <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="full_name"
-                                    value={formData.full_name}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="John Doe"
-                                />
-                            </div>
+    return (
+        <div>
+            <div className="mb-6">
+                <h1 className="text-2xl font-semibold text-black">Employee Profile</h1>
+                <p className="text-sm text-slate-400 mt-1">Update your professional and personal identity.</p>
+            </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Nickname</label>
-                                <input
-                                    type="text"
-                                    name="nickname"
-                                    value={formData.nickname}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="John"
-                                />
-                            </div>
+            <form onSubmit={handleSubmit}>
 
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Birth Place <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="birth_place"
-                                    value={formData.birth_place}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="Jakarta"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Birth Date <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    name="birth_date"
-                                    value={formData.birth_date}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Religion <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="religion"
-                                    value={formData.religion}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black bg-white"
-                                >
-                                    <option value="ISLAM">Islam</option>
-                                    <option value="CHRISTIAN">Christian</option>
-                                    <option value="CATHOLIC">Catholic</option>
-                                    <option value="HINDU">Hindu</option>
-                                    <option value="BUDDHA">Buddha</option>
-                                    <option value="CONFUCIUS">Confucius</option>
-                                    <option value="OTHER">Other</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Blood Type</label>
-                                <select
-                                    name="blood_type"
-                                    value={formData.blood_type}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black bg-white"
-                                >
-                                    <option value="APLUS">A+</option>
-                                    <option value="AMINUS">A-</option>
-                                    <option value="BPLUS">B+</option>
-                                    <option value="BMINUS">B-</option>
-                                    <option value="ABPLUS">AB+</option>
-                                    <option value="ABMINUS">AB-</option>
-                                    <option value="OPLUS">O+</option>
-                                    <option value="OMINUS">O-</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Nationality <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="nationality"
-                                    value={formData.nationality}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="Indonesian"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Marital Status <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    name="marital_status"
-                                    value={formData.marital_status}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black bg-white"
-                                >
-                                    <option value="SINGLE">Single</option>
-                                    <option value="MARRIED">Married</option>
-                                    <option value="DIVORCED">Divorced</option>
-                                    <option value="WIDOWED">Widowed</option>
-                                </select>
-                            </div>
+                <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+                    {/* Success Message */}
+                    {successMessage && (
+                        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-green-700">{successMessage}</span>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Address Information Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-semibold text-black mb-6">Address Information</h2>
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Residence Address <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    name="residence_address"
-                                    value={formData.residence_address}
-                                    onChange={handleInputChange}
-                                    required
-                                    rows={3}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black resize-none"
-                                    placeholder="Enter current residence address"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Permanent Address <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    name="permanent_address"
-                                    value={formData.permanent_address}
-                                    onChange={handleInputChange}
-                                    required
-                                    rows={3}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black resize-none"
-                                    placeholder="Enter permanent address"
-                                />
-                            </div>
+                    {/* Error Message */}
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+                            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-red-700">{error}</span>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Contact Information Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-semibold text-black mb-6">Contact Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">
-                                    Email Address <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="john@example.com"
-                                />
-                            </div>
+                    <div className="flex items-start justify-between mb-8">
+                        <h2 className="text-xl font-semibold text-black border-l-4 border-emerald-500 pl-3">Profile Detail</h2>
 
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Phone Number</label>
-                                <input
-                                    type="text"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="021-1234567"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Mobile Phone</label>
-                                <input
-                                    type="text"
-                                    name="handphone"
-                                    value={formData.handphone}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="08123456789"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">WhatsApp Number</label>
-                                <input
-                                    type="text"
-                                    name="whatsapp"
-                                    value={formData.whatsapp}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="08123456789"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Document Information Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-semibold text-black mb-6">Document Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Employee Code</label>
-                                <input
-                                    type="text"
-                                    name="employee_code"
-                                    value={formData.employee_code}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="EMP001"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">KTP Number</label>
-                                <input
-                                    type="text"
-                                    name="ktp"
-                                    value={formData.ktp}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="3174012345678901"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Driving License</label>
-                                <input
-                                    type="text"
-                                    name="driving_license"
-                                    value={formData.driving_license}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="SIM123456789"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">NPWP Number</label>
-                                <input
-                                    type="text"
-                                    name="npwp"
-                                    value={formData.npwp}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="12.345.678.9-012.000"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Signature Information Card */}
-                    <div className="bg-white rounded-xl shadow-sm p-6">
-                        <h2 className="text-xl font-semibold text-black mb-6">Signature Information</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Signature Image URL</label>
-                                <input
-                                    type="text"
-                                    name="signature_img_url"
-                                    value={formData.signature_img_url}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="https://example.com/signature.png"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-2">Signature Scale</label>
-                                <input
-                                    type="number"
-                                    name="signature_scale"
-                                    value={formData.signature_scale}
-                                    onChange={handleInputChange}
-                                    step="0.1"
-                                    min="0.1"
-                                    max="10"
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-black"
-                                    placeholder="1.0"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-end gap-4 bg-white rounded-xl shadow-sm p-6">
-                        <button
-                            type="button"
-                            onClick={() => router.back()}
-                            className="px-6 py-3 border border-gray-300 rounded-lg text-black font-medium hover:bg-gray-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
                         <button
                             type="submit"
-                            disabled={isLoading}
-                            className="px-8 py-3 bg-sky-500 text-white font-medium rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-sky-500/30"
+                            disabled={isSaving}
+                            className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                            {isLoading ? (
+                            {isSaving ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Creating Profile...
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Saving...
                                 </>
                             ) : (
                                 <>
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M5 13l4 4L19 7"
-                                        />
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
-                                    Create Profile
+                                    Save Changes
                                 </>
                             )}
                         </button>
                     </div>
-                </form>
-            </div>
+
+                    {/* Profile Image Upload */}
+                    <div className="mb-8 flex justify-center">
+                        <div className="text-center">
+                            <div className="relative inline-block">
+                                <div className="w-32 h-32 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-4 border-slate-200">
+                                    {imagePreview ? (
+                                        <img src={imagePreview} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <svg className="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    )}
+                                </div>
+
+                                <label className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2.5 rounded-full cursor-pointer hover:bg-indigo-700 transition shadow-lg">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/jpg"
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-3">
+                                Format <span className="font-medium">JPG/PNG</span> • Max <span className="font-medium">2MB</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Profile Details Form */}
+                    <div className="grid grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
+                                Full Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="full_name"
+                                value={profileData.full_name}
+                                onChange={handleInputChange}
+                                placeholder="Enter full name"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
+                                Nickname
+                            </label>
+                            <input
+                                type="text"
+                                name="nickname"
+                                value={profileData.nickname}
+                                onChange={handleInputChange}
+                                placeholder="Preferred name"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
+                                Employee Code
+                            </label>
+                            <input
+                                type="text"
+                                value={profileData.employee_code || 'Auto-generated'}
+                                readOnly
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-500 cursor-not-allowed"
+                            />
+                            <p className="text-xs text-slate-400 mt-1">
+                                {employeeId ? `✓ ${profileData.employee_code}` : 'Will be generated after saving'}
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
+                                Email <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={profileData.email}
+                                onChange={handleInputChange}
+                                placeholder="name@company.com"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Phone</label>
+                            <input
+                                type="text"
+                                name="phone"
+                                value={profileData.phone}
+                                onChange={handleInputChange}
+                                placeholder="+62 21..."
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Handphone</label>
+                            <input
+                                type="text"
+                                name="handphone"
+                                value={profileData.handphone}
+                                onChange={handleInputChange}
+                                placeholder="+62 812..."
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+
+                        <div className="col-span-2">
+                            <label className="block text-xs font-medium text-slate-500 uppercase mb-2">WhatsApp</label>
+                            <input
+                                type="text"
+                                name="whatsapp"
+                                value={profileData.whatsapp}
+                                onChange={handleInputChange}
+                                placeholder="Active WhatsApp number"
+                                className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Personal Information */}
+                    <div className="border-t border-slate-200 pt-6 mb-6">
+                        <h3 className="text-lg font-semibold text-black mb-4 border-l-4 border-emerald-500 pl-3">
+                            Personal Information
+                        </h3>
+
+                        <div className="grid grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Place of Birth</label>
+                                <input
+                                    type="text"
+                                    name="birth_place"
+                                    value={profileData.birth_place}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. Jakarta"
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Date of Birth</label>
+                                <input
+                                    type="date"
+                                    name="birth_date"
+                                    value={profileData.birth_date}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Blood Type</label>
+                                <select
+                                    name="blood_type"
+                                    value={profileData.blood_type}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">Select Type</option>
+                                    {bloodTypeOptions.map(type => (
+                                        <option key={type.value} value={type.value}>{type.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Religion</label>
+                                <select
+                                    name="religion"
+                                    value={profileData.religion}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">Select Religion</option>
+                                    {religionOptions.map(religion => (
+                                        <option key={religion} value={religion}>{religion}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Nationality</label>
+                                <input
+                                    type="text"
+                                    name="nationality"
+                                    value={profileData.nationality}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Marital Status</label>
+                                <select
+                                    name="marital_status"
+                                    value={profileData.marital_status}
+                                    onChange={handleInputChange}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                >
+                                    <option value="">Select Status</option>
+                                    {maritalStatusOptions.map(status => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">KTP</label>
+                                <input
+                                    type="text"
+                                    name="ktp"
+                                    value={profileData.ktp}
+                                    onChange={handleInputChange}
+                                    placeholder="16-digit ID"
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">NPWP</label>
+                                <input
+                                    type="text"
+                                    name="npwp"
+                                    value={profileData.npwp}
+                                    onChange={handleInputChange}
+                                    placeholder="Tax ID"
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Driving License</label>
+                                <input
+                                    type="text"
+                                    name="driving_license"
+                                    value={profileData.driving_license}
+                                    onChange={handleInputChange}
+                                    placeholder="License number"
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Address Information */}
+                    <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-lg font-semibold text-black mb-4 border-l-4 border-emerald-500 pl-3">
+                            Address Information
+                        </h3>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Current Address</label>
+                                <textarea
+                                    name="residence_address"
+                                    value={profileData.residence_address}
+                                    onChange={handleInputChange}
+                                    placeholder="Current residential address"
+                                    rows={3}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Permanent Address</label>
+                                <textarea
+                                    name="permanent_address"
+                                    value={profileData.permanent_address}
+                                    onChange={handleInputChange}
+                                    placeholder="Address as per KTP"
+                                    rows={3}
+                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     );
 }

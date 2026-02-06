@@ -167,10 +167,6 @@ export default function ClockInPage() {
             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-900 font-medium mb-1">Address :</p>
               <p className="text-sm text-blue-700">{location}</p>
-              <p className="text-xs text-blue-500 mt-2">
-                Koordinat: {coordinates.lat.toFixed(6)},{" "}
-                {coordinates.lng.toFixed(6)}
-              </p>
             </div>
           )}
         </div>
