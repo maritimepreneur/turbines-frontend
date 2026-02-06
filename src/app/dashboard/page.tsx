@@ -62,19 +62,21 @@ export default function Home() {
           />
 
           <RoleCard
+            title="Employee"
+            color="bg-yellow-500"
+            textColor="text-yellow-500"
+            icon={<UserCircle2 size={20} />}
+            href="/employee/attendance/clock-in"
+          />
+          
+          <RoleCard
             title="Human Resources"
             color="bg-cyan-500"
             textColor="text-cyan-500"
             icon={<User2 size={20} />}
             href="/human-resources/attendance"
           />
-          <RoleCard
-            title="Employee"
-            color="bg-yellow-500"
-            textColor="text-yellow-500"
-            icon={<UserCircle2 size={20} />}
-            href="/employee/attendance"
-          />
+          
         </div>
       </main>
     // </ProtectedRoute>
