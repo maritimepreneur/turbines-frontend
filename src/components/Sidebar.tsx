@@ -62,7 +62,7 @@ export default function Sidebar() {
   }, [pathname]);
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col">
+    <aside className="w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col fixed left-0 top-0 h-screen overflow-y-auto">
       {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
         <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
@@ -144,10 +144,9 @@ function MenuLink({
                 key={sub.href}
                 href={sub.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm
-                  ${
-                    pathname === sub.href
-                      ? "bg-sky-50 text-sky-600 font-medium"
-                      : "text-slate-600 hover:bg-slate-50"
+                  ${pathname === sub.href
+                    ? "bg-sky-50 text-sky-600 font-medium"
+                    : "text-slate-600 hover:bg-slate-50"
                   }
                 `}
               >
@@ -286,16 +285,16 @@ const MENU_ITEMS = [
   },
 
   // Human Resources
-  { 
-    label: "Attendance", 
-    href: "/human-resources/attendance", 
+  {
+    label: "Attendance",
+    href: "/human-resources/attendance",
     icon: <CalendarCheck size={18} />,
     subMenu: [
       { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
       { label: "Summary", href: "/human-resources/attendance/summary" },
-       { label: "Absent", href: "/human-resources/attendance/absent" },
-    ],  
-    module: "human-resources" 
+      { label: "Absent", href: "/human-resources/attendance/absent" },
+    ],
+    module: "human-resources"
   },
   // {
   //   label: "My Reports",
@@ -320,13 +319,15 @@ function UserSection() {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition"
       >
-        <Image
-          src="/avatar-placeholder.png"
-          alt="User Avatar"
-          width={40}
-          height={40}
-          className="rounded-full border"
-        />
+        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-200">
+          <Image
+            src="/avatar-placeholder.png"
+            alt="User Avatar"
+            width={40}
+            height={40}
+            className="w-full h-full object-cover"
+          />
+        </div>
 
         <div className="text-left flex-1">
           <p className="text-sm font-semibold text-gray-800">

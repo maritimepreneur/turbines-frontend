@@ -10,8 +10,8 @@ type Proposals = {
   id: string
   company_name: string
   company_initial: string
-  company_industrial:string
-  contacts:[string]
+  company_industrial: string
+  contacts: [string]
   company_type: [string]
 }
 
@@ -49,6 +49,7 @@ export default function NewLeadsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -59,6 +60,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(ProposalsData, 5)
 
   const fieldOptions = [
@@ -178,8 +180,9 @@ export default function NewLeadsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

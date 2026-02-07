@@ -49,6 +49,7 @@ export default function HRPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -59,6 +60,7 @@ export default function HRPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(EmployeeData, 5)
 
   const fieldOptions = [
@@ -152,9 +154,8 @@ export default function HRPage() {
                 <td className="py-3 px-3">{item.department}</td>
                 <td className="py-3 px-3">{item.email}</td>
                 <td className="py-3 px-3">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    item.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs ${item.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {item.status}
                   </span>
                 </td>
@@ -182,8 +183,9 @@ export default function HRPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

@@ -4,7 +4,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosInstance from '@/lib/axios';
-import Cookies from 'js-cookie';
+
 // Interface untuk User
 interface User {
   id: number;
@@ -46,16 +46,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Check token saat pertama kali load
+  // Check token saat pertama kali load dari sessionStorage
+  // sessionStorage otomatis terhapus ketika tab ditutup (BUKAN saat refresh!)
   useEffect(() => {
-    const token = Cookies.get('access_token');
-    const savedUser = Cookies.get('user');
-    const refresh = Cookies.get('refresh_token');
+    // Pastikan kode hanya berjalan di client-side (browser)
+    if (typeof window !== 'undefined') {
+      const token = sessionStorage.getItem('access_token');
+      const savedUser = sessionStorage.getItem('user');
+      const refresh = sessionStorage.getItem('refresh_token');
 
-    if (token && savedUser) {
-      setAccessToken(token);
-      setRefreshToken(refresh || null);
-      setUser(JSON.parse(savedUser));
+      if (token && savedUser) {
+        try {
+          setAccessToken(token);
+          setRefreshToken(refresh || null);
+          setUser(JSON.parse(savedUser));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          // Clear corrupted data
+          sessionStorage.removeItem('access_token');
+          sessionStorage.removeItem('refresh_token');
+          sessionStorage.removeItem('user');
+        }
+      }
     }
     setIsLoading(false);
   }, []);
@@ -70,10 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data;
 
       if (data.code === 200 && data.data) {
-        // Simpan ke cookies (expires dalam 7 hari)
-        Cookies.set('access_token', data.data.access_token, { expires: 7 });
-        Cookies.set('refresh_token', data.data.refresh_token, { expires: 7 });
-        Cookies.set('user', JSON.stringify(data.data.user), { expires: 7 });
+        // Simpan ke sessionStorage (otomatis terhapus saat tab ditutup)
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('access_token', data.data.access_token);
+          sessionStorage.setItem('refresh_token', data.data.refresh_token);
+          sessionStorage.setItem('user', JSON.stringify(data.data.user));
+        }
 
         // Set state
         setAccessToken(data.data.access_token);
@@ -98,10 +112,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {
-      // Hapus dari cookies
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
-      Cookies.remove('user');
+      // Hapus dari sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('access_token');
+        sessionStorage.removeItem('refresh_token');
+        sessionStorage.removeItem('user');
+      }
 
       // Reset state
       setAccessToken(null);
