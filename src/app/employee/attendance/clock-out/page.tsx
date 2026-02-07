@@ -124,7 +124,7 @@ export default function ClockOutPage() {
           </div>
           <div>
             <h3 className="font-semibold text-lg">{user?.username}</h3>
-            <p className="text-slate-600">Web Developer</p>
+            <p className="text-slate-600 capitalize">{user?.role || 'Employee'}</p>
           </div>
         </div>
 
@@ -193,8 +193,8 @@ export default function ClockOutPage() {
             onClick={handleClockInClick}
             disabled={!location || !coordinates}
             className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-500 text-white hover:bg-green-600"
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-green-500 text-white hover:bg-green-600"
               }`}
           >
             <DoorClosed size={20} />

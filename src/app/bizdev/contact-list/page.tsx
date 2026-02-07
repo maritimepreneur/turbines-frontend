@@ -104,6 +104,7 @@ export default function ContactsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -114,6 +115,7 @@ export default function ContactsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(contacts, 5)
 
   const fieldOptions = [
@@ -232,13 +234,15 @@ export default function ContactsPage() {
           </tbody>
         </table>
 
+
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

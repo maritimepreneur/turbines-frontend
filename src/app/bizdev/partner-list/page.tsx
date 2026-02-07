@@ -16,6 +16,7 @@ export default function NewLeadsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -26,6 +27,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(partners, 5)
 
   const handleDelete = (id: number) => {
@@ -82,7 +84,7 @@ export default function NewLeadsPage() {
             />
           </div>
 
-          <button 
+          <button
             onClick={() => window.location.href = '/bizdev/partner-list/add'}
             className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition"
           >
@@ -137,7 +139,7 @@ export default function NewLeadsPage() {
                 <td className="py-3 px-3">{item.partner_type}</td>
                 <td className="py-3 px-3">
                   <div className="flex gap-4">
-                    <button 
+                    <button
                       className="text-sky-500 hover:text-sky-700"
                       onClick={() => window.location.href = `/bizdev/partner-list/edit?id=${item.id}`}
                       title="Edit"
@@ -146,7 +148,7 @@ export default function NewLeadsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    <button 
+                    <button
                       className="text-red-500 hover:text-red-700"
                       onClick={() => handleDelete(item.id)}
                       title="Delete"
@@ -167,8 +169,9 @@ export default function NewLeadsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

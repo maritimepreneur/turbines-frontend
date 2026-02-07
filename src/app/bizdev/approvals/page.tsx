@@ -7,12 +7,12 @@ import { Pagination } from "@/components/table/Pagination"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Approvals = {
-  approval_type:string
+  approval_type: string
   id: string
   code: string
   quotation_id: string
-  po_id:string
-  invoice_id:string
+  po_id: string
+  invoice_id: string
   expense_id: string
   leads_id: string
 }
@@ -79,6 +79,7 @@ export default function AprovalsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -89,6 +90,7 @@ export default function AprovalsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(ApprovalsData, 5)
 
   const fieldOptions = [
@@ -111,15 +113,14 @@ export default function AprovalsPage() {
 
       {/* Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-         <div className="flex gap-2 mb-6 overflow-x-auto">
+        <div className="flex gap-2 mb-6 overflow-x-auto">
           {stages.map((stage) => (
             <button
               key={stage}
-              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${
-                stage === 'New Request'
-                  ? 'text-white'
-                  : 'bg-gray-100 text-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${stage === 'New Request'
+                ? 'text-white'
+                : 'bg-gray-100 text-gray-600'
+                }`}
               style={stage === 'New Request' ? { backgroundColor: '#00A6FB' } : {}}
             >
               {stage}
@@ -228,8 +229,9 @@ export default function AprovalsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>
