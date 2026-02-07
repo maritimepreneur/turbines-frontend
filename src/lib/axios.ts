@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -13,7 +12,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   // Pastikan hanya berjalan di client-side
   if (typeof window !== 'undefined') {
-    const token = Cookies.get('access_token');
+    const token = sessionStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

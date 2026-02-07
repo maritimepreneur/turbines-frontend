@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check token saat pertama kali load dari Cookies
   useEffect(() => {
-    // Cookies bisa dibaca di client-side
+    // Cookies aman dipanggil di client side
     const token = Cookies.get('access_token');
     const savedUser = Cookies.get('user');
     const refresh = Cookies.get('refresh_token');
@@ -80,25 +80,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data;
 
       if (data.code === 200 && data.data) {
-        // Simpan ke Cookies (Session Cookie - hilang saat browser tutup)
-        // Secure: true hanya jalan di HTTPS (localhost http biasa tidak apa-apa tanpa secure)
-        Cookies.set('access_token', data.data.access_token);
-        Cookies.set('refresh_token', data.data.refresh_token);
-        Cookies.set('user', JSON.stringify(data.data.user));
+        // Set waktu kadaluarsa 1 menit dari sekarang
+        const oneMinute = new Date(new Date().getTime() + 1 * 60 * 1000);
+
+        // Simpan ke Cookies dengan expires 1 menit
+        Cookies.set('access_token', data.data.access_token, { expires: oneMinute });
+        Cookies.set('refresh_token', data.data.refresh_token, { expires: oneMinute });
+        Cookies.set('user', JSON.stringify(data.data.user), { expires: oneMinute });
 
         // Set state
         setAccessToken(data.data.access_token);
         setRefreshToken(data.data.refresh_token);
         setUser(data.data.user);
       } else {
-        const errorMessage = data.message === 'Invalid credentials'
-          ? 'Username atau password salah'
-          : data.message || 'Gagal login, silakan coba lagi';
-
-        throw new Error(errorMessage);
+        throw new Error(data.message || 'Login failed');
       }
     } catch (error: any) {
-      // ... error handling tetap sama ...
       throw error;
     }
   };
