@@ -22,7 +22,7 @@ interface AuthContextType {
   accessToken: string | null;
   refreshToken: string | null;
   isLoading: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (identifier: string, password: string) => {
+  const login = async (identifier: string, password: string, rememberMe: boolean = false) => {
     try {
       const response = await axiosInstance.post<LoginResponse>('/api/auth/login', {
         identifier,
@@ -80,23 +80,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = response.data;
 
       if (data.code === 200 && data.data) {
-        // Set waktu kadaluarsa 1 menit dari sekarang
-        const oneMinute = new Date(new Date().getTime() + 1 * 60 * 1000);
+        // Tentukan waktu kadaluarsa berdasarkan Remember Me
+        // Jika Remember Me: 7 hari
+        // Jika Tidak: 1 menit
+        const expirationSeconds = rememberMe ? 7 * 24 * 60 * 60 : 60;
+        const expiresAt = new Date(new Date().getTime() + expirationSeconds * 1000);
 
-        // Simpan ke Cookies dengan expires 1 menit
-        Cookies.set('access_token', data.data.access_token, { expires: oneMinute });
-        Cookies.set('refresh_token', data.data.refresh_token, { expires: oneMinute });
-        Cookies.set('user', JSON.stringify(data.data.user), { expires: oneMinute });
+        // Simpan ke Cookies
+        Cookies.set('access_token', data.data.access_token, { expires: expiresAt });
+        Cookies.set('refresh_token', data.data.refresh_token, { expires: expiresAt });
+        Cookies.set('user', JSON.stringify(data.data.user), { expires: expiresAt });
 
         // Set state
         setAccessToken(data.data.access_token);
         setRefreshToken(data.data.refresh_token);
         setUser(data.data.user);
       } else {
-        throw new Error(data.message || 'Login failed');
+        // Custom error message in English
+        const errorMessage = 'Invalid email or password';
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
-      throw error;
+      // Standardize error message to English
+      const msg = error.response?.data?.message || error.message || 'Login failed';
+      // If error is related to credentials, use standard English message
+      if (msg.toLowerCase().includes('password') || msg.toLowerCase().includes('username') || msg.toLowerCase().includes('credentials') || msg.toLowerCase().includes('credential') || error.response?.status === 401) {
+        throw new Error('Invalid email or password');
+      }
+      throw new Error(msg); // Throw original message for other errors (like server error)
     }
   };
 
