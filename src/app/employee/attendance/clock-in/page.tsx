@@ -177,8 +177,8 @@ export default function ClockInPage() {
             onClick={handleClockInClick}
             disabled={!location || !coordinates}
             className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-500 text-white hover:bg-green-600"
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-green-500 text-white hover:bg-green-600"
               }`}
           >
             <DoorOpen size={20} />
@@ -188,7 +188,7 @@ export default function ClockInPage() {
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+              Berhasil absen pada {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
             </div>
             <button
               disabled
@@ -240,7 +240,7 @@ export default function ClockInPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi masuk berhasil dicatat pada{" "}
-                {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
               </p>
               <button
                 onClick={handleCloseSuccess}

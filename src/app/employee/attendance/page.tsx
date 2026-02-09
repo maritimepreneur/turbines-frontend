@@ -209,7 +209,8 @@ export default function NewLeadsPage() {
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      timeZone: 'Asia/Jakarta'
     })
   }
 
