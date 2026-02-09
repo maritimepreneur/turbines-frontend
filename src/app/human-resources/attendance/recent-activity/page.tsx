@@ -226,13 +226,22 @@ export default function RecentActivityPage() {
 
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "-";
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString("en-US", {
+
+    // Check if timestamp is likely missing timezone information (common with some SQL drivers)
+    // If it looks like an ISO string but has no Z or offset, append Z to treat it as UTC
+    let dateStr = timestamp;
+    if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
+      dateStr += 'Z';
+    }
+
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-    });
+      timeZone: "Asia/Jakarta",
+    }).replace(/\./g, ':');
   };
 
   const formatDate = (dateString: string) => {
@@ -242,6 +251,7 @@ export default function RecentActivityPage() {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+      timeZone: "Asia/Jakarta",
     });
   };
 

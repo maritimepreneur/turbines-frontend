@@ -3,7 +3,11 @@ interface TimeStampProps {
 }
 
 function getTimeOfDay(date: Date): string {
-  const hour = date.getHours();
+  const hour = parseInt(date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    hour12: false,
+    timeZone: "Asia/Jakarta"
+  }));
 
   if (hour >= 4 && hour < 11) return "Pagi";
   if (hour >= 11 && hour < 15) return "Siang";
@@ -15,10 +19,12 @@ export default function TimeStamp({ currentTime }: TimeStampProps) {
   const timeHM = currentTime.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Jakarta",
   });
 
   const seconds = currentTime.toLocaleTimeString("id-ID", {
     second: "2-digit",
+    timeZone: "Asia/Jakarta",
   });
 
   const timeOfDay = getTimeOfDay(currentTime);
@@ -29,7 +35,7 @@ export default function TimeStamp({ currentTime }: TimeStampProps) {
       <div className="mb-3 flex flex-col items-center">
         <div className="flex items-start gap-2">
           <span className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent tracking-tight">
-            {timeHM}
+            {timeHM.replace('.', ':')}
           </span>
 
           <span className="text-sm font-semibold text-slate-400 mt-2">
@@ -51,6 +57,7 @@ export default function TimeStamp({ currentTime }: TimeStampProps) {
             year: "numeric",
             month: "long",
             day: "numeric",
+            timeZone: "Asia/Jakarta",
           })}
         </p>
         <div className="h-px w-10 bg-gradient-to-l from-transparent to-slate-300" />
