@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AxiosError } from "axios";
 import axiosInstance from "@/lib/axios";
 import { logger } from "@/lib/logger";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2, RefreshCw } from "lucide-react";
+import { Pagination } from "@/components/table/Pagination";
 
 type AbsentEmployee = {
   id: number;
@@ -37,6 +38,9 @@ export default function AbsentPage() {
   const [absentEmployees, setAbsentEmployees] = useState<AbsentEmployee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchAbsentEmployees();
@@ -75,6 +79,25 @@ export default function AbsentPage() {
 
   const handleRefresh = () => {
     fetchAbsentEmployees();
+  };
+
+  // Client-side pagination
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return absentEmployees.slice(startIndex, endIndex);
+  }, [absentEmployees, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(absentEmployees.length / itemsPerPage);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1);
   };
 
   return (
@@ -221,15 +244,17 @@ export default function AbsentPage() {
               </thead>
 
               <tbody>
-                {absentEmployees.map((employee, index) => (
+                {paginatedEmployees.map((employee, index) => (
                   <tr
                     key={employee.id}
-                    className={`hover:bg-slate-50 transition ${index !== absentEmployees.length - 1
+                    className={`hover:bg-slate-50 transition ${index !== paginatedEmployees.length - 1
                       ? "border-b border-slate-200"
                       : ""
                       }`}
                   >
-                    <td className="py-3 px-4 text-slate-600">{index + 1}</td>
+                    <td className="py-3 px-4 text-slate-600">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </td>
                     <td className="py-3 px-4 font-medium text-slate-800">
                       {employee.employee_name}
                     </td>
@@ -247,6 +272,19 @@ export default function AbsentPage() {
               </tbody>
             </table>
           </div>
+
+
+          {/* Pagination */}
+          {totalPages > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={absentEmployees.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </div>
       )}
     </div>

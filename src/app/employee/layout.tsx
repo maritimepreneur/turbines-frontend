@@ -11,9 +11,8 @@ export default function DashboardLayout({
     <ProtectedRoute>
       <div className="flex min-h-screen">
         <Sidebar />
-        <main className="flex-1 p-6 bg-slate-50">{children}</main>
+        <main className="flex-1 ml-64 p-6 bg-slate-50">{children}</main>
       </div>
     </ProtectedRoute>
   );
 }
-

@@ -10,19 +10,19 @@ type Projects = {
   id: string
   project_type: string
   payment_type: string
-  name:string
-  location:string
-  type:string
-  duration:string
-  start_data:string
-  end_date:string
-  description:string
-  contact_id:string
-  partners_id:string
-  lead_id:string
-  contact:string
-  partners:string
-  lead:string
+  name: string
+  location: string
+  type: string
+  duration: string
+  start_data: string
+  end_date: string
+  description: string
+  contact_id: string
+  partners_id: string
+  lead_id: string
+  contact: string
+  partners: string
+  lead: string
 }
 
 const ProjectsData: Projects[] = [
@@ -53,6 +53,7 @@ export default function ProjectsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -63,6 +64,7 @@ export default function ProjectsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(ProjectsData, 5)
 
   const fieldOptions = [
@@ -179,13 +181,15 @@ export default function ProjectsPage() {
           </tbody>
         </table>
 
+
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

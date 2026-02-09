@@ -47,7 +47,7 @@ interface EmployeeSummary {
   attendance_rate: number;
 }
 
-const ITEMS_PER_PAGE = 25;
+
 
 const TABS = [
   {
@@ -67,9 +67,10 @@ export default function SummaryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const [pagination, setPagination] = useState({
     current_page: 1,
-    page_size: ITEMS_PER_PAGE,
+    page_size: 25,
     total_pages: 1,
     total_items: 0,
   });
@@ -84,19 +85,19 @@ export default function SummaryPage() {
     { label: "Attendance Rate", value: "attendance_rate" },
   ];
 
-  const fetchAttendances = async (page: number = 1) => {
+  const fetchAttendances = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      console.log("📥 Fetching attendance summary... Page:", page);
+      console.log("📥 Fetching all attendance summary...");
 
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
         {
           params: {
-            page,
-            page_size: ITEMS_PER_PAGE,
+            page: 1,
+            page_size: 1000,
             sort_by: 'id',
             sort_order: 'DESC',
           },
@@ -113,7 +114,6 @@ export default function SummaryPage() {
         );
         setAttendanceData(response.data.data.list);
         setPagination(response.data.data.pagination);
-        setCurrentPage(response.data.data.pagination.current_page);
       } else {
         throw new Error(response.data.message || "Failed to fetch summary");
       }
@@ -134,8 +134,8 @@ export default function SummaryPage() {
   };
 
   useEffect(() => {
-    fetchAttendances(currentPage);
-  }, [currentPage]);
+    fetchAttendances();
+  }, []);
 
   // Calculate summary from attendance data
   const summaryData = useMemo((): EmployeeSummary[] => {
@@ -207,6 +207,15 @@ export default function SummaryPage() {
     return filtered;
   }, [summaryData, search, filters]);
 
+  // Client-side pagination
+  const paginatedSummary = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredSummary.slice(startIndex, endIndex);
+  }, [filteredSummary, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredSummary.length / itemsPerPage);
+
   const addFilter = () => {
     const newFilter = {
       id: Date.now().toString(),
@@ -238,6 +247,11 @@ export default function SummaryPage() {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1);
   };
 
   const getAttendanceRateColor = (rate: number) => {
@@ -300,7 +314,7 @@ export default function SummaryPage() {
             </h3>
             <p className="text-slate-600 mb-4">{error}</p>
             <button
-              onClick={() => fetchAttendances(1)}
+              onClick={() => fetchAttendances()}
               className="bg-sky-500 text-white px-6 py-2 rounded-lg hover:bg-sky-600 transition"
             >
               Try Again
@@ -335,11 +349,10 @@ export default function SummaryPage() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`pb-3 px-1 text-sm font-medium transition ${
-              pathname === tab.href
-                ? "text-sky-600 border-b-2 border-sky-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`pb-3 px-1 text-sm font-medium transition ${pathname === tab.href
+              ? "text-sky-600 border-b-2 border-sky-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             {tab.label}
           </Link>
@@ -382,7 +395,7 @@ export default function SummaryPage() {
           </div>
 
           <button
-            onClick={() => fetchAttendances(currentPage)}
+            onClick={() => fetchAttendances()}
             disabled={isLoading}
             className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
             title="Refresh data"
@@ -441,7 +454,7 @@ export default function SummaryPage() {
             </thead>
 
             <tbody>
-              {filteredSummary.length === 0 && (
+              {paginatedSummary.length === 0 && (
                 <tr>
                   <td colSpan={6} className="text-center py-8 text-slate-400">
                     {search || filters.length > 0 ? (
@@ -486,14 +499,13 @@ export default function SummaryPage() {
                 </tr>
               )}
 
-              {filteredSummary.map((summary, index) => (
+              {paginatedSummary.map((summary, index) => (
                 <tr
                   key={summary.employee_id}
-                  className={`hover:bg-slate-50 transition ${
-                    index !== filteredSummary.length - 1
-                      ? "border-b border-slate-200"
-                      : ""
-                  }`}
+                  className={`hover:bg-slate-50 transition ${index !== paginatedSummary.length - 1
+                    ? "border-b border-slate-200"
+                    : ""
+                    }`}
                 >
                   <td className="py-3 px-3">{summary.employee_id}</td>
                   <td className="py-3 px-3 font-medium">
@@ -521,18 +533,18 @@ export default function SummaryPage() {
           </table>
         </div>
 
+
         {/* Pagination */}
-        <div className="flex items-center justify-end mt-4 pt-4 border-t text-black">
-          {pagination.total_pages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={pagination.total_pages}
-              totalItems={pagination.total_items}
-              itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredSummary.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        )}
       </div>
     </div>
   );

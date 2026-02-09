@@ -48,7 +48,7 @@ interface AttendanceResponse {
   };
 }
 
-const ITEMS_PER_PAGE = 5;
+
 
 const TABS = [
   {
@@ -69,9 +69,10 @@ export default function RecentActivityPage() {
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [pagination, setPagination] = useState({
     current_page: 1,
-    page_size: ITEMS_PER_PAGE,
+    page_size: 5,
     total_pages: 1,
     total_items: 0,
   });
@@ -95,7 +96,7 @@ export default function RecentActivityPage() {
     { label: "Date", value: "date" },
   ];
 
-  const fetchAttendances = async (page: number = 1) => {
+  const fetchAttendances = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -104,8 +105,8 @@ export default function RecentActivityPage() {
         "/api/attendances/",
         {
           params: {
-            page,
-            page_size: ITEMS_PER_PAGE,
+            page: 1,
+            page_size: 1000,
             sort_by: 'id',
           },
         }
@@ -114,7 +115,6 @@ export default function RecentActivityPage() {
       if (response.data.code === 200) {
         setAttendanceData(response.data.data.list);
         setPagination(response.data.data.pagination);
-        setCurrentPage(response.data.data.pagination.current_page);
       } else {
         throw new Error(response.data.message || "Failed to fetch attendance");
       }
@@ -133,8 +133,8 @@ export default function RecentActivityPage() {
   };
 
   useEffect(() => {
-    fetchAttendances(currentPage);
-  }, [currentPage]);
+    fetchAttendances();
+  }, []);
 
   const filteredAttendances = useMemo(() => {
     let filtered = [...attendanceData];
@@ -165,6 +165,15 @@ export default function RecentActivityPage() {
 
     return filtered;
   }, [attendanceData, search, filters]);
+
+  // Client-side pagination
+  const paginatedAttendances = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAttendances.slice(startIndex, endIndex);
+  }, [filteredAttendances, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredAttendances.length / itemsPerPage);
 
   const handleApprove = async (id: number, employeeName: string) => {
     confirmModal.open({
@@ -217,13 +226,22 @@ export default function RecentActivityPage() {
 
   const formatTime = (timestamp: string) => {
     if (!timestamp) return "-";
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString("en-US", {
+
+    // Check if timestamp is likely missing timezone information (common with some SQL drivers)
+    // If it looks like an ISO string but has no Z or offset, append Z to treat it as UTC
+    let dateStr = timestamp;
+    if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
+      dateStr += 'Z';
+    }
+
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-    });
+      timeZone: "Asia/Jakarta",
+    }).replace(/\./g, ':');
   };
 
   const formatDate = (dateString: string) => {
@@ -233,6 +251,7 @@ export default function RecentActivityPage() {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+      timeZone: "Asia/Jakarta",
     });
   };
 
@@ -267,6 +286,11 @@ export default function RecentActivityPage() {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1);
   };
 
   if (isLoading && attendanceData.length === 0) {
@@ -323,7 +347,7 @@ export default function RecentActivityPage() {
             </h3>
             <p className="text-slate-600 mb-4">{error}</p>
             <button
-              onClick={() => fetchAttendances(1)}
+              onClick={() => fetchAttendances()}
               className="bg-sky-500 text-white px-6 py-2 rounded-lg hover:bg-sky-600 transition"
             >
               Try Again
@@ -404,7 +428,7 @@ export default function RecentActivityPage() {
           </div>
 
           <button
-            onClick={() => fetchAttendances(currentPage)}
+            onClick={() => fetchAttendances()}
             disabled={isLoading}
             className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
             title="Refresh data"
@@ -460,7 +484,7 @@ export default function RecentActivityPage() {
             </thead>
 
             <tbody>
-              {filteredAttendances.length === 0 && (
+              {paginatedAttendances.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center py-8 text-slate-400">
                     {search || filters.length > 0 ? (
@@ -505,11 +529,11 @@ export default function RecentActivityPage() {
                 </tr>
               )}
 
-              {filteredAttendances.map((item, index) => (
+              {paginatedAttendances.map((item, index) => (
                 <tr
                   key={item.id}
                   className={`hover:bg-slate-50 transition ${item.checked ? "bg-gray-50" : ""
-                    } ${index !== filteredAttendances.length - 1
+                    } ${index !== paginatedAttendances.length - 1
                       ? "border-b border-slate-200"
                       : ""
                     }`}
@@ -602,17 +626,16 @@ export default function RecentActivityPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-end mt-4 pt-4 border-t text-black">
-          {pagination.total_pages > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={pagination.total_pages}
-              totalItems={pagination.total_items}
-              itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredAttendances.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        )}
       </div>
 
       {/* Modals */}

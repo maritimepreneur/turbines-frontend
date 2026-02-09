@@ -36,7 +36,7 @@ interface Partner {
 }
 
 interface GeneralInfoProps {
-  lead?: Lead
+  lead?: Lead | null
 }
 
 export default function GeneralInfo({ lead }: GeneralInfoProps) {
@@ -54,7 +54,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
     partner_company_type: '',
     partner_service: '',
     partner_goods: '',
-    
+
     // Contact fields
     contact_name: '',
     contact_email: '',
@@ -80,7 +80,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
             const contactRes = await axiosInstance.get(`/api/contacts/${lead.contact_id}`)
             const contactData = contactRes.data.data
             setContact(contactData)
-            
+
             setFormData(prev => ({
               ...prev,
               contact_name: contactData.name || '',
@@ -99,7 +99,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
             const partnerRes = await axiosInstance.get(`/api/partners/${lead.partner_id}`)
             const partnerData = partnerRes.data.data
             setPartner(partnerData)
-            
+
             setFormData(prev => ({
               ...prev,
               partner_name: partnerData.name || '',
@@ -189,7 +189,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
         <h3 className="text-sm font-semibold mb-4 text-black">
           🏢 PARTNER INFORMATION
         </h3>
-        
+
         <div className="space-y-4">
           <div>
             <label className="text-sm block mb-2 text-black">
@@ -224,7 +224,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
               <label className="text-sm block mb-2 text-black">
                 Partner Type
               </label>
-              <select 
+              <select
                 name="partner_type"
                 value={formData.partner_type}
                 onChange={handleChange}

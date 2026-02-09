@@ -124,7 +124,7 @@ export default function ClockOutPage() {
           </div>
           <div>
             <h3 className="font-semibold text-lg">{user?.username}</h3>
-            <p className="text-slate-600">Web Developer</p>
+            <p className="text-slate-600 capitalize">{user?.role || 'Employee'}</p>
           </div>
         </div>
 
@@ -193,8 +193,8 @@ export default function ClockOutPage() {
             onClick={handleClockInClick}
             disabled={!location || !coordinates}
             className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-500 text-white hover:bg-green-600"
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-green-500 text-white hover:bg-green-600"
               }`}
           >
             <DoorClosed size={20} />
@@ -204,7 +204,7 @@ export default function ClockOutPage() {
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+              Berhasil absen pada {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
             </div>
             <button
               disabled
@@ -256,7 +256,7 @@ export default function ClockOutPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi pulang berhasil dicatat pada{" "}
-                {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
               </p>
               <button
                 onClick={handleCloseSuccess}
