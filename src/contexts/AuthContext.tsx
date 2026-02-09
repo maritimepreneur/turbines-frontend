@@ -82,8 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data.code === 200 && data.data) {
         // Tentukan waktu kadaluarsa berdasarkan Remember Me
         // Jika Remember Me: 7 hari
-        // Jika Tidak: 1 menit
-        const expirationSeconds = rememberMe ? 7 * 24 * 60 * 60 : 60;
+        // Jika Tidak: 1 hari
+        const expirationSeconds = rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60;
         const expiresAt = new Date(new Date().getTime() + expirationSeconds * 1000);
 
         // Simpan ke Cookies
