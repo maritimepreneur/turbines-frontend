@@ -67,10 +67,10 @@ export default function SummaryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [pagination, setPagination] = useState({
     current_page: 1,
-    page_size: 25,
+    page_size: 5,
     total_pages: 1,
     total_items: 0,
   });

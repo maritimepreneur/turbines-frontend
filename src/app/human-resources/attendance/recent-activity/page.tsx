@@ -139,6 +139,27 @@ export default function RecentActivityPage() {
   const filteredAttendances = useMemo(() => {
     let filtered = [...attendanceData];
 
+    // Filter to show only today's data
+    const today = new Date();
+    const todayString = today.toLocaleDateString("id-ID", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Jakarta",
+    });
+
+    filtered = filtered.filter((record) => {
+      if (!record.date) return false;
+      const recordDate = new Date(record.date);
+      const recordDateString = recordDate.toLocaleDateString("id-ID", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "Asia/Jakarta",
+      });
+      return recordDateString === todayString;
+    });
+
     if (search) {
       filtered = filtered.filter(
         (record) =>
@@ -561,13 +582,39 @@ export default function RecentActivityPage() {
                     {formatDate(item.date)}
                   </td>
                   <td
-                    className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : "text-sky-600 font-medium"
+                    className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : "font-medium"
                       }`}
                   >
-                    {formatTime(item.clock_in.timestamp)}
-                    <span className="ml-2 text-xs text-gray-500">
-                      ({item.clock_in.status})
-                    </span>
+                    <div className="flex flex-col">
+                      <span className={item.checked ? "text-gray-500" : "text-sky-600"}>
+                        {formatTime(item.clock_in.timestamp)}
+                      </span>
+                      {(() => {
+                        if (!item.clock_in.timestamp) return null;
+
+                        // Parse timestamp
+                        let dateStr = item.clock_in.timestamp;
+                        if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
+                          dateStr += 'Z';
+                        }
+                        const date = new Date(dateStr);
+
+                        // Convert to Jakarta time for hour check
+                        const jakartaOptions = { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false } as const;
+                        const jakartaHour = parseInt(date.toLocaleTimeString("en-US", jakartaOptions));
+
+                        // Logic: < 10 (until 09:59) is On Time, >= 10 is Late
+                        const isLate = jakartaHour >= 10;
+                        const statusText = isLate ? "Late" : "On Time";
+                        const statusColor = isLate ? "text-red-500" : "text-emerald-500";
+
+                        return (
+                          <span className={`text-xs ${item.checked ? "text-gray-400" : statusColor} font-medium`}>
+                            {statusText}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </td>
                   <td
                     className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : "text-sky-600 font-medium"
