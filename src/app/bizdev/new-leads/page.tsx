@@ -5,6 +5,8 @@ import { useState, useEffect, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
+import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 
 type Lead = {
@@ -34,7 +36,6 @@ interface LeadsResponse {
   }
 }
 
-const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
   const router = useRouter();
@@ -67,8 +68,6 @@ export default function NewLeadsPage() {
     try {
       setIsLoading(true)
       setError(null)
-
-      console.log('📥 Fetching all leads data...')
 
       const response = await axiosInstance.post<LeadsResponse>(
         '/api/leads/',
@@ -150,36 +149,64 @@ export default function NewLeadsPage() {
     router.push(`/bizdev/new-leads/edit-leads?id=${leadId}`)
   }
 
-  const handleDelete = async (leadId: number, leadName: string) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete lead "${leadName}"?`
-    )
+  /* Modal State */
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [leadToDelete, setLeadToDelete] = useState<{ id: number, name: string } | null>(null)
 
-    if (!confirmDelete) return
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: "success" | "error" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  })
+
+  // Imports are needed, but I'll add them separately or assume they are available.
+  // Wait, I need to add imports to the top of the file too. This tool call only replaces a block.
+  // I will split this into multiple calls or use multi_replace.
+
+  const handleDeleteClick = (id: number, name: string) => {
+    setLeadToDelete({ id, name })
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return
 
     try {
-      setIsDeleting(leadId)
-      console.log('🗑️ Deleting lead:', leadId)
+      setIsDeleting(leadToDelete.id)
+      console.log('🗑️ Deleting lead:', leadToDelete.id)
 
-      const response = await axiosInstance.delete(`/api/leads/${leadId}`)
+      const response = await axiosInstance.delete(`/api/leads/${leadToDelete.id}`)
 
       if (response.data.code === 200) {
         console.log('✅ Lead deleted successfully')
         await fetchLeads()
-        alert('Lead deleted successfully!')
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Lead deleted successfully",
+          type: "success"
+        })
       } else {
         throw new Error(response.data.message || 'Failed to delete lead')
       }
     } catch (err: any) {
       console.error('❌ Error deleting lead:', err)
-
-      if (err.response?.data?.message) {
-        alert(`Failed to delete: ${err.response.data.message}`)
-      } else {
-        alert('Failed to delete lead. Please try again.')
-      }
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || "Failed to delete lead",
+        type: "error"
+      })
     } finally {
       setIsDeleting(null)
+      setShowDeleteModal(false)
+      setLeadToDelete(null)
     }
   }
 
@@ -308,6 +335,25 @@ export default function NewLeadsPage() {
 
   return (
     <div>
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Lead"
+        message={`Are you sure you want to delete lead "${leadToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="reject"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">New Leads</span>
@@ -460,7 +506,7 @@ export default function NewLeadsPage() {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id, item.name)}
+                        onClick={() => handleDeleteClick(item.id, item.name)}
                         disabled={isDeleting === item.id}
                         className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete lead"
