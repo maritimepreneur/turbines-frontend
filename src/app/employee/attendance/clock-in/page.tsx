@@ -81,10 +81,24 @@ export default function ClockInPage() {
 
     } catch (error: any) {
       console.error(error.response?.data || error);
-      alert(
-        error.response?.data?.message ||
-          "Gagal melakukan absensi. Silakan coba lagi.",
-      );
+      
+      if (error.response?.status === 400 && error.response?.data?.message === "Already clocked in today") {
+        alert("Anda sudah melakukan absensi masuk hari ini.");
+        setClockedIn(true);
+        setShowConfirmModal(false);
+        
+        // Save to localStorage to persist after refresh
+        if (user) {
+          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+          localStorage.setItem(`attendance_clock_in_date_${user.id}`, today);
+          localStorage.setItem(`attendance_clock_in_time_${user.id}`, new Date().toISOString());
+        }
+      } else {
+        alert(
+          error.response?.data?.message ||
+            "Gagal melakukan absensi. Silakan coba lagi.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }

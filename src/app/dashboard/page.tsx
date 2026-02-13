@@ -50,7 +50,7 @@ export default function Home() {
             color="bg-green-500"
             textColor="text-green-500"
             icon={<Wallet size={20} />}
-            href="/finance/invoice"
+            href="/finance/quotation"
           />
 
           <RoleCard

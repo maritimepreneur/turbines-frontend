@@ -6,7 +6,7 @@ import {
   faCheck,
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
@@ -19,44 +19,55 @@ type Lead = {
   total: string;
 };
 
-const leadsData: Lead[] = [
-  {
-    number: "QTXXXX",
-    name: "Client A",
-    projectname: "Project 1",
-    total: "Rp. 1.xxx.xxx",
-  },
-  {
-    number: "QTXXXX",
-    name: "Client B",
-    projectname: "Project 2",
-    total: "Rp. 2.xxx.xxx",
-  },
-  {
-    number: "QTXXXX",
-    name: "Client C",
-    projectname: "Project 3",
-    total: "Rp. 3.xxx.xxx",
-  },
-  {
-    number: "QTXXXX",
-    name: "Client D",
-    projectname: "Project 4",
-    total: "Rp. 4.xxx.xxx",
-  },
-  {
-    number: "QTXXXX",
-    name: "Client E",
-    projectname: "Project 5",
-    total: "Rp. 5.xxx.xxx",
-  },
-];
-
-const ITEMS_PER_PAGE = 5;
-
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [activeTab, setActiveTab] = useState("Pending");
+  const [leadsData, setLeadsData] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const fetchQuotations = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}api/quotations/`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      console.log("STATUS:", response.status);
+
+      const text = await response.text();
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch quotations");
+      }
+
+      const result = JSON.parse(text);
+
+      const mappedData: Lead[] = result.data.map((item: any) => ({
+        number: item.id?.toString() || "-",
+        name: item.contact?.name || "-",
+        projectname: item.lead?.name || "-",
+        total: item.total_amount ? `Rp. ${item.total_amount}` : "Rp. 0",
+      }));
+
+      setLeadsData(mappedData);
+    } catch (error) {
+      console.error("Error fetching quotations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchQuotations();
+}, []);
+
 
   const {
     filters,
@@ -176,9 +187,16 @@ export default function NewLeadsPage() {
           </thead>
 
           <tbody>
-            {paginatedData.length === 0 && (
+            {loading && (
               <tr>
-                <td colSpan={8} className="text-center py-6 text-slate-400">
+                <td colSpan={4} className="text-center py-6 text-slate-400">
+                  Loading...
+                </td>
+              </tr>
+            )}
+            {!loading && paginatedData.length === 0 && (
+              <tr>
+                <td colSpan={4} className="text-center py-6 text-slate-400">
                   No data found
                 </td>
               </tr>
