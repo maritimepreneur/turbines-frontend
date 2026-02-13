@@ -27,6 +27,9 @@ import {
   ChevronRight,
   Calendar1,
   CalendarCheck,
+  TextQuote,
+  ShoppingCart,
+  NotebookTabs,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -234,9 +237,21 @@ const MENU_ITEMS = [
 
   // FINANCE
   {
-    label: "Invoices",
-    href: "/finance/invoices",
-    icon: <Wallet size={18} />,
+    label: "Quotation",
+    href: "/finance/quotation",
+    icon: <TextQuote size={18} />,
+    module: "finance",
+  },
+  {
+    label: "Purchase",
+    href: "/finance/purchase",
+    icon: <ShoppingCart size={18} />,
+    module: "finance",
+  },
+  {
+    label: "Invoice",
+    href: "/finance/invoice",
+    icon: <NotebookTabs size={18} />,
     module: "finance",
   },
   {
@@ -290,7 +305,10 @@ const MENU_ITEMS = [
     href: "/human-resources/attendance",
     icon: <CalendarCheck size={18} />,
     subMenu: [
-      { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
+      {
+        label: "Recent Activity",
+        href: "/human-resources/attendance/recent-activity",
+      },
       { label: "Summary", href: "/human-resources/attendance/summary" },
       { label: "Absent", href: "/human-resources/attendance/absent" },
     ],
