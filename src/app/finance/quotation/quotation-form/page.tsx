@@ -148,8 +148,8 @@ export default function QuotationFormPage() {
           <div className="bg-white rounded-xl shadow-lg text-black">
             <div className="p-6">
               <div className="mb-8">
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
                     Total Amount <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -159,12 +159,12 @@ export default function QuotationFormPage() {
                     onChange={handleChange}
                     required
                     placeholder="Enter total amount"
-                    className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
 
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
                     Contact
                   </label>
                   <select
@@ -172,7 +172,7 @@ export default function QuotationFormPage() {
                     value={formData.contact_id}
                     onChange={handleChange}
                     disabled={loadingData}
-                    className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">
                       {loadingData ? "Loading contacts..." : contacts.length > 0 ? "Select Contact" : "No contacts available"}
@@ -185,8 +185,8 @@ export default function QuotationFormPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
                     Partner
                   </label>
                   <select
@@ -194,7 +194,7 @@ export default function QuotationFormPage() {
                     value={formData.partner_id}
                     onChange={handleChange}
                     disabled={loadingData}
-                    className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">
                       {loadingData ? "Loading partners..." : partners.length > 0 ? "Select Partner" : "No partners available"}
@@ -207,8 +207,8 @@ export default function QuotationFormPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
                     Lead
                   </label>
                   <select
@@ -216,7 +216,7 @@ export default function QuotationFormPage() {
                     value={formData.lead_id}
                     onChange={handleChange}
                     disabled={loadingData}
-                    className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">
                       {loadingData ? "Loading leads..." : leads.length > 0 ? "Select Lead" : "No leads available"}
@@ -229,8 +229,8 @@ export default function QuotationFormPage() {
                   </select>
                 </div>
 
-                <div className="flex items-start gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0 sm:pt-2">
                     Summary
                   </label>
                   <textarea
@@ -239,12 +239,12 @@ export default function QuotationFormPage() {
                     onChange={handleChange}
                     rows={3}
                     placeholder="Enter summary"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
 
-                <div className="flex items-start gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0 sm:pt-2">
                     Document Content
                   </label>
                   <textarea
@@ -253,12 +253,12 @@ export default function QuotationFormPage() {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Enter document content"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
 
-                <div className="flex items-start gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black w-32 flex-shrink-0 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 mb-4">
+                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0 sm:pt-2">
                     Offering Letter
                   </label>
                   <textarea
@@ -267,7 +267,7 @@ export default function QuotationFormPage() {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Enter offering letter"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
               </div>

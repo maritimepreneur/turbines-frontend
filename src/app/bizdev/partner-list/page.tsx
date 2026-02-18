@@ -318,7 +318,7 @@ export default function PartnerListPage() {
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Partner List</span>
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
           <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
           <div className="text-sm text-slate-500">
             Total: <span className="font-semibold text-slate-700">{pagination.total_items}</span> partners
@@ -327,8 +327,8 @@ export default function PartnerListPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
