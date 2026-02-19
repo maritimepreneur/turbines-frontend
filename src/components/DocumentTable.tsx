@@ -8,6 +8,7 @@ import axiosInstance from "@/lib/axios"
 import { Document, DocumentsResponse, DOCUMENT_TYPES } from "@/types/document"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
+import { FilterPanel, FilterItem } from "@/components/table/FilterPanel"
 
 interface DocumentTableProps {
     // Optional: Pass module context if the API endpoints or logic varies by module in the future
@@ -50,6 +51,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [docToDelete, setDocToDelete] = useState<Document | null>(null)
     const [isDeleting, setIsDeleting] = useState<number | null>(null)
+    const [showFilter, setShowFilter] = useState(false)
 
     // Notification State
     const [notification, setNotification] = useState<{
@@ -76,8 +78,11 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
     }
 
     const handleEdit = (doc: Document) => {
-        // Placeholder for Edit Logic
-        alert(`Edit Document ${doc.number}. This would open an edit modal or page.`)
+        if (moduleId) {
+            router.push(`/${moduleId}/documents/${doc.id}/edit`)
+        } else {
+            console.error("No Module ID provided for DocumentTable")
+        }
     }
 
     const handleDeleteClick = (doc: Document) => {
@@ -121,12 +126,55 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
 
     // Filters
     const [search, setSearch] = useState('')
-    const [selectedDocName, setSelectedDocName] = useState<string>('')
+    const [filters, setFilters] = useState<FilterItem[]>([])
+
+    const fieldOptions = [
+        { label: "Type", value: "document_type" },
+        { label: "Name", value: "name" },
+    ]
+
+    const addFilter = () => {
+        const newFilter = {
+            id: Date.now().toString(),
+            field: fieldOptions[0].value,
+            value: ''
+        }
+        setFilters([...filters, newFilter])
+    }
+
+    const removeFilter = (id: string) => {
+        setFilters(filters.filter(f => f.id !== id))
+    }
+
+    const updateFilterField = (id: string, field: string) => {
+        setFilters(filters.map(f => f.id === id ? { ...f, field, value: '' } : f))
+    }
+
+    const updateFilterValue = (id: string, value: string) => {
+        setFilters(filters.map(f => f.id === id ? { ...f, value } : f))
+    }
+
+    const resetFilters = () => {
+        setFilters([])
+    }
 
     const fetchDocuments = async () => {
         try {
             setIsLoading(true)
             setError(null)
+
+            let effectiveSearch = search
+            const filterParams: Record<string, string> = {}
+            filters.forEach(f => {
+                if (f.value) {
+                    filterParams[f.field] = f.value
+
+                    // Fallback: If filtering by name and no global search, use name as search
+                    if (f.field === 'name' && !effectiveSearch) {
+                        effectiveSearch = f.value
+                    }
+                }
+            })
 
             const response = await axiosInstance.post<DocumentsResponse>(
                 '/api/documents/',
@@ -135,8 +183,8 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                     page_size: itemsPerPage,
                     sort_by: 'id',
                     sort_order: 'DESC',
-                    ...(selectedDocName && { document_type: selectedDocName }),
-                    ...(search && { search: search }),
+                    ...filterParams,
+                    ...(effectiveSearch && { search: effectiveSearch }),
                     // Pass moduleId if needed by backend
                     ...(moduleId && { module: moduleId })
                 }
@@ -166,7 +214,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
     // Reload when page, size, or filters change
     useEffect(() => {
         fetchDocuments()
-    }, [currentPage, itemsPerPage, selectedDocName, moduleId])
+    }, [currentPage, itemsPerPage, filters, moduleId])
 
     // Debounce search could be added here, but for now we rely on the state update to trigger fetch
     // Use a timeout for search to avoid too many requests
@@ -248,29 +296,25 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                     </div>
 
                     <div className="flex flex-wrap gap-2 items-center">
-                        <div className="relative">
-                            <select
-                                className="appearance-none bg-slate-50 border border-slate-300 text-slate-700 rounded-lg px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 cursor-pointer hover:bg-slate-100 transition"
-                                value={selectedDocName}
-                                onChange={(e) => {
-                                    setSelectedDocName(e.target.value)
-                                    setCurrentPage(1)
-                                }}
-                            >
-                                <option value="">All Types</option>
-                                {DOCUMENT_TYPES.map(type => (
-                                    <option key={type.value} value={type.value}>{type.label}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                        </div>
+                        <button
+                            onClick={() => setShowFilter(!showFilter)}
+                            className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition border ${showFilter ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            Filter
+                            {filters.length > 0 && (
+                                <span className="bg-sky-100 text-sky-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+                                    {filters.length}
+                                </span>
+                            )}
+                        </button>
 
                         <SearchBar
                             value={search}
                             onChange={setSearch}
-                            placeholder="Search by number..."
+                            placeholder="Search by name..."
                         />
 
                         <button
@@ -290,6 +334,21 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                         </button>
                     </div>
                 </div>
+
+                {/* Filter Panel */}
+                <FilterPanel
+                    show={showFilter}
+                    filters={filters}
+                    onAddFilter={addFilter}
+                    onRemoveFilter={removeFilter}
+                    onUpdateField={updateFilterField}
+                    onUpdateValue={updateFilterValue}
+                    onResetAll={resetFilters}
+                    fieldOptions={fieldOptions}
+                    valueOptions={{
+                        document_type: DOCUMENT_TYPES
+                    }}
+                />
             </div>
 
             <div className="overflow-x-auto">
@@ -308,7 +367,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                         {data.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="text-center py-12 text-slate-400">
-                                    {search || selectedDocName
+                                    {search || filters.length > 0
                                         ? (
                                             <div>
                                                 <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

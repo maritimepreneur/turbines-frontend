@@ -12,6 +12,7 @@ interface FilterPanelProps {
   onUpdateValue: (id: string, value: string) => void
   onResetAll: () => void
   fieldOptions: { label: string; value: string }[]
+  valueOptions?: Record<string, { label: string; value: string }[]>
   show: boolean
 }
 
@@ -23,6 +24,7 @@ export function FilterPanel({
   onUpdateValue,
   onResetAll,
   fieldOptions,
+  valueOptions,
   show,
 }: FilterPanelProps) {
   if (!show) return null
@@ -30,7 +32,7 @@ export function FilterPanel({
   return (
     <div className="mb-4 p-4 border rounded-lg bg-slate-50">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold text-sm">Active Filters</h3>
+        <h3 className="font-semibold text-sm text-slate-900">Active Filters</h3>
         <div className="flex gap-2 py-4">
           <button
             onClick={onAddFilter}
@@ -66,7 +68,7 @@ export function FilterPanel({
               <select
                 value={filter.field}
                 onChange={(e) => onUpdateField(filter.id, e.target.value)}
-                className="w-full sm:w-auto border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full sm:w-auto border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 {fieldOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -75,15 +77,30 @@ export function FilterPanel({
                 ))}
               </select>
 
-              <span className="text-slate-400 text-sm hidden sm:inline">contains</span>
+              <span className="text-slate-400 text-sm hidden sm:inline">
+                {valueOptions?.[filter.field] ? 'is' : 'contains'}
+              </span>
 
-              <input
-                type="text"
-                value={filter.value}
-                onChange={(e) => onUpdateValue(filter.id, e.target.value)}
-                placeholder="Enter value..."
-                className="border border-slate-300 rounded px-3 py-2 text-sm w-full sm:flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
+              {valueOptions?.[filter.field] ? (
+                <select
+                  value={filter.value}
+                  onChange={(e) => onUpdateValue(filter.id, e.target.value)}
+                  className="w-full sm:w-auto sm:flex-1 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">Select value...</option>
+                  {valueOptions[filter.field].map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={filter.value}
+                  onChange={(e) => onUpdateValue(filter.id, e.target.value)}
+                  placeholder="Enter value..."
+                  className="border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 w-full sm:flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              )}
 
               <button
                 onClick={() => onRemoveFilter(filter.id)}

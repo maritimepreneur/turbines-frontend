@@ -15,15 +15,18 @@ interface DocumentFormData {
 
 interface DocumentFormProps {
     moduleId: 'bizdev' | 'finance' | 'operation';
+    isEdit?: boolean;
+    initialData?: DocumentFormData;
+    documentId?: number;
 }
 
-export default function DocumentForm({ moduleId }: DocumentFormProps) {
+export default function DocumentForm({ moduleId, isEdit = false, initialData, documentId }: DocumentFormProps) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [formData, setFormData] = useState<DocumentFormData>({
-        number: "",
-        name: "",
-        document_type: ""
+        number: initialData?.number || "",
+        name: initialData?.name || "",
+        document_type: initialData?.document_type || ""
     })
 
     const [errors, setErrors] = useState<Partial<DocumentFormData>>({})
@@ -78,31 +81,46 @@ export default function DocumentForm({ moduleId }: DocumentFormProps) {
                 document_type: formData.document_type
             }
 
-            const response = await axiosInstance.post('/api/documents/create', payload)
-            // Assuming /api/documents/create based on pattern. If it's just POST /api/documents/, I'll adjust.
-            // new-leads used /api/leads/create.
-
-            if (response.data.code === 200 || response.data.code === 201) {
-                setNotification({
-                    isOpen: true,
-                    title: "Success",
-                    message: "Document created successfully!",
-                    type: "success"
-                })
-                setTimeout(() => {
-                    router.push(`/${moduleId}/documents`)
-                }, 1500)
+            if (isEdit) {
+                const response = await axiosInstance.put(`/api/documents/${documentId}`, payload)
+                if (response.data.code === 200) {
+                    setNotification({
+                        isOpen: true,
+                        title: "Success",
+                        message: "Document updated successfully!",
+                        type: "success"
+                    })
+                    setTimeout(() => {
+                        router.push(`/${moduleId}/documents`)
+                    }, 1500)
+                } else {
+                    throw new Error(response.data.message || 'Failed to update document')
+                }
             } else {
-                throw new Error(response.data.message || 'Failed to create document')
+                const response = await axiosInstance.post('/api/documents/create', payload)
+
+                if (response.data.code === 200 || response.data.code === 201) {
+                    setNotification({
+                        isOpen: true,
+                        title: "Success",
+                        message: "Document created successfully!",
+                        type: "success"
+                    })
+                    setTimeout(() => {
+                        router.push(`/${moduleId}/documents`)
+                    }, 1500)
+                } else {
+                    throw new Error(response.data.message || 'Failed to create document')
+                }
             }
 
         } catch (err: any) {
-            console.error("Failed to create document:", err)
-            setSubmitError(err.response?.data?.message || err.message || "Failed to create document")
+            console.error(`Failed to ${isEdit ? 'update' : 'create'} document:`, err)
+            setSubmitError(err.response?.data?.message || err.message || `Failed to ${isEdit ? 'update' : 'create'} document`)
             setNotification({
                 isOpen: true,
                 title: "Error",
-                message: err.message || "Failed to create document",
+                message: err.message || `Failed to ${isEdit ? 'update' : 'create'} document`,
                 type: "error"
             })
         } finally {
@@ -124,7 +142,8 @@ export default function DocumentForm({ moduleId }: DocumentFormProps) {
                 isOpen={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
                 onConfirm={confirmCancel}
-                title="Cancel Creation"
+                onConfirm={confirmCancel}
+                title={`Cancel ${isEdit ? 'Editing' : 'Creation'}`}
                 message="Are you sure you want to cancel? All unsaved changes will be lost."
                 confirmText="Yes, Cancel"
                 cancelText="No, Keep Editing"
