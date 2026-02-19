@@ -142,7 +142,6 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
                 isOpen={showCancelModal}
                 onClose={() => setShowCancelModal(false)}
                 onConfirm={confirmCancel}
-                onConfirm={confirmCancel}
                 title={`Cancel ${isEdit ? 'Editing' : 'Creation'}`}
                 message="Are you sure you want to cancel? All unsaved changes will be lost."
                 confirmText="Yes, Cancel"
