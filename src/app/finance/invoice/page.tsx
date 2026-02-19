@@ -26,7 +26,7 @@ const leadsData: Lead[] = [
     creationdate: "2023-01-01",
     invoiceperiod: "January 2023",
     grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
+    status: "Invoice",
   },
   {
     number: "POXXXX",
@@ -35,7 +35,7 @@ const leadsData: Lead[] = [
     creationdate: "2023-01-01",
     invoiceperiod: "January 2023",
     grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
+    status: "Invoice",
   },
   {
     number: "POXXXX",
@@ -44,7 +44,7 @@ const leadsData: Lead[] = [
     creationdate: "2023-01-01",
     invoiceperiod: "January 2023",
     grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
+    status: "Invoice",
   },
   {
     number: "POXXXX",
@@ -53,7 +53,7 @@ const leadsData: Lead[] = [
     creationdate: "2023-01-01",
     invoiceperiod: "January 2023",
     grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
+    status: "Invoice",
   },
   {
     number: "POXXXX",
@@ -62,7 +62,7 @@ const leadsData: Lead[] = [
     creationdate: "2023-01-01",
     invoiceperiod: "January 2023",
     grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
+    status: "Invoice",
   },
 ];
 
@@ -71,7 +71,6 @@ const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false)
-  const [activeTab, setActiveTab] = useState("Pre Invoice")
 
   const {
     filters,
@@ -102,26 +101,29 @@ export default function NewLeadsPage() {
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm text-slate-400">
-          Finance / <span className="text-slate-600">Quotation</span>
+          Finance / <span className="text-slate-600">Invoice</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Quotation</h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">Invoice</h1>
       </div>
 
       {/* Navigation Tabs */}
       <div className="border-b border-gray-400 mb-4">
         <nav className="flex space-x-8 px-6 pt-4">
-          {["Pre Invoice", "Invoice", "Canceled"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              {tab}
+          <Link href="/finance/pre-invoice">
+            <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm transition">
+              Pre Invoice
             </button>
-          ))}
+          </Link>
+          <Link href="/finance/invoice">
+            <button className="pb-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm transition">
+              Invoice
+            </button>
+          </Link>
+          <Link href="/finance/canceled">
+            <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm transition">
+              Canceled
+            </button>
+          </Link>
         </nav>
       </div>
 
