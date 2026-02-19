@@ -297,6 +297,12 @@ const MENU_ITEMS = [
     icon: <FileText size={18} />,
     module: "bizdev",
   },
+  {
+    label: "Documents",
+    href: "/bizdev/documents",
+    icon: <FileText size={18} />,
+    module: "bizdev",
+  },
 
   // FINANCE
   {
@@ -323,6 +329,12 @@ const MENU_ITEMS = [
     icon: <BarChart3 size={18} />,
     module: "finance",
   },
+  {
+    label: "Documents",
+    href: "/finance/documents",
+    icon: <FileText size={18} />,
+    module: "finance",
+  },
 
   // OPERATION
   {
@@ -335,6 +347,12 @@ const MENU_ITEMS = [
     label: "Teams",
     href: "/operation/teams",
     icon: <UsersRound size={18} />,
+    module: "operation",
+  },
+  {
+    label: "Documents",
+    href: "/operation/documents",
+    icon: <FileText size={18} />,
     module: "operation",
   },
 
