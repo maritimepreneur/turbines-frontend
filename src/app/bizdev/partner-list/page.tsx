@@ -1,65 +1,334 @@
 "use client"
 
-import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState, useEffect, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
-import { useTableFilters } from "@/hooks/useTableFilters"
-import { usePartners, useDeletePartner } from "@/hooks/usePartners"
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
+import { NotificationModal } from "@/components/modals/NotificationModal"
+import axiosInstance from "@/lib/axios"
 
-export default function NewLeadsPage() {
-  const [showFilter, setShowFilter] = useState(false)
-  const { data: partners = [], isLoading } = usePartners()
-  const deletePartner = useDeletePartner()
+type Partner = {
+  id: number
+  name: string
+  initials: string
+  industry: string
+  company_type: string
+  partner_type: string
+  service?: string
+  goods?: string
+}
 
-  const {
-    filters,
-    search,
-    currentPage,
-    paginatedData,
-    filteredData,
-    totalPages,
-    addFilter,
-    removeFilter,
-    updateFilterField,
-    updateFilterValue,
-    resetFilters,
-    setSearch,
-    setCurrentPage,
-  } = useTableFilters(partners, 5)
-
-  const handleDelete = (id: number) => {
-    if (confirm('Hapus partner ini?')) {
-      deletePartner.mutate(id)
+interface PartnersResponse {
+  message: string
+  code: number
+  data: {
+    list: Partner[]
+    pagination: {
+      current_page: number
+      page_size: number
+      total_pages: number
+      total_items: number
     }
   }
+}
+
+export default function PartnerListPage() {
+  const router = useRouter()
+  const [showFilter, setShowFilter] = useState(false)
+  const [partnersData, setPartnersData] = useState<Partner[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState<number | null>(null)
+
+  // Modals state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [partnerToDelete, setPartnerToDelete] = useState<{ id: number, name: string } | null>(null)
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: "success" | "error" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  })
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    page_size: 5,
+    total_pages: 1,
+    total_items: 0
+  })
+
+  const [search, setSearch] = useState('')
+  const [filters, setFilters] = useState<Array<{ id: string, field: string, value: string }>>([])
 
   const fieldOptions = [
-    { label: "Company Name", value: "name" },
-    { label: "Initials", value: "initials" },
     { label: "Industry", value: "industry" },
     { label: "Company Type", value: "company_type" },
     { label: "Partner Type", value: "partner_type" },
     { label: "Service", value: "service" },
+    { label: "Goods", value: "goods" },
   ]
 
-  if (isLoading) return <div className="p-6">Loading...</div>
+  const fetchPartners = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      console.log('📥 Fetching all partners data...')
+
+      const response = await axiosInstance.post<PartnersResponse>(
+        '/api/partners/',
+        {
+          params: {
+            page_number: 1,
+            page_size: 1000, // Fetch all data
+            sort_by: 'id',
+            sort_order: 'DESC',
+          }
+        }
+      )
+
+      console.log('📦 Response:', response.data)
+
+      if (response.data.code === 200) {
+        console.log('✅ Partners data fetched:', response.data.data.list.length, 'items')
+        setPartnersData(response.data.data.list)
+        setPagination(response.data.data.pagination)
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch partners')
+      }
+    } catch (err: any) {
+      console.error('❌ Error fetching partners:', err)
+
+      if (err.response?.status === 401) {
+        setError('Session expired. Please login again.')
+        router.push('/login')
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message)
+      } else {
+        setError('Failed to load partners data. Please try again.')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPartners()
+  }, [])
+
+  const filteredPartners = useMemo(() => {
+    let filtered = [...partnersData]
+
+    if (search) {
+      filtered = filtered.filter(partner =>
+        partner.name.toLowerCase().includes(search.toLowerCase()) ||
+        partner.initials.toLowerCase().includes(search.toLowerCase())
+      )
+    }
+
+    filters.forEach(filter => {
+      if (filter.value) {
+        filtered = filtered.filter(partner => {
+          const fieldValue = partner[filter.field as keyof Partner]
+          return fieldValue &&
+            String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
+        })
+      }
+    })
+
+    return filtered
+  }, [partnersData, search, filters])
+
+  // Client-side pagination
+  const paginatedPartners = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredPartners.slice(startIndex, endIndex)
+  }, [filteredPartners, currentPage, itemsPerPage])
+
+  const totalPages = Math.ceil(filteredPartners.length / itemsPerPage)
+
+  const handleEdit = (partnerId: number) => {
+    router.push(`/bizdev/partner-list/edit?id=${partnerId}`)
+  }
+
+  const handleDeleteClick = (id: number, name: string) => {
+    setPartnerToDelete({ id, name })
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!partnerToDelete) return
+
+    try {
+      setIsDeleting(partnerToDelete.id)
+
+      const response = await axiosInstance.delete(`/api/partners/${partnerToDelete.id}`)
+
+      if (response.data.code === 200) {
+        setPartnersData(prev => prev.filter(p => p.id !== partnerToDelete.id))
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Partner deleted successfully",
+          type: "success"
+        })
+      } else {
+        throw new Error(response.data.message || 'Failed to delete partner')
+      }
+    } catch (err: any) {
+      console.error('❌ Error deleting partner:', err)
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || "Failed to delete partner",
+        type: "error"
+      })
+    } finally {
+      setIsDeleting(null)
+      setPartnerToDelete(null)
+    }
+  }
+
+  const addFilter = () => {
+    const newFilter = {
+      id: Date.now().toString(),
+      field: fieldOptions[0].value,
+      value: ''
+    }
+    setFilters([...filters, newFilter])
+  }
+
+  const removeFilter = (id: string) => {
+    setFilters(filters.filter(f => f.id !== id))
+  }
+
+  const updateFilterField = (id: string, field: string) => {
+    setFilters(filters.map(f =>
+      f.id === id ? { ...f, field, value: '' } : f
+    ))
+  }
+
+  const updateFilterValue = (id: string, value: string) => {
+    setFilters(filters.map(f =>
+      f.id === id ? { ...f, value } : f
+    ))
+  }
+
+  const resetFilters = () => {
+    setFilters([])
+    setSearch('')
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue)
+    setCurrentPage(1)
+  }
+
+  if (isLoading && partnersData.length === 0) {
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-sm text-slate-400">
+            Bizdev / <span className="text-slate-600">Partner List</span>
+          </p>
+          <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-slate-600">Loading partners data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && partnersData.length === 0) {
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-sm text-slate-400">
+            Bizdev / <span className="text-slate-600">Partner List</span>
+          </p>
+          <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to Load Data</h3>
+            <p className="text-slate-600 mb-4">{error}</p>
+            <button
+              onClick={() => fetchPartners()}
+              className="bg-sky-500 text-white px-6 py-2 rounded-lg hover:bg-sky-600 transition"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
-      {/* Header */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Partner"
+        message={`Are you sure you want to delete partner "${partnerToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="reject"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Partner List</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
+          <div className="text-sm text-slate-500">
+            Total: <span className="font-semibold text-slate-700">{pagination.total_items}</span> partners
+          </div>
+        </div>
       </div>
 
-      {/* Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
@@ -82,15 +351,27 @@ export default function NewLeadsPage() {
             />
           </div>
 
-          <button 
-            onClick={() => window.location.href = '/bizdev/partner-list/add'}
-            className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition"
-          >
-            + Add
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => fetchPartners()}
+              disabled={isLoading}
+              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
+              title="Refresh data"
+            >
+              <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+
+            <Link href="/bizdev/partner-list/add">
+              <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+                + Add
+              </button>
+            </Link>
+          </div>
         </div>
 
-        {/* Filter Panel */}
         <FilterPanel
           show={showFilter}
           filters={filters}
@@ -102,74 +383,111 @@ export default function NewLeadsPage() {
           fieldOptions={fieldOptions}
         />
 
-        {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">ID</th>
-              <th className="text-left py-3 px-3">Company Name</th>
-              <th className="text-left py-3 px-3">Initial</th>
-              <th className="text-left py-3 px-3">Industry</th>
-              <th className="text-left py-3 px-3">Service</th>
-              <th className="text-left py-3 px-3">Company Type</th>
-              <th className="text-left py-3 px-3">Partner Type</th>
-              <th className="text-left py-3 px-3">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">
-                  No data found
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50">
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-3 px-3 whitespace-nowrap">ID</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Company Name</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Initial</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Industry</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Service</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Company Type</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Partner Type</th>
+                <th className="text-left py-3 px-3 whitespace-nowrap">Action</th>
               </tr>
-            )}
+            </thead>
 
-            {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.name}</td>
-                <td className="py-3 px-3">{item.initials}</td>
-                <td className="py-3 px-3">{item.industry}</td>
-                <td className="py-3 px-3">{item.service || '-'}</td>
-                <td className="py-3 px-3">{item.company_type}</td>
-                <td className="py-3 px-3">{item.partner_type}</td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-4">
-                    <button 
-                      className="text-sky-500 hover:text-sky-700"
-                      onClick={() => window.location.href = `/bizdev/partner-list/edit?id=${item.id}`}
-                      title="Edit"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button 
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleDelete(item.id)}
-                      title="Delete"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            <tbody>
+              {filteredPartners.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="text-center py-8 text-slate-400">
+                    {search || filters.length > 0
+                      ? (
+                        <div>
+                          <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <p className="font-medium">No results found</p>
+                          <p className="text-xs mt-1">Try adjusting your search or filters</p>
+                        </div>
+                      )
+                      : (
+                        <div>
+                          <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                          </svg>
+                          <p className="font-medium">No partners data available</p>
+                          <p className="text-xs mt-1">Click '+ Add' to create a new partner</p>
+                        </div>
+                      )
+                    }
+                  </td>
+                </tr>
+              )}
+
+              {paginatedPartners.map((item, index) => (
+                <tr
+                  key={item.id}
+                  className={`hover:bg-slate-50 transition ${index !== filteredPartners.length - 1 ? 'border-b border-slate-200' : ''
+                    }`}
+                >
+                  <td className="py-3 px-3">{item.id}</td>
+                  <td className="py-3 px-3 font-medium">{item.name}</td>
+                  <td className="py-3 px-3">{item.initials}</td>
+                  <td className="py-3 px-3">{item.industry}</td>
+                  <td className="py-3 px-3">
+                    {item.service || (
+                      <span className="text-slate-400 text-xs">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-3">{item.company_type}</td>
+                  <td className="py-3 px-3">{item.partner_type}</td>
+                  <td className="py-3 px-3">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleEdit(item.id)}
+                        className="text-sky-500 hover:text-sky-700 transition"
+                        title="Edit partner"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(item.id, item.name)}
+                        disabled={isDeleting === item.id}
+                        className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete partner"
+                      >
+                        {isDeleting === item.id ? (
+                          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
 
         {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredData.length}
-          itemsPerPage={5}
-          onPageChange={setCurrentPage}
-        />
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredPartners.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        )}
       </div>
     </div>
   )

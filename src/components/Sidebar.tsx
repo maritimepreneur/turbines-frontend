@@ -30,10 +30,30 @@ import {
   TextQuote,
   ShoppingCart,
   NotebookTabs,
+  Menu,
+  X,
 } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileOpen]);
 
   const visibleMenuItems = useMemo(() => {
     if (pathname.startsWith("/bizdev")) {
@@ -65,11 +85,20 @@ export default function Sidebar() {
   }, [pathname]);
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col">
-      {/* Logo */}
-      <div className="flex items-center gap-3 mb-10">
-        <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
-        <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
+    <>
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="p-2 rounded-lg hover:bg-slate-100 transition text-slate-600"
+          aria-label="Open menu"
+        >
+          <Menu size={22} />
+        </button>
+        <div className="flex items-center gap-2">
+          <Image src="/logo_marmud.png" alt="Logo" width={32} height={20} />
+          <h1 className="text-lg italic font-bold text-slate-900">Turbines</h1>
+        </div>
       </div>
 
       {/* Menu */}
@@ -87,8 +116,49 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <UserSection />
-    </aside>
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed left-0 top-0 h-screen z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-y-auto
+          transition-transform duration-300 ease-in-out
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0
+        `}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between gap-3 mb-10">
+          <div className="flex items-center gap-3">
+            <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
+            <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
+          </div>
+          {/* Close button (mobile only) */}
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg hover:bg-slate-100 transition text-slate-500"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Menu */}
+        <nav className="space-y-1 text-sm text-slate-600 flex-1">
+          {visibleMenuItems.map((item) => (
+            <MenuLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              active={pathname === item.href}
+              subMenu={item.subMenu}
+              pathname={pathname}
+            />
+          ))}
+        </nav>
+
+        <UserSection />
+      </aside>
+    </>
   );
 }
 
@@ -313,7 +383,7 @@ const MENU_ITEMS = [
       { label: "Summary", href: "/human-resources/attendance/summary" },
       { label: "Absent", href: "/human-resources/attendance/absent" },
     ],
-    module: "human-resources",
+    module: "human-resources"
   },
   // {
   //   label: "My Reports",
@@ -338,13 +408,15 @@ function UserSection() {
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition"
       >
-        <Image
-          src="/avatar-placeholder.png"
-          alt="User Avatar"
-          width={40}
-          height={40}
-          className="rounded-full border"
-        />
+        <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border-2 border-slate-200">
+          <Image
+            src="/avatar-placeholder.png"
+            alt="User Avatar"
+            width={40}
+            height={40}
+            className="w-full h-full object-cover"
+          />
+        </div>
 
         <div className="text-left flex-1">
           <p className="text-sm font-semibold text-gray-800">

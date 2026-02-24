@@ -5,6 +5,8 @@ import { useState, useEffect, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
+import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 
 type Lead = {
@@ -34,7 +36,6 @@ interface LeadsResponse {
   }
 }
 
-const ITEMS_PER_PAGE = 5
 
 export default function NewLeadsPage() {
   const router = useRouter();
@@ -43,17 +44,18 @@ export default function NewLeadsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
-  
+
   const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const [pagination, setPagination] = useState({
     current_page: 1,
-    page_size: ITEMS_PER_PAGE,
+    page_size: 5,
     total_pages: 1,
     total_items: 0
   })
 
   const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState<Array<{id: string, field: string, value: string}>>([])
+  const [filters, setFilters] = useState<Array<{ id: string, field: string, value: string }>>([])
 
   const fieldOptions = [
     { label: "Stage", value: "current_stages" },
@@ -62,36 +64,33 @@ export default function NewLeadsPage() {
     { label: "Contact", value: "contact_name" },
   ]
 
-  const fetchLeads = async (page: number = 1) => {
+  const fetchLeads = async () => {
     try {
       setIsLoading(true)
       setError(null)
-      
-      console.log('📥 Fetching leads data... Page:', page)
-      
+
       const response = await axiosInstance.post<LeadsResponse>(
         '/api/leads/',
         {
-          page_number: page,
-          page_size: ITEMS_PER_PAGE,
+          page_number: 1,
+          page_size: 1000, // Fetch all data
           sort_by: 'id',
           sort_order: 'DESC',
         }
       )
-      
+
       console.log('📦 Response:', response.data)
 
       if (response.data.code === 200) {
         console.log('✅ Leads data fetched:', response.data.data.list.length, 'items')
         setLeadsData(response.data.data.list)
         setPagination(response.data.data.pagination)
-        setCurrentPage(response.data.data.pagination.current_page)
       } else {
         throw new Error(response.data.message || 'Failed to fetch leads')
       }
     } catch (err: any) {
       console.error('❌ Error fetching leads:', err)
-      
+
       if (err.response?.status === 401) {
         setError('Session expired. Please login again.')
         router.push('/login')
@@ -106,14 +105,14 @@ export default function NewLeadsPage() {
   }
 
   useEffect(() => {
-    fetchLeads(currentPage)
-  }, [currentPage])
+    fetchLeads()
+  }, [])
 
   const filteredLeads = useMemo(() => {
     let filtered = [...leadsData]
 
     if (search) {
-      filtered = filtered.filter(lead => 
+      filtered = filtered.filter(lead =>
         lead.name.toLowerCase().includes(search.toLowerCase()) ||
         (lead.company && lead.company.toLowerCase().includes(search.toLowerCase())) ||
         (lead.contact_name && lead.contact_name.toLowerCase().includes(search.toLowerCase()))
@@ -124,14 +123,23 @@ export default function NewLeadsPage() {
       if (filter.value) {
         filtered = filtered.filter(lead => {
           const fieldValue = lead[filter.field as keyof Lead]
-          return fieldValue && 
-                 String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
+          return fieldValue &&
+            String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
         })
       }
     })
 
     return filtered
   }, [leadsData, search, filters])
+
+  // Client-side pagination
+  const paginatedLeads = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredLeads.slice(startIndex, endIndex)
+  }, [filteredLeads, currentPage, itemsPerPage])
+
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
 
   const handleIdClick = (leadId: number) => {
     router.push(`/bizdev/new-leads/general-info?id=${leadId}`);
@@ -141,36 +149,64 @@ export default function NewLeadsPage() {
     router.push(`/bizdev/new-leads/edit-leads?id=${leadId}`)
   }
 
-  const handleDelete = async (leadId: number, leadName: string) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete lead "${leadName}"?`
-    )
-    
-    if (!confirmDelete) return
+  /* Modal State */
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [leadToDelete, setLeadToDelete] = useState<{ id: number, name: string } | null>(null)
+
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: "success" | "error" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  })
+
+  // Imports are needed, but I'll add them separately or assume they are available.
+  // Wait, I need to add imports to the top of the file too. This tool call only replaces a block.
+  // I will split this into multiple calls or use multi_replace.
+
+  const handleDeleteClick = (id: number, name: string) => {
+    setLeadToDelete({ id, name })
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!leadToDelete) return
 
     try {
-      setIsDeleting(leadId)
-      console.log('🗑️ Deleting lead:', leadId)
+      setIsDeleting(leadToDelete.id)
+      console.log('🗑️ Deleting lead:', leadToDelete.id)
 
-      const response = await axiosInstance.delete(`/api/leads/${leadId}`)
+      const response = await axiosInstance.delete(`/api/leads/${leadToDelete.id}`)
 
       if (response.data.code === 200) {
         console.log('✅ Lead deleted successfully')
-        await fetchLeads(currentPage)
-        alert('Lead deleted successfully!')
+        await fetchLeads()
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Lead deleted successfully",
+          type: "success"
+        })
       } else {
         throw new Error(response.data.message || 'Failed to delete lead')
       }
     } catch (err: any) {
       console.error('❌ Error deleting lead:', err)
-      
-      if (err.response?.data?.message) {
-        alert(`Failed to delete: ${err.response.data.message}`)
-      } else {
-        alert('Failed to delete lead. Please try again.')
-      }
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || "Failed to delete lead",
+        type: "error"
+      })
     } finally {
       setIsDeleting(null)
+      setShowDeleteModal(false)
+      setLeadToDelete(null)
     }
   }
 
@@ -218,13 +254,13 @@ export default function NewLeadsPage() {
   }
 
   const updateFilterField = (id: string, field: string) => {
-    setFilters(filters.map(f => 
+    setFilters(filters.map(f =>
       f.id === id ? { ...f, field, value: '' } : f
     ))
   }
 
   const updateFilterValue = (id: string, value: string) => {
-    setFilters(filters.map(f => 
+    setFilters(filters.map(f =>
       f.id === id ? { ...f, value } : f
     ))
   }
@@ -237,6 +273,11 @@ export default function NewLeadsPage() {
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue)
+    setCurrentPage(1)
   }
 
   if (isLoading && leadsData.length === 0) {
@@ -281,7 +322,7 @@ export default function NewLeadsPage() {
             <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to Load Data</h3>
             <p className="text-slate-600 mb-4">{error}</p>
             <button
-              onClick={() => fetchLeads(1)}
+              onClick={() => fetchLeads()}
               className="bg-sky-500 text-white px-6 py-2 rounded-lg hover:bg-sky-600 transition"
             >
               Try Again
@@ -294,11 +335,30 @@ export default function NewLeadsPage() {
 
   return (
     <div>
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Lead"
+        message={`Are you sure you want to delete lead "${leadToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="reject"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">New Leads</span>
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
           <h1 className="text-2xl font-semibold mt-1 text-black">New Leads</h1>
           <div className="text-sm text-slate-500">
             Total: <span className="font-semibold text-slate-700">{pagination.total_items}</span> leads
@@ -307,8 +367,8 @@ export default function NewLeadsPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
@@ -333,7 +393,7 @@ export default function NewLeadsPage() {
 
           <div className="flex gap-2">
             <button
-              onClick={() => fetchLeads(currentPage)}
+              onClick={() => fetchLeads()}
               disabled={isLoading}
               className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
               title="Refresh data"
@@ -382,7 +442,7 @@ export default function NewLeadsPage() {
               {filteredLeads.length === 0 && (
                 <tr>
                   <td colSpan={8} className="text-center py-8 text-slate-400">
-                    {search || filters.length > 0 
+                    {search || filters.length > 0
                       ? (
                         <div>
                           <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -406,12 +466,11 @@ export default function NewLeadsPage() {
                 </tr>
               )}
 
-              {filteredLeads.map((item, index) => (
-                <tr 
-                  key={item.id} 
-                  className={`hover:bg-slate-50 transition ${
-                    index !== filteredLeads.length - 1 ? 'border-b border-slate-200' : ''
-                  }`}
+              {paginatedLeads.map((item, index) => (
+                <tr
+                  key={item.id}
+                  className={`hover:bg-slate-50 transition ${index !== filteredLeads.length - 1 ? 'border-b border-slate-200' : ''
+                    }`}
                 >
                   <td className="py-3 px-3">
                     <button
@@ -447,7 +506,7 @@ export default function NewLeadsPage() {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id, item.name)}
+                        onClick={() => handleDeleteClick(item.id, item.name)}
                         disabled={isDeleting === item.id}
                         className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Delete lead"
@@ -468,18 +527,18 @@ export default function NewLeadsPage() {
           </table>
         </div>
 
-        {/* Pagination - UNIFIED STYLE */}
-        <div className="flex items-center justify-end mt-4 pt-4 border-t text-black">
-          {pagination.total_pages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={pagination.total_pages}
-              totalItems={pagination.total_items}
-              itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
+
+        {/* Pagination */}
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredLeads.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
+        )}
       </div>
     </div>
   )

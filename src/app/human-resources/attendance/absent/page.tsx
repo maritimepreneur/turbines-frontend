@@ -1,124 +1,292 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useState, useEffect, useMemo } from "react";
+import { AxiosError } from "axios";
+import axiosInstance from "@/lib/axios";
+import { logger } from "@/lib/logger";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Loader2, RefreshCw } from "lucide-react";
+import { Pagination } from "@/components/table/Pagination";
+
+type AbsentEmployee = {
+  id: number;
+  employee_name: string;
+  employee_code: string;
+  nickname: string;
+  img_url: string;
+  phone: string;
+};
+
+interface AbsentListResponse {
+  message: string;
+  code: number;
+  data: AbsentEmployee[];
+}
+
+const TABS = [
+  {
+    label: "Recent Activity",
+    href: "/human-resources/attendance/recent-activity",
+  },
+  { label: "Summary", href: "/human-resources/attendance/summary" },
+  { label: "Absent", href: "/human-resources/attendance/absent" },
+];
 
 export default function AbsentPage() {
-  const pathname = usePathname()
-  const [showFilter, setShowFilter] = useState(false)
+  const pathname = usePathname();
+  const [absentEmployees, setAbsentEmployees] = useState<AbsentEmployee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const tabs = [
-    { label: "Recent Activity", href: "/human-resources/attendance/recent-activity" },
-    { label: "Summary", href: "/human-resources/attendance/summary" },
-    { label: "Absent", href: "/human-resources/attendance/absent" },
-  ]
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  useEffect(() => {
+    fetchAbsentEmployees();
+  }, []);
+
+  const fetchAbsentEmployees = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      logger.info("Fetching absent employees list");
+
+      const response = await axiosInstance.get<AbsentListResponse>(
+        "/api/attendances/absent"
+      );
+
+      if (response.data.code === 200) {
+        logger.success("Absent employees fetched successfully");
+        setAbsentEmployees(response.data.data);
+      } else {
+        throw new Error(response.data.message || "Failed to fetch absent employees");
+      }
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      logger.error("Error fetching absent employees", error);
+
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError("Failed to load absent employees. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchAbsentEmployees();
+  };
+
+  // Client-side pagination
+  const paginatedEmployees = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return absentEmployees.slice(startIndex, endIndex);
+  }, [absentEmployees, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(absentEmployees.length / itemsPerPage);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleItemsPerPageChange = (newValue: number) => {
+    setItemsPerPage(newValue);
+    setCurrentPage(1);
+  };
 
   return (
     <div>
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm text-slate-400">
-          HR / <span className="text-slate-600">Attendence</span>
+          HR / <span className="text-slate-600">Attendance</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Attendence</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <h1 className="text-2xl font-semibold mt-1 text-black">Attendance</h1>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm w-fit"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-6 mb-6 border-b">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`pb-3 px-1 text-sm font-medium transition ${
-              pathname === tab.href
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`pb-3 px-1 text-sm font-medium transition ${pathname === tab.href
+              ? "text-sky-600 border-b-2 border-sky-600"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             {tab.label}
           </Link>
         ))}
       </div>
 
-      {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setShowFilter(!showFilter)}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-blue-600 transition"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            Filter
-          </button>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Search"
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Loading State */}
+      {isLoading && (
+        <div className="bg-white rounded-xl shadow-sm p-20 text-black">
+          <div className="flex flex-col items-center justify-center">
+            <Loader2 className="w-12 h-12 text-sky-500 animate-spin mb-4" />
+            <p className="text-slate-600">Loading absent employees...</p>
           </div>
         </div>
+      )}
 
-        {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">Employee ID</th>
-              <th className="text-left py-3 px-3">Employee Name</th>
-              <th className="text-left py-3 px-3">Department</th>
-              <th className="text-left py-3 px-3">Date</th>
-              <th className="text-left py-3 px-3">Reason</th>
-              <th className="text-left py-3 px-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b hover:bg-slate-50 transition">
-              <td className="py-3 px-3">EMP003</td>
-              <td className="py-3 px-3">Mike Johnson</td>
-              <td className="py-3 px-3">Finance</td>
-              <td className="py-3 px-3">01 Dec 2025</td>
-              <td className="py-3 px-3">Sick Leave</td>
-              <td className="py-3 px-3">
-                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Absent</span>
-              </td>
-            </tr>
-            <tr className="border-b hover:bg-slate-50 transition">
-              <td className="py-3 px-3">EMP005</td>
-              <td className="py-3 px-3">Sarah Wilson</td>
-              <td className="py-3 px-3">HR</td>
-              <td className="py-3 px-3">30 Nov 2025</td>
-              <td className="py-3 px-3">Personal Leave</td>
-              <td className="py-3 px-3">
-                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">Absent</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <span>Row Per Page</span>
-            <select className="border rounded px-2 py-1">
-              <option>25</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>Result: 1 - 2 of 2</span>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 border rounded hover:bg-gray-50">First</button>
-              <button className="px-3 py-1 border rounded hover:bg-gray-50">Prev</button>
-              <button className="px-3 py-1 border rounded hover:bg-gray-50">Next</button>
-              <button className="px-3 py-1 border rounded hover:bg-gray-50">Last</button>
+      {/* Error State */}
+      {error && !isLoading && (
+        <div className="bg-white rounded-xl shadow-sm p-12 text-black">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-8 h-8 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
             </div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+              Error Loading Data
+            </h3>
+            <p className="text-red-600 mb-4 max-w-md">{error}</p>
+            <button
+              onClick={handleRefresh}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !error && absentEmployees.length === 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-16 text-black">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-12 h-12 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-slate-800 mb-2">
+              All Clear! 🎉
+            </h3>
+            <p className="text-slate-600 text-lg">
+              No absent employees today. Everyone is present!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Table */}
+      {!isLoading && !error && absentEmployees.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+          <div className="mb-4 pb-4 border-b">
+            <p className="text-sm text-slate-600">
+              Total absent:{" "}
+              <span className="font-semibold text-red-600 text-lg">
+                {absentEmployees.length}
+              </span>{" "}
+              {absentEmployees.length === 1 ? "employee" : "employees"}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50">
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
+                    No
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
+                    Employee Name
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
+                    Employee Code
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
+                    Nickname
+                  </th>
+                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
+                    Phone
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {paginatedEmployees.map((employee, index) => (
+                  <tr
+                    key={employee.id}
+                    className={`hover:bg-slate-50 transition ${index !== paginatedEmployees.length - 1
+                      ? "border-b border-slate-200"
+                      : ""
+                      }`}
+                  >
+                    <td className="py-3 px-4 text-slate-600">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </td>
+                    <td className="py-3 px-4 font-medium text-slate-800">
+                      {employee.employee_name}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600">
+                      {employee.employee_code}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600">
+                      @{employee.nickname}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600">
+                      {employee.phone}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+
+          {/* Pagination */}
+          {totalPages > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={absentEmployees.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
+        </div>
+      )}
     </div>
-  )
+  );
 }

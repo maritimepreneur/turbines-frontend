@@ -1,17 +1,12 @@
 "use client";
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faArrowLeftLong,
-  faCheck,
-  faFilter,
-} from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
 import { useTableFilters } from "@/hooks/useTableFilters";
+import axiosInstance from "@/lib/axios";
 
 type Lead = {
   number: string;
@@ -30,41 +25,36 @@ export default function NewLeadsPage() {
   const fetchQuotations = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("access_token");
+      console.log("🚀 Fetching quotations via Axios...");
+      const response = await axiosInstance.get('/api/quotations/');
+      console.log("📦 Response:", response.data);
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}api/quotations/`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      console.log("STATUS:", response.status);
-
-      const text = await response.text();
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch quotations");
+      if (!response.data || response.data.code !== 200) {
+        console.error("❌ Invalid response code:", response.data?.code);
+        throw new Error("Invalid API response");
       }
 
-      const result = JSON.parse(text);
+      if (!Array.isArray(response.data.data)) {
+        console.error("❌ Data is not an array:", response.data.data);
+        throw new Error("Invalid data format");
+      }
 
-      const mappedData: Lead[] = result.data.map((item: any) => {
-        const amount = item.total_amount ? parseInt(item.total_amount).toLocaleString('id-ID') : '0';
-        return {
-          number: item.id?.toString() || "-",
-          name: item.contact?.name || "-",
-          projectname: item.lead?.name || "-",
-          total: `Rp. ${amount}`,
-        };
-      });
+      const mappedData: Lead[] = response.data.data.map((item: any) => ({
+        number: item.id?.toString() || "-",
+        name: item.contact?.name || "-",
+        projectname: item.lead?.name || "-",
+        total: item.total_amount
+          ? `Rp ${Number(item.total_amount).toLocaleString('id-ID')}`
+          : "Rp 0",
+      }));
 
+      console.log("✅ Mapped data:", mappedData);
+      console.log(`✅ Total items: ${mappedData.length}`);
       setLeadsData(mappedData);
-    } catch (error) {
-      console.error("Error fetching quotations:", error);
+    } catch (error: any) {
+      console.error("❌ Error fetching quotations:", error);
+      console.error("❌ Error details:", error.response?.data || error.message);
+      setLeadsData([]);
     } finally {
       setLoading(false);
     }
@@ -119,6 +109,7 @@ export default function NewLeadsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -129,6 +120,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(leadsData, 5);
 
   const fieldOptions = [
@@ -251,12 +243,18 @@ export default function NewLeadsPage() {
             {!loading && paginatedData.length === 0 && (
               <tr>
                 <td colSpan={5} className="text-center py-6 text-slate-400">
-                  No data found
+                  <div className="flex flex-col items-center justify-center">
+                    <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="font-medium">No quotations found</p>
+                    <p className="text-xs mt-1">Click "+ Add" to create a new quotation</p>
+                  </div>
                 </td>
               </tr>
             )}
 
-            {paginatedData.map((item) => (
+            {!loading && paginatedData.map((item) => (
               <tr
                 key={item.number}
                 className="border-b hover:bg-slate-50 transition"
@@ -264,9 +262,9 @@ export default function NewLeadsPage() {
                 <td className="py-3 px-3">
                   <Link
                     href={`/finance/quotation/quotation-form?number=${item.number}`}
-                    className="text-blue-500 hover:text-blue-700"
+                    className="text-blue-500 hover:text-blue-700 font-medium"
                   >
-                    {item.number}
+                    #{item.number}
                   </Link>
                 </td>
                 <td className="py-3 px-3 font-medium">{item.name}</td>
@@ -309,8 +307,9 @@ export default function NewLeadsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

@@ -5,11 +5,12 @@ import { FilterItem } from "@/components/table/FilterPanel"
 
 export function useTableFilters<T extends Record<string, any>>(
   data: T[],
-  itemsPerPage: number = 10
+  defaultItemsPerPage: number = 5
 ) {
   const [filters, setFilters] = useState<FilterItem[]>([])
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(defaultItemsPerPage)
 
   const addFilter = () => {
     const newFilter: FilterItem = {
@@ -41,6 +42,11 @@ export function useTableFilters<T extends Record<string, any>>(
   const handleSearchChange = (value: string) => {
     setSearch(value)
     setCurrentPage(1)
+  }
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value)
+    setCurrentPage(1) // Reset ke page 1 ketika items per page berubah
   }
 
   // Filter data
@@ -78,10 +84,11 @@ export function useTableFilters<T extends Record<string, any>>(
     filters,
     search,
     currentPage,
+    itemsPerPage,
     filteredData,
     paginatedData,
     totalPages,
-    
+
     // Actions
     addFilter,
     removeFilter,
@@ -90,5 +97,6 @@ export function useTableFilters<T extends Record<string, any>>(
     resetFilters,
     setSearch: handleSearchChange,
     setCurrentPage,
+    setItemsPerPage: handleItemsPerPageChange,
   }
 }

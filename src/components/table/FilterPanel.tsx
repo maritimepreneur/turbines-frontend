@@ -61,12 +61,12 @@ export function FilterPanel({
           {filters.map((filter) => (
             <div
               key={filter.id}
-              className="flex gap-2 items-center bg-white p-2 rounded"
+              className="flex flex-col sm:flex-row gap-2 items-start sm:items-center bg-white p-2 rounded"
             >
               <select
                 value={filter.field}
                 onChange={(e) => onUpdateField(filter.id, e.target.value)}
-                className="border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full sm:w-auto border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
                 {fieldOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -75,19 +75,19 @@ export function FilterPanel({
                 ))}
               </select>
 
-              <span className="text-slate-400 text-sm">contains</span>
+              <span className="text-slate-400 text-sm hidden sm:inline">contains</span>
 
               <input
                 type="text"
                 value={filter.value}
                 onChange={(e) => onUpdateValue(filter.id, e.target.value)}
                 placeholder="Enter value..."
-                className="border border-slate-300 rounded px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="border border-slate-300 rounded px-3 py-2 text-sm w-full sm:flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
 
               <button
                 onClick={() => onRemoveFilter(filter.id)}
-                className="text-red-500 hover:text-red-700 px-2"
+                className="text-red-500 hover:text-red-700 px-2 self-end sm:self-auto"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

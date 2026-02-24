@@ -10,8 +10,8 @@ type Agreements = {
   id: string
   company_name: string
   company_initial: string
-  company_industrial:string
-  contacts:[string]
+  company_industrial: string
+  contacts: [string]
   company_type: [string]
 }
 
@@ -49,6 +49,7 @@ export default function AgreementsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -59,6 +60,7 @@ export default function AgreementsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(AgreementsData, 5)
 
   const fieldOptions = [
@@ -173,13 +175,15 @@ export default function AgreementsPage() {
           </tbody>
         </table>
 
+
         {/* Pagination */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

@@ -62,10 +62,10 @@ export const userService = {
 // Auth Service
 export const authService = {
   login: (credentials: { email: string; password: string }) =>
-    apiService.post('/auth/login', credentials),
-  register: (data: any) => apiService.post('/auth/register', data),
-  logout: () => apiService.post('/auth/logout'),
-  getCurrentUser: () => apiService.get('/auth/me'),
+    apiService.post('/api/auth/login', credentials),
+  register: (data: any) => apiService.post('/api/auth/register', data),
+  logout: () => apiService.post('/api/auth/logout'),
+  getCurrentUser: () => apiService.get('/api/auth/me'),
   refreshToken: (refreshToken: string) =>
     apiService.post('/auth/refresh', { refresh_token: refreshToken }),
 };

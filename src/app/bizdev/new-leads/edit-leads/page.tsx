@@ -1,6 +1,9 @@
 "use client"
+
 import { useState, useEffect, FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
+import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 
 interface FormData {
@@ -8,14 +11,14 @@ interface FormData {
   name: string
   period: string
   description: string
-  
+
   // Contact info
   contact_id: number | null
   contact_name: string
   contact_email: string
   contact_phone: string
   contact_company: string
-  
+
   // Partner info
   partner_id: number | null
   partner_name: string
@@ -31,7 +34,7 @@ export default function EditLeadsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const leadId = searchParams.get('id')
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
 
@@ -54,8 +57,80 @@ export default function EditLeadsPage() {
     partner_goods: "",
   })
 
+  // Modals state
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: "success" | "error" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  })
+
   const [errors, setErrors] = useState<Partial<FormData>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
+
+  // Partner dropdown states
+  const [partnerSearch, setPartnerSearch] = useState("")
+  const [selectedPartnerId, setSelectedPartnerId] = useState<number | null>(null)
+  const [showPartnerDropdown, setShowPartnerDropdown] = useState(false)
+  const [partnersData, setPartnersData] = useState<any[]>([])
+  const [isLoadingPartners, setIsLoadingPartners] = useState(false)
+
+  // Fetch partners from database using axios (Load All & Filter Client-side)
+  useEffect(() => {
+    // Only fetch when dropdown is shown and data is empty
+    if (!showPartnerDropdown || partnersData.length > 0) return
+
+    const fetchPartners = async () => {
+      setIsLoadingPartners(true)
+      try {
+        console.log('📡 Fetching all partners list...')
+        const response = await axiosInstance.get('/api/leads/partner-list') // Fetch all
+
+        // Extract data array from response
+        const partnersArray = response.data.data || response.data || []
+        console.log('📡 Partners Loaded:', partnersArray.length)
+
+        setPartnersData(partnersArray)
+      } catch (error) {
+        console.error('❌ Error fetching partners:', error)
+      } finally {
+        setIsLoadingPartners(false)
+      }
+    }
+
+    fetchPartners()
+  }, [showPartnerDropdown]) // Remove partnerSearch dependency
+
+  // ... (some code)
+
+  // Filter partners client-side
+  const filteredPartners = partnersData.filter((partner: any) =>
+    partner.name.toLowerCase().includes(partnerSearch.toLowerCase())
+  )
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.partner-dropdown-container')) {
+        setShowPartnerDropdown(false)
+      }
+    }
+
+    if (showPartnerDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showPartnerDropdown])
 
   // Fetch lead data
   useEffect(() => {
@@ -101,13 +176,14 @@ export default function EditLeadsPage() {
             const contactRes = await axiosInstance.get(`/api/contacts/${lead.contact_id}`)
             const contact = contactRes.data.data
             console.log('✅ Contact data:', contact)
-            
+
             newFormData.contact_name = contact.name || ""
             newFormData.contact_email = contact.emails?.[0] || ""
             newFormData.contact_phone = contact.phone_numbers?.[0] || ""
             newFormData.contact_company = contact.company || ""
           } catch (err) {
             console.warn('⚠️ Failed to fetch contact')
+            newFormData.contact_id = null // Reset ID if fetch fails to avoid updating non-existent record
           }
         }
 
@@ -117,24 +193,30 @@ export default function EditLeadsPage() {
             const partnerRes = await axiosInstance.get(`/api/partners/${lead.partner_id}`)
             const partner = partnerRes.data.data
             console.log('✅ Partner data:', partner)
-            
+
             newFormData.partner_name = partner.name || ""
             newFormData.partner_initials = partner.initials || ""
             newFormData.partner_industry = partner.industry || ""
-            newFormData.partner_company_type = partner.company_type.toUpperCase() || ""
+            newFormData.partner_company_type = partner.company_type?.toUpperCase() || ""
             newFormData.partner_type = partner.partner_type?.toUpperCase() || ""
             newFormData.partner_service = partner.service || ""
             newFormData.partner_goods = partner.goods || ""
           } catch (err) {
             console.warn('⚠️ Failed to fetch partner')
+            newFormData.partner_id = null // Reset ID if fetch fails
           }
         }
 
         setFormData(newFormData)
       } catch (err: any) {
         console.error('❌ Failed to fetch lead:', err)
-        alert('Failed to load lead data')
-        router.push('/bizdev/new-leads')
+        setNotification({
+          isOpen: true,
+          title: "Error",
+          message: "Failed to load lead data",
+          type: "error"
+        })
+        setTimeout(() => router.push('/bizdev/new-leads'), 2000)
       } finally {
         setIsFetching(false)
       }
@@ -152,12 +234,40 @@ export default function EditLeadsPage() {
       ...prev,
       [name]: value
     }))
-    
+
     if (errors[name as keyof FormData]) {
       setErrors(prev => ({
         ...prev,
         [name]: undefined
       }))
+    }
+  }
+
+  // Handle partner selection from dropdown
+  const handlePartnerSelect = (partnerId: number) => {
+    const selectedPartner = partnersData?.find((p: any) => p.id === partnerId)
+    if (selectedPartner) {
+      setSelectedPartnerId(partnerId)
+      setPartnerSearch(selectedPartner.name)
+      setShowPartnerDropdown(false)
+
+      // Set partner name
+      setFormData(prev => ({
+        ...prev,
+        partner_name: selectedPartner.name || "",
+      }))
+    }
+  }
+
+  // Handle partner search input
+  const handlePartnerSearchChange = (value: string) => {
+    setPartnerSearch(value)
+    setShowPartnerDropdown(true)
+    setFormData(prev => ({ ...prev, partner_name: value }))
+
+    // Clear selected ID if manually typing
+    if (selectedPartnerId) {
+      setSelectedPartnerId(null)
     }
   }
 
@@ -173,7 +283,8 @@ export default function EditLeadsPage() {
       newErrors.period = "Period is required"
     }
 
-    const contactFilled = formData.contact_name || formData.contact_email || formData.contact_phone
+    // Contact Validation
+    const contactFilled = formData.contact_name || formData.contact_email || formData.contact_phone || formData.contact_company
     if (contactFilled) {
       if (!formData.contact_name.trim()) {
         newErrors.contact_name = "Contact name is required"
@@ -185,6 +296,18 @@ export default function EditLeadsPage() {
       }
     }
 
+    // Partner Validation
+    const partnerFilled = formData.partner_name || formData.partner_initials || formData.partner_industry ||
+      formData.partner_company_type || formData.partner_type || formData.partner_service || formData.partner_goods
+
+    if (partnerFilled) {
+      if (!formData.partner_name.trim()) newErrors.partner_name = "Partner name is required"
+      if (!formData.partner_initials.trim()) newErrors.partner_initials = "Initials are required"
+      if (!formData.partner_industry.trim()) newErrors.partner_industry = "Industry is required"
+      if (!formData.partner_company_type) newErrors.partner_company_type = "Company type is required"
+      if (!formData.partner_type) newErrors.partner_type = "Partner type is required"
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -192,7 +315,7 @@ export default function EditLeadsPage() {
   // Handle submit
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) {
       console.log("❌ Form validation failed")
       return
@@ -214,19 +337,28 @@ export default function EditLeadsPage() {
           phone_numbers: formData.contact_phone ? [formData.contact_phone] : [],
           company: formData.contact_company,
         }
-        
+
         if (contactId) {
           // Update existing contact
-          console.log("📤 Updating contact...", contactId)
-          await axiosInstance.put(`/api/contacts/${contactId}`, contactData)
-          console.log("✅ Contact updated")
+          try {
+            await axiosInstance.put(`/api/contacts/${contactId}`, contactData)
+          } catch (err: any) {
+            // If contact not found (404), create new one
+            if (err.response?.status === 404) {
+              const contactRes = await axiosInstance.post('/api/contacts/create', contactData)
+              contactId = contactRes.data.data?.id
+            } else {
+              throw err
+            }
+          }
         } else {
           // Create new contact
-          console.log("📤 Creating contact...")
-          const contactRes = await axiosInstance.post('/api/contacts', contactData)
+          const contactRes = await axiosInstance.post('/api/contacts/create', contactData)
           contactId = contactRes.data.data?.id
-          console.log("✅ Contact created:", contactId)
         }
+      } else {
+        // If contact name is empty, clear the relation
+        contactId = null
       }
 
       // 2. Update or Create Partner
@@ -240,19 +372,28 @@ export default function EditLeadsPage() {
           service: formData.partner_service,
           goods: formData.partner_goods,
         }
-        
+
         if (partnerId) {
           // Update existing partner
-          console.log("📤 Updating partner...", partnerId)
-          await axiosInstance.put(`/api/partners/${partnerId}`, partnerData)
-          console.log("✅ Partner updated")
+          try {
+            await axiosInstance.put(`/api/partners/${partnerId}`, partnerData)
+          } catch (err: any) {
+            // If partner not found (404), create new one
+            if (err.response?.status === 404) {
+              const partnerRes = await axiosInstance.post('/api/partners/create', partnerData)
+              partnerId = partnerRes.data.data?.id
+            } else {
+              throw err
+            }
+          }
         } else {
           // Create new partner
-          console.log("📤 Creating partner...")
-          const partnerRes = await axiosInstance.post('/api/partners', partnerData)
+          const partnerRes = await axiosInstance.post('/api/partners/create', partnerData)
           partnerId = partnerRes.data.data?.id
-          console.log("✅ Partner created:", partnerId)
         }
+      } else {
+        // If partner name is empty, clear the relation
+        partnerId = null
       }
 
       // 3. Update Lead
@@ -260,25 +401,36 @@ export default function EditLeadsPage() {
         name: formData.name,
         period: formData.period,
         description: formData.description,
+        contact_id: contactId,
+        partner_id: partnerId,
       }
-
-      if (contactId) leadData.contact_id = contactId
-      if (partnerId) leadData.partner_id = partnerId
 
       console.log("📤 Updating lead...", leadData)
       const leadRes = await axiosInstance.put(`/api/leads/${leadId}`, leadData)
 
       if (leadRes.data.code === 200 || leadRes.data.code === 201) {
-        console.log("✅ Lead updated successfully!")
-        alert("Lead updated successfully!")
-        router.push("/bizdev/new-leads")
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Lead updated successfully!",
+          type: "success"
+        })
+        setTimeout(() => {
+          router.push("/bizdev/new-leads")
+        }, 1500)
       } else {
         throw new Error(leadRes.data.message || 'Failed to update lead')
       }
-      
+
     } catch (err: any) {
       console.error("❌ Failed to update lead:", err)
       setSubmitError(err.response?.data?.message || err.message || "Failed to update lead. Please try again.")
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || "Failed to update lead",
+        type: "error"
+      })
     } finally {
       setIsLoading(false)
     }
@@ -286,9 +438,11 @@ export default function EditLeadsPage() {
 
   // Handle cancel
   const handleCancel = () => {
-    if (confirm("Are you sure you want to cancel? All changes will be lost.")) {
-      router.push("/bizdev/new-leads")
-    }
+    setShowCancelModal(true)
+  }
+
+  const confirmCancel = () => {
+    router.push("/bizdev/new-leads")
   }
 
   // Loading state
@@ -313,6 +467,25 @@ export default function EditLeadsPage() {
 
   return (
     <div>
+      <ConfirmationModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={confirmCancel}
+        title="Cancel Edit"
+        message="Are you sure you want to cancel? All unsaved changes will be lost."
+        confirmText="Yes, Cancel"
+        cancelText="No, Keep Editing"
+        type="info"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">Bizdev</p>
         <h1 className="text-2xl font-semibold mt-1 text-black">Edit Lead</h1>
@@ -350,9 +523,8 @@ export default function EditLeadsPage() {
                     value={formData.name}
                     onChange={handleChange}
                     placeholder="Enter lead name"
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${
-                      errors.name ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.name ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {errors.name && (
                     <p className="text-xs text-red-500 mb-3">{errors.name}</p>
@@ -367,9 +539,8 @@ export default function EditLeadsPage() {
                     name="period"
                     value={formData.period}
                     onChange={handleChange}
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${
-                      errors.period ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.period ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {errors.period && (
                     <p className="text-xs text-red-500 mb-3">{errors.period}</p>
@@ -400,9 +571,8 @@ export default function EditLeadsPage() {
                     value={formData.contact_name}
                     onChange={handleChange}
                     placeholder="Person in charge"
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${
-                      errors.contact_name ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.contact_name ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {errors.contact_name && (
                     <p className="text-xs text-red-500 mb-3">{errors.contact_name}</p>
@@ -418,9 +588,8 @@ export default function EditLeadsPage() {
                     value={formData.contact_email}
                     onChange={handleChange}
                     placeholder="example@email.com"
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${
-                      errors.contact_email ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.contact_email ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {errors.contact_email && (
                     <p className="text-xs text-red-500 mb-3">{errors.contact_email}</p>
@@ -461,14 +630,48 @@ export default function EditLeadsPage() {
                   <label className="text-xs font-semibold text-black block mb-1">
                     Partner Name
                   </label>
-                  <input
-                    type="text"
-                    name="partner_name"
-                    value={formData.partner_name}
-                    onChange={handleChange}
-                    placeholder="Enter partner name"
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                  />
+                  <div className="relative partner-dropdown-container">
+                    <input
+                      type="text"
+                      name="partner_name"
+                      value={partnerSearch || formData.partner_name}
+                      onChange={(e) => handlePartnerSearchChange(e.target.value)}
+                      onFocus={() => setShowPartnerDropdown(true)}
+                      placeholder="Pilih atau ketik nama partner"
+                      className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.partner_name ? "border-red-500" : "border-gray-300"}`}
+                      autoComplete="off"
+                    />
+
+                    {/* Dropdown untuk menampilkan partner dari database */}
+                    {showPartnerDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {isLoadingPartners ? (
+                          <div className="px-4 py-3 text-center text-gray-500">
+                            <div className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Loading partners...
+                          </div>
+                        ) : filteredPartners.length > 0 ? (
+                          filteredPartners.map((partner: any) => (
+                            <div
+                              key={partner.id}
+                              onClick={() => handlePartnerSelect(partner.id)}
+                              className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-semibold text-sm text-black">{partner.name}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-center text-gray-500 text-sm">
+                            {partnerSearch ? 'Partner tidak ditemukan' : 'Tidak ada data partner'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {errors.partner_name && (
+                    <p className="text-xs text-red-500 mb-3">{errors.partner_name}</p>
+                  )}
+                  {!errors.partner_name && <div className="mb-3"></div>}
 
                   <label className="text-xs font-semibold text-black block mb-1">
                     Initials
@@ -479,8 +682,12 @@ export default function EditLeadsPage() {
                     value={formData.partner_initials}
                     onChange={handleChange}
                     placeholder="e.g., PTM"
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.partner_initials ? "border-red-500" : "border-gray-300"}`}
                   />
+                  {errors.partner_initials && (
+                    <p className="text-xs text-red-500 mb-3">{errors.partner_initials}</p>
+                  )}
+                  {!errors.partner_initials && <div className="mb-3"></div>}
 
                   <label className="text-xs font-semibold text-black block mb-1">
                     Industry
@@ -491,8 +698,12 @@ export default function EditLeadsPage() {
                     value={formData.partner_industry}
                     onChange={handleChange}
                     placeholder="e.g., Manufacturing, Technology"
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.partner_industry ? "border-red-500" : "border-gray-300"}`}
                   />
+                  {errors.partner_industry && (
+                    <p className="text-xs text-red-500 mb-3">{errors.partner_industry}</p>
+                  )}
+                  {!errors.partner_industry && <div className="mb-3"></div>}
 
                   <label className="text-xs font-semibold text-black block mb-1">
                     Service
@@ -515,7 +726,7 @@ export default function EditLeadsPage() {
                     name="partner_company_type"
                     value={formData.partner_company_type}
                     onChange={handleChange}
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.partner_company_type ? "border-red-500" : "border-gray-300"}`}
                   >
                     <option value="">Select Company Type</option>
                     <option value="PRIVATE">Private</option>
@@ -525,6 +736,11 @@ export default function EditLeadsPage() {
                     <option value="NONPROFIT">Nonprofit</option>
                     <option value="OTHER">Other</option>
                   </select>
+                  {errors.partner_company_type && (
+                    <p className="text-xs text-red-500 mb-3">{errors.partner_company_type}</p>
+                  )}
+                  {!errors.partner_company_type && <div className="mb-3"></div>}
+
 
                   <label className="text-xs font-semibold text-black block mb-1">
                     Partner Type
@@ -533,13 +749,17 @@ export default function EditLeadsPage() {
                     name="partner_type"
                     value={formData.partner_type}
                     onChange={handleChange}
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
+                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.partner_type ? "border-red-500" : "border-gray-300"}`}
                   >
                     <option value="">Select Partner Type</option>
                     <option value="VENDOR">Vendor</option>
                     <option value="CLIENT">Client</option>
                     <option value="BOTH">Both</option>
                   </select>
+                  {errors.partner_type && (
+                    <p className="text-xs text-red-500 mb-3">{errors.partner_type}</p>
+                  )}
+                  {!errors.partner_type && <div className="mb-3"></div>}
 
                   <label className="text-xs font-semibold text-black block mb-1">
                     Goods

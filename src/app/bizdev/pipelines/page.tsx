@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Pagination } from "@/components/table/Pagination";
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
+import { NotificationModal } from "@/components/modals/NotificationModal";
 import GeneralInfo from "@/components/pipelines/GeneralInfo";
 import Quotation from "@/components/pipelines/Quotation";
 import PurchaseOrder from "@/components/pipelines/PurchaseOrder";
@@ -38,7 +40,7 @@ interface LeadsResponse {
 
 export default function PipelinesPage() {
   const router = useRouter();
-  
+
   const [leads, setLeads] = useState<Lead[]>([])
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [activeTab, setActiveTab] = useState('General Info')
@@ -47,10 +49,10 @@ export default function PipelinesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
-  
+
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 5
-  
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+
   const stageMapping: Record<string, string> = {
     'NEW': 'New lead',
     'INTRODUCTION': 'Introduction',
@@ -77,9 +79,9 @@ export default function PipelinesPage() {
     try {
       setIsLoading(true)
       setError(null)
-      
+
       console.log('📥 Fetching pipelines data...')
-      
+
       const response = await axiosInstance.post<LeadsResponse>(
         '/api/leads/',
         {
@@ -89,12 +91,12 @@ export default function PipelinesPage() {
           sort_order: 'DESC',
         }
       )
-      
+
       if (response.data.code === 200) {
         console.log('✅ Pipelines data fetched:', response.data.data.list.length)
         const leadsData = response.data.data.list
         setLeads(leadsData)
-        
+
         if (!selectedLead && leadsData.length > 0) {
           const apiStage = reverseStageMapping[activeStage]
           const stageLeads = leadsData.filter(l => l.current_stages === apiStage)
@@ -116,65 +118,119 @@ export default function PipelinesPage() {
     }
   }
 
+  // Modals state
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: "success" | "error" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  })
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean
+    leadId: number | null
+  }>({
+    isOpen: false,
+    leadId: null
+  })
+
+  // ... (rest of the state variables remain the same)
+
+  // ... (fetchLeads remains the same)
+
   const updateLeadStage = async (leadId: number, newStage: string) => {
     try {
       setIsUpdating(true)
       console.log('📤 Updating lead stage...', leadId, newStage)
 
       const apiStage = reverseStageMapping[newStage] || newStage
-      
+
       const response = await axiosInstance.put(`/api/leads/${leadId}`, {
         current_stages: apiStage
       })
 
       if (response.data.code === 200) {
         console.log('✅ Lead stage updated')
-        
-        setLeads(prev => prev.map(lead => 
-          lead.id === leadId 
+
+        setLeads(prev => prev.map(lead =>
+          lead.id === leadId
             ? { ...lead, current_stages: apiStage }
             : lead
         ))
-        
+
         if (selectedLead?.id === leadId) {
           setSelectedLead(prev => prev ? { ...prev, current_stages: apiStage } : null)
         }
-        
-        alert('Stage updated successfully!')
+
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Stage updated successfully!",
+          type: "success"
+        })
       }
     } catch (err: any) {
       console.error('❌ Error updating stage:', err)
-      alert('Failed to update stage: ' + (err.response?.data?.message || err.message))
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || err.message || "Failed to update stage",
+        type: "error"
+      })
     } finally {
       setIsUpdating(false)
     }
   }
 
-  const deleteLead = async (leadId: number) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return
+  const handleDeleteClick = (leadId: number) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      leadId: leadId
+    })
+  }
+
+  const confirmDelete = async () => {
+    const leadId = deleteConfirmation.leadId
+    if (!leadId) return
 
     try {
       console.log('🗑️ Deleting lead:', leadId)
-      
       const response = await axiosInstance.delete(`/api/leads/${leadId}`)
 
       if (response.data.code === 200) {
         console.log('✅ Lead deleted')
-        
+
         const newLeads = leads.filter(lead => lead.id !== leadId)
         setLeads(newLeads)
-        
+
         if (selectedLead?.id === leadId) {
           const apiStage = reverseStageMapping[activeStage]
           const stageLeads = newLeads.filter(l => l.current_stages === apiStage)
           setSelectedLead(stageLeads[0] || null)
         }
-        
-        alert('Lead deleted successfully!')
+
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Lead deleted successfully!",
+          type: "success"
+        })
       }
     } catch (err: any) {
       console.error('❌ Error deleting lead:', err)
-      alert('Failed to delete lead: ' + (err.response?.data?.message || err.message))
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || err.message || "Failed to delete lead",
+        type: "error"
+      })
+    } finally {
+      setDeleteConfirmation({ isOpen: false, leadId: null })
     }
   }
 
@@ -184,25 +240,25 @@ export default function PipelinesPage() {
 
   const filteredLeads = useMemo(() => {
     const apiStage = reverseStageMapping[activeStage]
-    
+
     return leads.filter((lead) => {
-      const matchesSearch = 
+      const matchesSearch =
         lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (lead.company && lead.company.toLowerCase().includes(searchQuery.toLowerCase()))
-      
+
       const matchesStage = lead.current_stages === apiStage
-      
+
       return matchesSearch && matchesStage
     })
   }, [leads, searchQuery, activeStage, reverseStageMapping])
 
   const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    const endIndex = startIndex + ITEMS_PER_PAGE
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
     return filteredLeads.slice(startIndex, endIndex)
-  }, [filteredLeads, currentPage, ITEMS_PER_PAGE])
+  }, [filteredLeads, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredLeads.length / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
 
   const renderRightDetail = () => {
     if (!selectedLead) return (
@@ -213,12 +269,12 @@ export default function PipelinesPage() {
         <p className="font-medium">Select a lead to view details</p>
       </div>
     )
-    
+
     switch (activeTab) {
-      case 'General Info': return <GeneralInfo />
-      case 'Quotation': return <Quotation />
-      case 'Purchase Order': return <PurchaseOrder />
-      case 'Invoice': return <Invoice />
+      case 'General Info': return <GeneralInfo lead={selectedLead} />
+      case 'Quotation': return <Quotation lead={selectedLead} />
+      case 'Purchase Order': return <PurchaseOrder lead={selectedLead} />
+      case 'Invoice': return <Invoice lead={selectedLead} />
       default: return null
     }
   }
@@ -227,7 +283,7 @@ export default function PipelinesPage() {
     setActiveStage(newStage)
     setCurrentPage(1)
     setSearchQuery('')
-    
+
     const apiStage = reverseStageMapping[newStage]
     const stageLeads = leads.filter(l => l.current_stages === apiStage)
     setSelectedLead(stageLeads[0] || null)
@@ -295,6 +351,25 @@ export default function PipelinesPage() {
 
   return (
     <div>
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, leadId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Lead"
+        message="Are you sure you want to delete this lead? This action cannot be undone."
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        type="reject"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Pipelines</span>
@@ -312,20 +387,18 @@ export default function PipelinesPage() {
           {stages.map((stage) => {
             const apiStage = reverseStageMapping[stage]
             const count = leads.filter(l => l.current_stages === apiStage).length
-            
+
             return (
               <button
                 key={stage}
                 onClick={() => handleStageChange(stage)}
-                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap flex items-center gap-2 transition ${
-                  activeStage === stage ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap flex items-center gap-2 transition ${activeStage === stage ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 style={activeStage === stage ? { backgroundColor: '#00A6FB' } : {}}
               >
                 {stage}
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  activeStage === stage ? 'bg-white text-sky-500' : 'bg-gray-200 text-gray-600'
-                }`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${activeStage === stage ? 'bg-white text-sky-500' : 'bg-gray-200 text-gray-600'
+                  }`}>
                   {count}
                 </span>
               </button>
@@ -349,7 +422,7 @@ export default function PipelinesPage() {
               className="pl-10 pr-4 py-2 border rounded-lg text-sm w-64 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-sky-500"
             />
           </div>
-          
+
           <button
             onClick={fetchLeads}
             disabled={isLoading}
@@ -362,13 +435,13 @@ export default function PipelinesPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          <div className="flex flex-col h-full">
-            <div className="flex-1 space-y-3 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="lg:col-span-4 flex flex-col h-full">
+            <div className="flex-1 space-y-2 mb-3">
               <div className="flex justify-center">
-                <button 
+                <button
                   onClick={() => router.push('/bizdev/new-leads/add-leads')}
-                  className="px-6 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition shadow-sm" 
+                  className="px-6 py-2 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition shadow-sm"
                   style={{ backgroundColor: '#00A6FB' }}
                 >
                   + Add New Lead
@@ -390,20 +463,18 @@ export default function PipelinesPage() {
                   <div
                     key={lead.id}
                     onClick={() => setSelectedLead(lead)}
-                    className={`p-4 rounded-lg cursor-pointer transition ${
-                      selectedLead?.id === lead.id ? 'shadow-lg' : 'bg-gray-50 text-gray-800 hover:bg-gray-100'
-                    }`}
+                    className={`p-3 rounded-lg cursor-pointer transition ${selectedLead?.id === lead.id ? 'shadow-md' : 'bg-gray-50 text-gray-800 hover:bg-gray-100'
+                      }`}
                     style={selectedLead?.id === lead.id ? { backgroundColor: '#00A6FB', color: 'white' } : {}}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold truncate">{lead.name}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 text-black${
-                            selectedLead?.id === lead.id 
-                              ? 'hover:bg-white bg-white bg-opacity-20 text-gray-600' 
-                              : 'bg-gray-200 text-gray-600'
-                          }`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${selectedLead?.id === lead.id
+                            ? 'bg-white bg-opacity-20 text-gray-600'
+                            : 'bg-gray-200 text-gray-600'
+                            }`}>
                             #{lead.id}
                           </span>
                         </div>
@@ -414,23 +485,22 @@ export default function PipelinesPage() {
                           <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          {new Date(lead.period).toLocaleDateString('id-ID', { 
-                            day: '2-digit', 
-                            month: 'short', 
-                            year: 'numeric' 
+                          {new Date(lead.period).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
                           })}
                         </p>
                       </div>
-                      <button 
+                      <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          deleteLead(lead.id)
+                          handleDeleteClick(lead.id)
                         }}
-                        className={`p-2 rounded-lg transition shrink-0 ml-2 ${
-                          selectedLead?.id === lead.id
-                            ? 'hover:bg-white hover:bg-opacity-20 text-red-500'
-                            : 'hover:bg-red-50 text-red-500'
-                        }`}
+                        className={`p-2 rounded-lg transition shrink-0 ml-2 ${selectedLead?.id === lead.id
+                          ? 'hover:bg-white hover:bg-opacity-20 text-red-500'
+                          : 'hover:bg-red-50 text-red-500'
+                          }`}
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -442,28 +512,32 @@ export default function PipelinesPage() {
               )}
             </div>
 
+
             {/* Pagination */}
-            <div className="flex items-center justify-between pt-4 text-black">
-              {totalPages > 1 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={filteredLeads.length}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  onPageChange={handlePageChange}
-                />
-              )}
-            </div>
+            {totalPages > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredLeads.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={(newValue) => {
+                  setItemsPerPage(newValue)
+                  setCurrentPage(1)
+                }}
+                isCompact
+              />
+            )}
           </div>
 
-          <div className="col-span-2 space-y-6">
+          <div className="lg:col-span-8 space-y-4">
             {selectedLead ? (
               <>
                 <div className="border rounded-lg p-6 bg-white shadow-sm">
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                       <label className="text-sm text-black block mb-2 font-semibold">STAGE</label>
-                      <select 
+                      <select
                         className="w-full px-3 py-2 border rounded-lg text-sm text-black focus:outline-none focus:border-sky-500 disabled:bg-gray-50 disabled:text-gray-500"
                         value={stageMapping[selectedLead.current_stages] || 'New lead'}
                         onChange={(e) => handleLeadStageUpdate(e.target.value)}
@@ -484,7 +558,7 @@ export default function PipelinesPage() {
                     </div>
                     <div>
                       <label className="text-sm text-gray-600 block mb-2 font-semibold">PARTNER</label>
-                      <input 
+                      <input
                         type="text"
                         value={selectedLead.partner_name}
                         disabled
@@ -509,9 +583,8 @@ export default function PipelinesPage() {
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`pb-3 text-sm font-medium transition ${
-                          activeTab === tab ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                        className={`pb-3 text-sm font-medium transition ${activeTab === tab ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'
+                          }`}
                         style={activeTab === tab ? { color: '#00A6FB', borderColor: '#00A6FB' } : {}}
                       >
                         {tab}
@@ -522,7 +595,7 @@ export default function PipelinesPage() {
                   <div className="min-h-75">{renderRightDetail()}</div>
 
                   <div className="flex justify-center gap-3 pt-6 border-t mt-6">
-                    <button 
+                    <button
                       className="text-white px-6 py-2 rounded-lg hover:opacity-90 transition shadow-sm"
                       style={{ backgroundColor: '#00A6FB' }}
                     >

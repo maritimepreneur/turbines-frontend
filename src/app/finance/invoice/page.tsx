@@ -77,6 +77,7 @@ export default function NewLeadsPage() {
     filters,
     search,
     currentPage,
+    itemsPerPage,
     paginatedData,
     filteredData,
     totalPages,
@@ -87,6 +88,7 @@ export default function NewLeadsPage() {
     resetFilters,
     setSearch,
     setCurrentPage,
+    setItemsPerPage,
   } = useTableFilters(leadsData, 5)
 
   const fieldOptions = [
@@ -112,11 +114,10 @@ export default function NewLeadsPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${
-                activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
+              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
             >
               {tab}
             </button>
@@ -124,9 +125,8 @@ export default function NewLeadsPage() {
         </nav>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowFilter(!showFilter)}
             className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
@@ -232,8 +232,9 @@ export default function NewLeadsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={filteredData.length}
-          itemsPerPage={5}
+          itemsPerPage={itemsPerPage}
           onPageChange={setCurrentPage}
+          onItemsPerPageChange={setItemsPerPage}
         />
       </div>
     </div>

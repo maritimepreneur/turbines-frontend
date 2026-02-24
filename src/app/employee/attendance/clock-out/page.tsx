@@ -61,7 +61,7 @@ export default function ClockOutPage() {
         },
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`, 
+            Authorization: `Bearer ${accessToken}`,
           },
         },
       );
@@ -82,7 +82,7 @@ export default function ClockOutPage() {
       console.error(error.response?.data || error);
       alert(
         error.response?.data?.message ||
-          "Gagal melakukan absensi pulang. Silakan coba lagi.",
+        "Gagal melakukan absensi pulang. Silakan coba lagi.",
       );
     } finally {
       setIsSubmitting(false);
@@ -124,7 +124,7 @@ export default function ClockOutPage() {
           </div>
           <div>
             <h3 className="font-semibold text-lg">{user?.username}</h3>
-            <p className="text-slate-600">Web Developer</p>
+            <p className="text-slate-600 capitalize">{user?.role || 'Employee'}</p>
           </div>
         </div>
 
@@ -165,10 +165,6 @@ export default function ClockOutPage() {
             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-900 font-medium mb-1">Address   :</p>
               <p className="text-sm text-blue-700">{location}</p>
-              <p className="text-xs text-blue-500 mt-2">
-                Koordinat: {coordinates.lat.toFixed(6)},{" "}
-                {coordinates.lng.toFixed(6)}
-              </p>
             </div>
           )}
         </div>
@@ -185,8 +181,9 @@ export default function ClockOutPage() {
             value={workDescription}
             onChange={(e) => setWorkDescription(e.target.value)}
             placeholder="Jelaskan kegiatan pekerjaan yang akan dilakukan hari ini..."
-            className="w-full p-3 border border-slate-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full p-3 border border-slate-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
             rows={4}
+            disabled={clockedIn}
           />
         </div>
 
@@ -195,11 +192,10 @@ export default function ClockOutPage() {
           <button
             onClick={handleClockInClick}
             disabled={!location || !coordinates}
-            className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${
-              !location || !coordinates
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-500 text-white hover:bg-green-600"
-            }`}
+            className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-green-500 text-white hover:bg-green-600"
+              }`}
           >
             <DoorClosed size={20} />
             {!location || !coordinates ? "Menunggu Lokasi..." : "Absen Pulang"}
@@ -208,7 +204,7 @@ export default function ClockOutPage() {
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+              Berhasil absen pada {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
             </div>
             <button
               disabled
@@ -260,7 +256,7 @@ export default function ClockOutPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi pulang berhasil dicatat pada{" "}
-                {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
               </p>
               <button
                 onClick={handleCloseSuccess}

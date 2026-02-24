@@ -1,6 +1,23 @@
 'use client'
 
-export default function PurchaseOrderForm() {
+interface Lead {
+  id: number
+  name: string
+  period: string
+  description: string
+  contact_id: number | null
+  partner_id: number
+  current_stages: string
+  contact_name: string | null
+  company: string | null
+  partner_name: string
+}
+
+interface PurchaseOrderProps {
+  lead?: Lead | null
+}
+
+export default function PurchaseOrderForm({ lead }: PurchaseOrderProps) {
   return (
     <div className="space-y-4 text-black">
       {/* PO Info */}
@@ -57,7 +74,7 @@ export default function PurchaseOrderForm() {
         />
       </div>
 
-   
+
     </div>
   )
 }

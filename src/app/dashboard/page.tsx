@@ -21,7 +21,7 @@ export default function Home() {
         {/* Title */}
         <h1 className="text-3xl font-semibold italic text-black">Turbines</h1>
         <p className="text-black mb-10 text-center">
-          Welcome back! Choose your role to continue
+          Welcome <span className="font-semibold">{user?.username}</span> to Turbines
         </p>
 
         {/* Cards */}
@@ -35,48 +35,62 @@ export default function Home() {
             max-w-5xl
             justify-center
             items-stretch
+            flex-wrap
           "
         >
-          <RoleCard
-            title="BizDev"
-            color="bg-sky-500"
-            textColor="text-sky-500"
-            icon={<Briefcase size={20} />}
-            href="/bizdev/new-leads"
-          />
+          {/* BizDev - Visible to Admin & BizDev */}
+          {['admin', 'bizdev', 'business development'].includes(user?.role?.toLowerCase() || '') && (
+            <RoleCard
+              title="BizDev"
+              color="bg-sky-500"
+              textColor="text-sky-500"
+              icon={<Briefcase size={20} />}
+              href="/bizdev/new-leads"
+            />
+          )}
 
-          <RoleCard
-            title="Finance"
-            color="bg-green-500"
-            textColor="text-green-500"
-            icon={<Wallet size={20} />}
-            href="/finance/quotation"
-          />
+          {/* Finance - Visible to Admin & Finance */}
+          {['admin', 'finance'].includes(user?.role?.toLowerCase() || '') && (
+            <RoleCard
+              title="Finance"
+              color="bg-green-500"
+              textColor="text-green-500"
+              icon={<Wallet size={20} />}
+              href="/finance/quotation"
+            />
+          )}
 
-          <RoleCard
-            title="Operation"
-            color="bg-orange-500"
-            textColor="text-orange-500"
-            icon={<Settings size={20} />}
-            href="/operation/quotation"
-          />
+          {/* Operation - Visible to Admin & Operation */}
+          {['admin', 'operation', 'operations'].includes(user?.role?.toLowerCase() || '') && (
+            <RoleCard
+              title="Operation"
+              color="bg-orange-500"
+              textColor="text-orange-500"
+              icon={<Settings size={20} />}
+              href="/operation/quotation"
+            />
+          )}
 
+          {/* Employee - Visible to Every Authenticated User */}
           <RoleCard
             title="Employee"
             color="bg-yellow-500"
             textColor="text-yellow-500"
             icon={<UserCircle2 size={20} />}
-            href="/employee/attendance/clock-in"
+            href="/employee/profile"
           />
-          
-          <RoleCard
-            title="Human Resources"
-            color="bg-cyan-500"
-            textColor="text-cyan-500"
-            icon={<User2 size={20} />}
-            href="/human-resources/attendance"
-          />
-          
+
+          {/* Human Resources - Visible to Admin & HR */}
+          {['admin', 'human resources', 'hr'].includes(user?.role?.toLowerCase() || '') && (
+            <RoleCard
+              title="Human Resources"
+              color="bg-cyan-500"
+              textColor="text-cyan-500"
+              icon={<User2 size={20} />}
+              href="/human-resources/attendance"
+            />
+          )}
+
         </div>
       </main>
     </ProtectedRoute>

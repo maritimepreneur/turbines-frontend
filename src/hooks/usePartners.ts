@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { partnerService, Partner } from '@/services/partnerService'
+import { partnerService, Partner, PartnerListParams } from '@/services/partnerService'
 import toast from 'react-hot-toast'
 
-export const usePartners = () => {
+export const usePartners = (params?: PartnerListParams) => {
   return useQuery({
-    queryKey: ['partners'],
-    queryFn: partnerService.getPartners,
+    queryKey: ['partners', params],
+    queryFn: () => partnerService.getPartners(params),
   })
 }
 
@@ -19,7 +19,7 @@ export const usePartner = (id: number) => {
 
 export const useCreatePartner = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: partnerService.createPartner,
     onSuccess: () => {
@@ -34,9 +34,9 @@ export const useCreatePartner = () => {
 
 export const useUpdatePartner = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Omit<Partner, 'id'> }) => 
+    mutationFn: ({ id, data }: { id: number; data: Omit<Partner, 'id'> }) =>
       partnerService.updatePartner(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] })
@@ -50,7 +50,7 @@ export const useUpdatePartner = () => {
 
 export const useDeletePartner = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: partnerService.deletePartner,
     onSuccess: () => {

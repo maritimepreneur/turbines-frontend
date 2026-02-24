@@ -61,7 +61,7 @@ export default function ClockInPage() {
         },
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`, 
+            Authorization: `Bearer ${accessToken}`,
           },
         },
       );
@@ -140,7 +140,7 @@ export default function ClockInPage() {
           </div>
           <div>
             <h3 className="font-semibold text-lg">{user?.username}</h3>
-            <p className="text-slate-600">Web Developer</p>
+            <p className="text-slate-600 capitalize">{user?.role || 'Employee'}</p>
           </div>
         </div>
 
@@ -181,10 +181,6 @@ export default function ClockInPage() {
             <div className="mt-3 p-3 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-900 font-medium mb-1">Address :</p>
               <p className="text-sm text-blue-700">{location}</p>
-              <p className="text-xs text-blue-500 mt-2">
-                Koordinat: {coordinates.lat.toFixed(6)},{" "}
-                {coordinates.lng.toFixed(6)}
-              </p>
             </div>
           )}
         </div>
@@ -194,11 +190,10 @@ export default function ClockInPage() {
           <button
             onClick={handleClockInClick}
             disabled={!location || !coordinates}
-            className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${
-              !location || !coordinates
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-500 text-white hover:bg-green-600"
-            }`}
+            className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-green-500 text-white hover:bg-green-600"
+              }`}
           >
             <DoorOpen size={20} />
             {!location || !coordinates ? "Menunggu Lokasi..." : "Absen Masuk"}
@@ -207,7 +202,7 @@ export default function ClockInPage() {
           <div className="text-center">
             <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
               <CheckCircle size={20} />
-              Berhasil absen pada {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+              Berhasil absen pada {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
             </div>
             <button
               disabled
@@ -259,7 +254,7 @@ export default function ClockInPage() {
               </h3>
               <p className="text-slate-600 mb-4">
                 Absensi masuk berhasil dicatat pada{" "}
-                {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
               </p>
               <button
                 onClick={handleCloseSuccess}
