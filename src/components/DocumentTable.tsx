@@ -147,45 +147,35 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
     }
 
     const updateFilterField = (id: string, field: string) => {
+        setCurrentPage(1)
         setFilters(filters.map(f => f.id === id ? { ...f, field, value: '' } : f))
     }
 
     const updateFilterValue = (id: string, value: string) => {
+        setCurrentPage(1)
         setFilters(filters.map(f => f.id === id ? { ...f, value } : f))
     }
 
     const resetFilters = () => {
+        setCurrentPage(1)
         setFilters([])
     }
+
+    const hasActiveFilters = filters.some(f => f.value)
 
     const fetchDocuments = async () => {
         try {
             setIsLoading(true)
             setError(null)
 
-            let effectiveSearch = search
-            const filterParams: Record<string, string> = {}
-            filters.forEach(f => {
-                if (f.value) {
-                    filterParams[f.field] = f.value
-
-                    // Fallback: If filtering by name and no global search, use name as search
-                    if (f.field === 'name' && !effectiveSearch) {
-                        effectiveSearch = f.value
-                    }
-                }
-            })
-
             const response = await axiosInstance.post<DocumentsResponse>(
                 '/api/documents/',
                 {
-                    page_number: currentPage,
-                    page_size: itemsPerPage,
+                    page_number: hasActiveFilters ? 1 : currentPage,
+                    page_size: hasActiveFilters ? 9999 : itemsPerPage,
                     sort_by: 'id',
                     sort_order: 'DESC',
-                    ...filterParams,
-                    ...(effectiveSearch && { search: effectiveSearch }),
-                    // Pass moduleId if needed by backend
+                    ...(search && { search }),
                     ...(moduleId && { module: moduleId })
                 }
             )
@@ -197,7 +187,6 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                     setTotalPages(response.data.data.pagination.total_pages)
                 }
             } else {
-                // Handle API success=false case
                 if (response.data.code !== 200) {
                     setError(response.data.message || 'Failed to fetch documents')
                 }
@@ -211,22 +200,43 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
         }
     }
 
-    // Reload when page, size, or filters change
+    // Re-fetch when filters become active/inactive (to switch between paginated and full data)
     useEffect(() => {
-        fetchDocuments()
-    }, [currentPage, itemsPerPage, filters, moduleId])
-
-    // Debounce search could be added here, but for now we rely on the state update to trigger fetch
-    // Use a timeout for search to avoid too many requests
-    useEffect(() => {
+        const delay = search ? 400 : 0
         const timer = setTimeout(() => {
-            if (search !== '') fetchDocuments()
-            // If search is empty, the dependency above on other vars or initial load covers it, 
-            // but if we just cleared search, we want to fetch.
-            else if (search === '' && !isLoading) fetchDocuments()
-        }, 500)
+            fetchDocuments()
+        }, delay)
         return () => clearTimeout(timer)
-    }, [search])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage, itemsPerPage, search, moduleId, hasActiveFilters])
+
+    // Client-side filtering on fetched data
+    const filteredData = useMemo(() => {
+        if (!hasActiveFilters) return data
+        let result = data
+        filters.forEach(f => {
+            if (f.value) {
+                if (f.field === 'document_type') {
+                    result = result.filter(doc => doc.document_type === f.value)
+                } else if (f.field === 'name') {
+                    result = result.filter(doc =>
+                        doc.name?.toLowerCase().includes(f.value.toLowerCase())
+                    )
+                }
+            }
+        })
+        return result
+    }, [data, filters, hasActiveFilters])
+
+    // Client-side pagination when filters are active
+    const displayData = useMemo(() => {
+        if (!hasActiveFilters) return filteredData
+        const start = (currentPage - 1) * itemsPerPage
+        return filteredData.slice(start, start + itemsPerPage)
+    }, [filteredData, hasActiveFilters, currentPage, itemsPerPage])
+
+    const displayTotalItems = hasActiveFilters ? filteredData.length : totalItems
+    const displayTotalPages = hasActiveFilters ? Math.max(1, Math.ceil(filteredData.length / itemsPerPage)) : totalPages
 
 
     const handlePageChange = (page: number) => {
@@ -313,7 +323,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
 
                         <SearchBar
                             value={search}
-                            onChange={setSearch}
+                            onChange={(val) => { setCurrentPage(1); setSearch(val) }}
                             placeholder="Search by name..."
                         />
 
@@ -364,10 +374,10 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {data.length === 0 ? (
+                        {displayData.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="text-center py-12 text-slate-400">
-                                    {search || filters.length > 0
+                                    {search || filters.some(f => f.value)
                                         ? (
                                             <div>
                                                 <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,7 +402,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                                 </td>
                             </tr>
                         ) : (
-                            data.map((doc) => (
+                            displayData.map((doc) => (
                                 <tr key={doc.id} className="hover:bg-slate-50/80 transition group">
                                     <td className="py-4 px-6 font-medium text-slate-900">
                                         {doc.number}
@@ -441,12 +451,12 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                 </table>
             </div>
 
-            {totalPages > 0 && (
+            {displayTotalPages > 0 && (
                 <div className="px-6 pb-6">
                     <Pagination
                         currentPage={currentPage}
-                        totalPages={totalPages}
-                        totalItems={totalItems}
+                        totalPages={displayTotalPages}
+                        totalItems={displayTotalItems}
                         itemsPerPage={itemsPerPage}
                         onPageChange={handlePageChange}
                         onItemsPerPageChange={handleItemsPerPageChange}

@@ -32,6 +32,18 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
     const [errors, setErrors] = useState<Partial<DocumentFormData>>({})
     const [submitError, setSubmitError] = useState<string | null>(null)
 
+    // Sync formData once on mount (parent only renders this component after data is fetched)
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                number: initialData.number || "",
+                name: initialData.name || "",
+                document_type: initialData.document_type || ""
+            })
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
     // Modals
     const [showCancelModal, setShowCancelModal] = useState(false)
     const [notification, setNotification] = useState<{
@@ -205,10 +217,22 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
                                 >
                                     <option value="">Select Document Type</option>
                                     {DOCUMENT_TYPES.map(type => (
-                                        <option key={type.value} value={type.value}>{type.label}</option>
+                                        <option key={type.value} value={type.value}>
+                                            {type.label}{isEdit && initialData?.document_type === type.value ? ' (Current)' : ''}
+                                        </option>
                                     ))}
                                 </select>
                                 {errors.document_type && <p className="text-xs text-red-500 mt-1">{errors.document_type}</p>}
+                                {isEdit && initialData?.document_type && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Current type:{" "}
+                                        <span className="font-semibold text-gray-700">
+                                            {DOCUMENT_TYPES.find(t => t.value === initialData.document_type)?.label ?? initialData.document_type}
+                                        </span>
+                                        {" "}
+                                        <span className="text-gray-400">({initialData.document_type})</span>
+                                    </p>
+                                )}
                             </div>
 
                             {/* Document Name */}
