@@ -80,7 +80,7 @@ export default function Sidebar() {
             href={item.href}
             label={item.label}
             icon={item.icon}
-            active={pathname === item.href}
+            active={pathname.startsWith(item.href)}
             subMenu={item.subMenu}
             pathname={pathname}
           />
@@ -111,7 +111,7 @@ function MenuLink({
 
   // Check if any submenu item is active
   const hasActiveSubMenu = subMenu
-    ? subMenu.some((sub) => pathname === sub.href)
+    ? subMenu.some((sub) => pathname.startsWith(sub.href))
     : false;
   const isParentActive = active || hasActiveSubMenu;
 
@@ -148,7 +148,7 @@ function MenuLink({
                 href={sub.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm
                   ${
-                    pathname === sub.href
+                    pathname.startsWith(sub.href)
                       ? "bg-sky-50 text-sky-600 font-medium"
                       : "text-slate-600 hover:bg-slate-50"
                   }
