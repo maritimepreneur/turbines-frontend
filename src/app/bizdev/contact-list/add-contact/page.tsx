@@ -183,8 +183,8 @@ export default function AddContactPage() {
 
         {/* Form Content */}
         <form onSubmit={handleSubmit}>
-          <div className="h-[calc(100vh-240px)] overflow-y-auto">
-            <div className="p-6">
+          <div className="max-h-none sm:max-h-[calc(100vh-240px)] overflow-y-auto">
+            <div className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div>

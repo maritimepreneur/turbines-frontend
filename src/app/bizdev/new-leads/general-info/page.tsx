@@ -17,23 +17,23 @@ export default function GeneralInfoPage() {
 
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-4">
-        <nav className="flex space-x-8 px-6 pt-4">
+        <nav className="flex space-x-8 px-6 pt-4 overflow-x-auto">
           <button className="pb-2 px-1 border-b-2 border-blue-500 text-black font-medium text-sm">
             General Info
           </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap">
             Quotation
           </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap">
             Purchase Order
           </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap">
             Invoice
           </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap">
             Support Documents
           </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
+          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap">
             Execution
           </button>
         </nav>
@@ -41,8 +41,8 @@ export default function GeneralInfoPage() {
 
       <div className="bg-white rounded-xl shadow-sm text-black">
         {/* Form Content */}
-        <div className="h-[calc(100vh-240px)] overflow-y-auto">
-          <div className="p-6">
+        <div className="max-h-none sm:max-h-[calc(100vh-240px)] overflow-y-auto">
+          <div className="p-4 sm:p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="text-xs font-semibold text-black block mb-1">

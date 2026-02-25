@@ -4,6 +4,7 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
 import { useTableFilters } from "@/hooks/useTableFilters"
 import { useVendors, useDeleteVendor } from "@/hooks/useVendors"
 
@@ -60,10 +61,10 @@ export default function VendorListPage() {
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-black">
         {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
@@ -88,7 +89,7 @@ export default function VendorListPage() {
 
           <button
             onClick={() => (window.location.href = "/bizdev/vendor-list/add")}
-            className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition"
+            className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition w-full sm:w-auto"
           >
             + Add
           </button>
@@ -107,70 +108,73 @@ export default function VendorListPage() {
         />
 
         {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">ID</th>
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">Company Name</th>
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">Initial</th>
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">Industry</th>
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">Company Type</th>
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">Partner Type</th>
-              <th className="text-left py-3 px-3 text-slate-500 font-semibold">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-10 text-slate-400">
-                  No vendors found
-                </td>
-              </tr>
-            )}
-
-            {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3 text-slate-400">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.name}</td>
-                <td className="py-3 px-3">{item.initials}</td>
-                <td className="py-3 px-3">{item.industry}</td>
-                <td className="py-3 px-3">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-                    {item.company_type}
-                  </span>
-                </td>
-                <td className="py-3 px-3">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-600">
-                    {item.partner_type}
-                  </span>
-                </td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-4">
-                    <button
-                      className="text-sky-500 hover:text-sky-700"
-                      onClick={() => (window.location.href = `/bizdev/vendor-list/edit?id=${item.id}`)}
-                      title="Edit"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleDelete(item.id)}
-                      title="Delete"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ResponsiveTable
+          columns={[
+            {
+              header: 'ID',
+              accessor: 'id',
+              cellClassName: 'text-slate-400',
+            },
+            {
+              header: 'Company Name',
+              accessor: 'name',
+              isPrimary: true,
+              cellClassName: 'font-medium',
+            },
+            {
+              header: 'Initial',
+              accessor: 'initials',
+            },
+            {
+              header: 'Industry',
+              accessor: 'industry',
+            },
+            {
+              header: 'Company Type',
+              render: (item: any) => (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                  {item.company_type}
+                </span>
+              ),
+            },
+            {
+              header: 'Partner Type',
+              render: (item: any) => (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-50 text-sky-600">
+                  {item.partner_type}
+                </span>
+              ),
+            },
+            {
+              header: 'Action',
+              render: (item: any) => (
+                <div className="flex gap-4">
+                  <button
+                    className="text-sky-500 hover:text-sky-700"
+                    onClick={(e) => { e.stopPropagation(); window.location.href = `/bizdev/vendor-list/edit?id=${item.id}` }}
+                    title="Edit"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    className="text-red-500 hover:text-red-700"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(item.id) }}
+                    title="Delete"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={paginatedData}
+          keyAccessor={(item: any) => item.id}
+          emptyState="No vendors found"
+        />
 
         {/* Pagination */}
         <Pagination

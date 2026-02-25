@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { SearchBar } from "@/components/table/SearchBar"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
 import axiosInstance from "@/lib/axios"
 import { Document, DocumentsResponse, DOCUMENT_TYPES } from "@/types/document"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
@@ -280,7 +281,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-black">
             <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
@@ -357,95 +358,89 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                 fieldOptions={fieldOptions}
             />
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-50/50 text-slate-500 font-medium border-b border-slate-100">
-                        <tr>
-                            <th className="py-4 px-6 whitespace-nowrap">Number</th>
-                            <th className="py-4 px-6 whitespace-nowrap">Type</th>
-                            <th className="py-4 px-6 whitespace-nowrap">Name</th>
-                            <th className="py-4 px-6 whitespace-nowrap">Project ID</th>
-                            <th className="py-4 px-6 whitespace-nowrap">Quotation ID</th>
-                            <th className="py-4 px-6 whitespace-nowrap text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {displayData.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="text-center py-12 text-slate-400">
-                                    {search || filters.some(f => f.value)
-                                        ? (
-                                            <div>
-                                                <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                                </svg>
-                                                <p className="font-medium text-slate-600">No results found</p>
-                                                <p className="text-xs mt-1 text-slate-400">Try adjusting your search or filters</p>
-                                            </div>
-                                        )
-                                        : (
-                                            <div>
-                                                <svg className="w-16 h-16 mx-auto mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                                <h3 className="text-lg font-medium text-slate-900">No documents available</h3>
-                                                <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-                                                    There are no documents recorded in the system yet.
-                                                </p>
-                                            </div>
-                                        )
-                                    }
-                                </td>
-                            </tr>
-                        ) : (
-                            displayData.map((doc) => (
-                                <tr key={doc.id} className="hover:bg-slate-50/80 transition group">
-                                    <td className="py-4 px-6 font-medium text-slate-900">
-                                        {doc.number}
-                                    </td>
-                                    <td className="py-4 px-6">
-                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-transparent ${getDocBadgeColor(doc.document_type)}`}>
-                                            {DOCUMENT_TYPES.find(t => t.value === doc.document_type)?.label || doc.document_type || 'Other'}
-                                        </span>
-                                    </td>
-                                    <td className="py-4 px-6 text-slate-600">
-                                        {doc.name || <span className="text-slate-400 italic">-</span>}
-                                    </td>
-                                    <td className="py-4 px-6 text-slate-600">
-                                        {doc.project_id ? `#${doc.project_id}` : <span className="text-slate-300">-</span>}
-                                    </td>
-                                    <td className="py-4 px-6 text-slate-600">
-                                        {doc.quotation_id ? `#${doc.quotation_id}` : <span className="text-slate-300">-</span>}
-                                    </td>
-                                    <td className="py-4 px-6 text-right">
-                                        <div className="flex items-center justify-end gap-3">
-                                            <button
-                                                onClick={() => handleEdit(doc)}
-                                                className="text-sky-500 hover:text-sky-700 transition"
-                                                title="Edit"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(doc)}
-                                                disabled={isDeleting === doc.id}
-                                                className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                                title="Delete"
-                                            >
-                                                {isDeleting === doc.id ? (
-                                                    <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                                                ) : (
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <ResponsiveTable<Document>
+                columns={[
+                    {
+                        header: 'Number',
+                        accessor: 'number',
+                        cellClassName: 'font-medium text-slate-900',
+                    },
+                    {
+                        header: 'Type',
+                        isPrimary: true,
+                        render: (doc) => (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-transparent ${getDocBadgeColor(doc.document_type)}`}>
+                                {DOCUMENT_TYPES.find(t => t.value === doc.document_type)?.label || doc.document_type || 'Other'}
+                            </span>
+                        ),
+                    },
+                    {
+                        header: 'Name',
+                        render: (doc) => doc.name || <span className="text-slate-400 italic">-</span>,
+                        cellClassName: 'text-slate-600',
+                    },
+                    {
+                        header: 'Project ID',
+                        render: (doc) => doc.project_id ? `#${doc.project_id}` : <span className="text-slate-300">-</span>,
+                        cellClassName: 'text-slate-600',
+                    },
+                    {
+                        header: 'Quotation ID',
+                        render: (doc) => doc.quotation_id ? `#${doc.quotation_id}` : <span className="text-slate-300">-</span>,
+                        cellClassName: 'text-slate-600',
+                    },
+                    {
+                        header: 'Actions',
+                        render: (doc) => (
+                            <div className="flex items-center justify-end gap-3">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleEdit(doc) }}
+                                    className="text-sky-500 hover:text-sky-700 transition"
+                                    title="Edit"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(doc) }}
+                                    disabled={isDeleting === doc.id}
+                                    className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Delete"
+                                >
+                                    {isDeleting === doc.id ? (
+                                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    )}
+                                </button>
+                            </div>
+                        ),
+                    },
+                ]}
+                data={displayData}
+                keyAccessor={(doc) => doc.id}
+                showTopBorder={false}
+                emptyState={
+                    search || filters.some(f => f.value) ? (
+                        <div>
+                            <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <p className="font-medium text-slate-600">No results found</p>
+                            <p className="text-xs mt-1 text-slate-400">Try adjusting your search or filters</p>
+                        </div>
+                    ) : (
+                        <div>
+                            <svg className="w-16 h-16 mx-auto mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <h3 className="text-lg font-medium text-slate-900">No documents available</h3>
+                            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
+                                There are no documents recorded in the system yet.
+                            </p>
+                        </div>
+                    )
+                }
+            />
 
 
             {/* Pagination */}
