@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import axiosInstance from '@/lib/axios'
 
 interface CreatePartnerPayload {
   name: string
@@ -129,10 +130,33 @@ export function useLeadsAPI() {
     }
   }
 
+  /**
+   * Get Partner List for Leads
+   */
+  const getLeadsPartnerList = async (search?: string) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await axiosInstance.get('/api/leads/partner-list/', {
+        params: search ? { search } : {}
+      })
+
+      return response.data
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch partner list'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return {
     createPartner,
     createContact,
     createLead,
+    getLeadsPartnerList,
     isLoading,
     error,
   }

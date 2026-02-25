@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Pagination } from "@/components/table/Pagination";
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
+import { NotificationModal } from "@/components/modals/NotificationModal";
 import GeneralInfo from "@/components/pipelines/GeneralInfo";
 import Quotation from "@/components/pipelines/Quotation";
 import PurchaseOrder from "@/components/pipelines/PurchaseOrder";
@@ -116,6 +118,31 @@ export default function PipelinesPage() {
     }
   }
 
+  // Modals state
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    type: "success" | "error" | "info"
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success"
+  })
+
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean
+    leadId: number | null
+  }>({
+    isOpen: false,
+    leadId: null
+  })
+
+  // ... (rest of the state variables remain the same)
+
+  // ... (fetchLeads remains the same)
+
   const updateLeadStage = async (leadId: number, newStage: string) => {
     try {
       setIsUpdating(true)
@@ -140,22 +167,39 @@ export default function PipelinesPage() {
           setSelectedLead(prev => prev ? { ...prev, current_stages: apiStage } : null)
         }
 
-        alert('Stage updated successfully!')
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Stage updated successfully!",
+          type: "success"
+        })
       }
     } catch (err: any) {
       console.error('❌ Error updating stage:', err)
-      alert('Failed to update stage: ' + (err.response?.data?.message || err.message))
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || err.message || "Failed to update stage",
+        type: "error"
+      })
     } finally {
       setIsUpdating(false)
     }
   }
 
-  const deleteLead = async (leadId: number) => {
-    if (!confirm('Are you sure you want to delete this lead?')) return
+  const handleDeleteClick = (leadId: number) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      leadId: leadId
+    })
+  }
+
+  const confirmDelete = async () => {
+    const leadId = deleteConfirmation.leadId
+    if (!leadId) return
 
     try {
       console.log('🗑️ Deleting lead:', leadId)
-
       const response = await axiosInstance.delete(`/api/leads/${leadId}`)
 
       if (response.data.code === 200) {
@@ -170,11 +214,23 @@ export default function PipelinesPage() {
           setSelectedLead(stageLeads[0] || null)
         }
 
-        alert('Lead deleted successfully!')
+        setNotification({
+          isOpen: true,
+          title: "Success",
+          message: "Lead deleted successfully!",
+          type: "success"
+        })
       }
     } catch (err: any) {
       console.error('❌ Error deleting lead:', err)
-      alert('Failed to delete lead: ' + (err.response?.data?.message || err.message))
+      setNotification({
+        isOpen: true,
+        title: "Error",
+        message: err.response?.data?.message || err.message || "Failed to delete lead",
+        type: "error"
+      })
+    } finally {
+      setDeleteConfirmation({ isOpen: false, leadId: null })
     }
   }
 
@@ -295,6 +351,25 @@ export default function PipelinesPage() {
 
   return (
     <div>
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, leadId: null })}
+        onConfirm={confirmDelete}
+        title="Delete Lead"
+        message="Are you sure you want to delete this lead? This action cannot be undone."
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        type="reject"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Pipelines</span>
@@ -420,7 +495,7 @@ export default function PipelinesPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          deleteLead(lead.id)
+                          handleDeleteClick(lead.id)
                         }}
                         className={`p-2 rounded-lg transition shrink-0 ml-2 ${selectedLead?.id === lead.id
                           ? 'hover:bg-white hover:bg-opacity-20 text-red-500'
