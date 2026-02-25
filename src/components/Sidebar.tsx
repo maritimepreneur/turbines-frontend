@@ -101,20 +101,13 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Menu */}
-      <nav className="space-y-1 text-sm text-slate-600 flex-1">
-        {visibleMenuItems.map((item) => (
-          <MenuLink
-            key={item.href}
-            href={item.href}
-            label={item.label}
-            icon={item.icon}
-            active={pathname.startsWith(item.href)}
-            subMenu={item.subMenu}
-            pathname={pathname}
-          />
-        ))}
-      </nav>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
@@ -181,7 +174,7 @@ function MenuLink({
 
   // Check if any submenu item is active
   const hasActiveSubMenu = subMenu
-    ? subMenu.some((sub) => pathname.startsWith(sub.href))
+    ? subMenu.some((sub) => pathname === sub.href)
     : false;
   const isParentActive = active || hasActiveSubMenu;
 
@@ -217,10 +210,9 @@ function MenuLink({
                 key={sub.href}
                 href={sub.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm
-                  ${
-                    pathname.startsWith(sub.href)
-                      ? "bg-sky-50 text-sky-600 font-medium"
-                      : "text-slate-600 hover:bg-slate-50"
+                  ${pathname === sub.href
+                    ? "bg-sky-50 text-sky-600 font-medium"
+                    : "text-slate-600 hover:bg-slate-50"
                   }
                 `}
               >
@@ -305,12 +297,6 @@ const MENU_ITEMS = [
     icon: <FileText size={18} />,
     module: "bizdev",
   },
-  {
-    label: "Documents",
-    href: "/bizdev/documents",
-    icon: <FileText size={18} />,
-    module: "bizdev",
-  },
 
   // FINANCE
   {
@@ -337,12 +323,6 @@ const MENU_ITEMS = [
     icon: <BarChart3 size={18} />,
     module: "finance",
   },
-  {
-    label: "Documents",
-    href: "/finance/documents",
-    icon: <FileText size={18} />,
-    module: "finance",
-  },
 
   // OPERATION
   {
@@ -355,12 +335,6 @@ const MENU_ITEMS = [
     label: "Teams",
     href: "/operation/teams",
     icon: <UsersRound size={18} />,
-    module: "operation",
-  },
-  {
-    label: "Documents",
-    href: "/operation/documents",
-    icon: <FileText size={18} />,
     module: "operation",
   },
 
