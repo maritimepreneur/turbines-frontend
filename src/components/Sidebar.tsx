@@ -32,6 +32,7 @@ import {
   NotebookTabs,
   Menu,
   X,
+  Store,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -268,6 +269,12 @@ const MENU_ITEMS = [
     label: "Partner List",
     href: "/bizdev/partner-list",
     icon: <Handshake size={18} />,
+    module: "bizdev",
+  },
+  {
+    label: "Vendor List",
+    href: "/bizdev/vendor-list",
+    icon: <Store size={18} />,
     module: "bizdev",
   },
   {
