@@ -308,9 +308,6 @@ const MENU_ITEMS = [
   {
     label: "Attendance",
     href: "/human-resources/attendance",
-  {
-    label: "Attendance",
-    href: "/human-resources/attendance",
     icon: <CalendarCheck size={18} />,
     subMenu: [
       {

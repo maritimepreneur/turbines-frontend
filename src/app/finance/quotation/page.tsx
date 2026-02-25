@@ -7,6 +7,7 @@ import {
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
+import Cookies from 'js-cookie';
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
@@ -28,10 +29,10 @@ export default function NewLeadsPage() {
 useEffect(() => {
   const fetchQuotations = async () => {
     try {
-      const token = localStorage.getItem("access_token");
+      const token = Cookies.get('access_token');
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}api/quotations/`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/quotations/`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -40,15 +41,13 @@ useEffect(() => {
         },
       );
 
-      console.log("STATUS:", response.status);
-
-      const text = await response.text();
-
       if (!response.ok) {
-        throw new Error("Failed to fetch quotations");
+        console.error('API Error:', response.status, response.statusText);
+        setLeadsData([]);
+        return;
       }
 
-      const result = JSON.parse(text);
+      const result = await response.json();
 
       const mappedData: Lead[] = result.data.map((item: any) => ({
         number: item.id?.toString() || "-",
@@ -60,6 +59,7 @@ useEffect(() => {
       setLeadsData(mappedData);
     } catch (error) {
       console.error("Error fetching quotations:", error);
+      setLeadsData([]);
     } finally {
       setLoading(false);
     }
