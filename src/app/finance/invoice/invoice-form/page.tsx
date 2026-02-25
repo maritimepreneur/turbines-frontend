@@ -50,7 +50,8 @@ export default function InvoiceFormPage() {
         }
       );
       if (response.ok) {
-        const data = await response.json();
+        const result = await response.json();
+        const data = result.data;
         setFormData({
           number: data.number || "",
           period: data.period || "",
@@ -65,9 +66,9 @@ export default function InvoiceFormPage() {
           grand_total: data.grand_total || "",
           payment_details: data.payment_details || "",
           agreement_letter: data.agreement_letter || "",
-          contact_id: data.contact_id?.toString() || "",
-          partner_id: data.partner_id?.toString() || "",
-          purchase_order_id: data.purchase_order_id?.toString() || "",
+          contact_id: data.contact?.id?.toString() || "",
+          partner_id: data.partner?.id?.toString() || "",
+          purchase_order_id: data.purchase_order?.id?.toString() || "",
         });
       }
     } catch (error) {
@@ -87,7 +88,7 @@ export default function InvoiceFormPage() {
     try {
       const token = Cookies.get('access_token');
       const payload = {
-        number: formData.number,
+        number: parseInt(formData.number) || 0,
         period: formData.period,
         due_date: formData.due_date,
         billed_amount: formData.billed_amount,
@@ -173,7 +174,7 @@ export default function InvoiceFormPage() {
             <div className="mb-8">
               <div className="flex items-center gap-4 mb-4">
                 <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Number</label>
-                <input type="text" name="number" value={formData.number} onChange={handleChange} required className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+                <input type="number" name="number" value={formData.number} onChange={handleChange} required className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
               </div>
               <div className="flex items-center gap-4 mb-4">
                 <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Period</label>
@@ -192,8 +193,36 @@ export default function InvoiceFormPage() {
                 <input type="text" name="total_amount" value={formData.total_amount} onChange={handleChange} required className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
               </div>
               <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Notes</label>
+                <input type="text" name="notes" value={formData.notes} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">VAT</label>
+                <input type="text" name="vat" value={formData.vat} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">PPH</label>
+                <input type="text" name="pph" value={formData.pph} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Overheads</label>
+                <input type="text" name="overheads" value={formData.overheads} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Discount</label>
+                <input type="text" name="discount" value={formData.discount} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
                 <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Grand Total</label>
                 <input type="text" name="grand_total" value={formData.grand_total} onChange={handleChange} required className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Payment Details</label>
+                <input type="text" name="payment_details" value={formData.payment_details} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Agreement Letter</label>
+                <input type="text" name="agreement_letter" value={formData.agreement_letter} onChange={handleChange} className="flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500" />
               </div>
               <div className="flex items-center gap-4 mb-4">
                 <label className="text-xs font-semibold text-black w-32 flex-shrink-0">Contact ID</label>

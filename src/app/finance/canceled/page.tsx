@@ -12,11 +12,11 @@ type Invoice = {
   number: string;
   period: string;
   due_date: string;
-  billed_amount: string;
   total_amount: string;
   grand_total: string;
-  contact: { name: string };
-  partner: { name: string };
+  partner_name: string;
+  contact_name: string;
+  po_number: string;
 };
 
 export default function CanceledPage() {
@@ -51,14 +51,14 @@ export default function CanceledPage() {
           .filter((item: any) => item.status === 'Canceled')
           .map((item: any) => ({
             id: item.id?.toString() || "-",
-            number: item.number || "-",
+            number: item.number?.toString() || "-",
             period: item.period || "-",
             due_date: item.due_date || "-",
-            billed_amount: item.billed_amount || "0",
             total_amount: item.total_amount || "0",
             grand_total: item.grand_total || "0",
-            contact: item.contact || { name: "-" },
-            partner: item.partner || { name: "-" },
+            partner_name: item.partner_name || item.partner?.name || "-",
+            contact_name: item.contact_name || item.contact?.name || "-",
+            po_number: item.po_number || item.purchase_order?.po_number || "-",
           }));
 
         setInvoicesData(mappedData);
@@ -175,23 +175,25 @@ export default function CanceledPage() {
               <th className="text-left py-3 px-3">Number</th>
               <th className="text-left py-3 px-3">Period</th>
               <th className="text-left py-3 px-3">Due Date</th>
-              <th className="text-left py-3 px-3">Contact</th>
-              <th className="text-left py-3 px-3">Partner</th>
+              <th className="text-left py-3 px-3">Total Amount</th>
               <th className="text-left py-3 px-3">Grand Total</th>
+              <th className="text-left py-3 px-3">Partner</th>
+              <th className="text-left py-3 px-3">Contact</th>
+              <th className="text-left py-3 px-3">PO Number</th>
             </tr>
           </thead>
 
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-slate-400">
+                <td colSpan={8} className="text-center py-6 text-slate-400">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && paginatedData.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-slate-400">
+                <td colSpan={8} className="text-center py-6 text-slate-400">
                   No data found
                 </td>
               </tr>
@@ -201,14 +203,16 @@ export default function CanceledPage() {
               <tr key={item.id} className="border-b hover:bg-slate-50 transition">
                 <td className="py-3 px-3">
                   <Link href={`/finance/invoice/invoice-form?id=${item.id}`} className="text-blue-500 hover:text-blue-700">
-                    {item.number}
+                    #{item.number}
                   </Link>
                 </td>
                 <td className="py-3 px-3">{item.period}</td>
                 <td className="py-3 px-3">{item.due_date}</td>
-                <td className="py-3 px-3">{item.contact?.name || "-"}</td>
-                <td className="py-3 px-3">{item.partner?.name || "-"}</td>
+                <td className="py-3 px-3">Rp {parseFloat(item.total_amount).toLocaleString()}</td>
                 <td className="py-3 px-3">Rp {parseFloat(item.grand_total).toLocaleString()}</td>
+                <td className="py-3 px-3">{item.partner_name}</td>
+                <td className="py-3 px-3">{item.contact_name}</td>
+                <td className="py-3 px-3">{item.po_number}</td>
               </tr>
             ))}
           </tbody>
