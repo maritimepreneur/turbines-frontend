@@ -1,17 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 
 export default function QuotationFormPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
   const [contacts, setContacts] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
     total_amount: "",
     document_content: "",
@@ -21,59 +20,23 @@ export default function QuotationFormPage() {
     partner_id: "",
     lead_id: "",
   });
+  const [errors, setErrors] = useState<any>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoadingData(true);
-        console.log("🔄 Fetching form data...");
+        const [contactsRes, partnersRes, leadsRes] = await Promise.all([
+          axiosInstance.get('/api/contacts/'),
+          axiosInstance.get('/api/partners/'),
+          axiosInstance.get('/api/leads/'),
+        ]);
 
-        // Fetch contacts
-        let contactsData: any[] = [];
-        try {
-          const contactsRes = await axiosInstance.get('/api/contacts/');
-          console.log("📦 Contacts Response:", contactsRes.data);
-          contactsData = contactsRes.data.data || [];
-          console.log(`✅ Loaded ${contactsData.length} contacts`);
-        } catch (error) {
-          console.error("❌ Error fetching contacts:", error);
-        }
-
-        // Fetch partners
-        let partnersData: any[] = [];
-        try {
-          const partnersRes = await axiosInstance.get('/api/partners/');
-          console.log("📦 Partners Response:", partnersRes.data);
-          partnersData = partnersRes.data.data || [];
-          console.log(`✅ Loaded ${partnersData.length} partners`);
-        } catch (error) {
-          console.error("❌ Error fetching partners:", error);
-        }
-
-        // Fetch leads - menggunakan GET ke partner-list
-        let leadsData: any[] = [];
-        try {
-          const leadsRes = await axiosInstance.get('/api/leads/partner-list');
-          console.log("📦 Leads Response:", leadsRes.data);
-
-          // Extract data dari response
-          leadsData = leadsRes.data.data || [];
-          console.log(`✅ Loaded ${leadsData.length} leads`);
-        } catch (error) {
-          console.error("❌ Error fetching leads:", error);
-        }
-
-        // Set state
-        setContacts(contactsData);
-        setPartners(partnersData);
-        setLeads(leadsData);
-
-        console.log("✅ All form data loaded successfully");
-      } catch (error: any) {
-        console.error("❌ Error fetching data:", error);
-        console.error("❌ Error details:", error.response?.data || error.message);
-      } finally {
-        setLoadingData(false);
+        setContacts(contactsRes.data.data || []);
+        setPartners(partnersRes.data.data || []);
+        setLeads(leadsRes.data.data || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
       }
     };
 
@@ -84,18 +47,43 @@ export default function QuotationFormPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Only allow numbers for total_amount and format with dots
+    if (name === "total_amount") {
+      const numericValue = value.replace(/[^0-9]/g, "");
+      const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+      setFormData((prev) => ({ ...prev, [name]: formattedValue }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+    
+    if (errors[name]) {
+      setErrors((prev: any) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: any = {};
+    if (!formData.total_amount.trim()) {
+      newErrors.total_amount = "Total amount is required";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
+    setSubmitError(null);
 
     try {
-      console.log("📤 Submitting quotation...");
-
       const payload = {
-        total_amount: formData.total_amount,
+        total_amount: formData.total_amount.replace(/\./g, ""),
         document_content: formData.document_content,
         summary: formData.summary,
         offering_letter: formData.offering_letter,
@@ -104,123 +92,142 @@ export default function QuotationFormPage() {
         lead_id: formData.lead_id ? parseInt(formData.lead_id) : 0,
       };
 
-      console.log("📦 Payload:", payload);
-
       const response = await axiosInstance.post('/api/quotations/create', payload);
 
-      console.log("✅ Response:", response.data);
-
-      if (response.data.code === 200 || response.status === 200) {
-        alert("Quotation created successfully!");
-        router.push("/finance/quotation");
+      if (response.data.code === 200 || response.data.code === 201) {
+        setShowSuccessModal(true);
       } else {
         throw new Error(response.data.message || "Failed to create quotation");
       }
     } catch (error: any) {
-      console.error("❌ Error:", error);
-      console.error("❌ Error details:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "An error occurred while creating quotation");
+      console.error("Error:", error);
+      setSubmitError(error.response?.data?.message || error.message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCancel = () => {
+    if (confirm("Are you sure you want to cancel? All changes will be lost.")) {
+      router.push("/finance/quotation");
+    }
+  };
+
   return (
     <div>
-      <div className="mb-6">
-        <p className="text-sm text-slate-400">
-          Finance / Quotation / <span className="text-slate-600">New</span>
-        </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">
-          Create New Quotation
-        </h1>
-      </div>
-
-      {loadingData ? (
-        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-          <div className="flex items-center justify-center gap-2 text-slate-600">
-            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            Loading form data...
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Success!</h3>
+              <p className="text-sm text-gray-600 mb-6">Quotation created successfully</p>
+              <button
+                onClick={() => router.push("/finance/quotation")}
+                className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      <div className="mb-6">
+        <p className="text-sm text-slate-400">Finance</p>
+        <h1 className="text-2xl font-semibold mt-1 text-black">Create New Quotation</h1>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm text-black">
+        {submitError && (
+          <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-semibold text-red-800">Error</h3>
+                <p className="text-xs text-red-600 mt-1">{submitError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
-          <div className="bg-white rounded-xl shadow-lg text-black">
+          <div className="h-[calc(120vh-240px)] overflow-y-auto">
             <div className="p-6">
-              <div className="mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Total Amount <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="number"
-                    name="total_amount"
-                    value={formData.total_amount}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter total amount"
-                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                  />
-                </div>
+                  <div className="flex">
+                    <span className="flex items-center justify-center px-4 h-10 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg text-gray-700 font-medium text-sm">Rp</span>
+                    <input
+                      type="text"
+                      name="total_amount"
+                      value={formData.total_amount}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className={`flex-1 h-10 px-4 border rounded-r-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${
+                        errors.total_amount ? "border-red-500" : "border-gray-300"
+                      }`}
+                    />
+                  </div>
+                  <div className={errors.total_amount ? "" : "mb-3"}>
+                    {errors.total_amount && (
+                      <p className="text-xs text-red-500 mt-1 mb-2">{errors.total_amount}</p>
+                    )}
+                  </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Contact
                   </label>
                   <select
                     name="contact_id"
                     value={formData.contact_id}
                     onChange={handleChange}
-                    disabled={loadingData}
-                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
                   >
-                    <option value="">
-                      {loadingData ? "Loading contacts..." : contacts.length > 0 ? "Select Contact" : "No contacts available"}
-                    </option>
+                    <option value="">Select Contact</option>
                     {contacts.map((contact) => (
                       <option key={contact.id} value={contact.id}>
                         {contact.name} - {contact.company}
                       </option>
                     ))}
                   </select>
-                </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Partner
                   </label>
                   <select
                     name="partner_id"
                     value={formData.partner_id}
                     onChange={handleChange}
-                    disabled={loadingData}
-                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
                   >
-                    <option value="">
-                      {loadingData ? "Loading partners..." : partners.length > 0 ? "Select Partner" : "No partners available"}
-                    </option>
+                    <option value="">Select Partner</option>
                     {partners.map((partner) => (
                       <option key={partner.id} value={partner.id}>
                         {partner.name}
                       </option>
                     ))}
                   </select>
-                </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0">
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Lead
                   </label>
                   <select
                     name="lead_id"
                     value={formData.lead_id}
                     onChange={handleChange}
-                    disabled={loadingData}
-                    className="w-full sm:flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
                   >
-                    <option value="">
-                      {loadingData ? "Loading leads..." : leads.length > 0 ? "Select Lead" : "No leads available"}
-                    </option>
+                    <option value="">Select Lead</option>
                     {leads.map((lead) => (
                       <option key={lead.id} value={lead.id}>
                         {lead.name}
@@ -229,22 +236,20 @@ export default function QuotationFormPage() {
                   </select>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0 sm:pt-2">
+                <div>
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Summary
                   </label>
                   <textarea
                     name="summary"
                     value={formData.summary}
                     onChange={handleChange}
-                    rows={3}
-                    placeholder="Enter summary"
-                    className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    rows={4}
+                    placeholder="Enter quotation summary"
+                    className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 resize-vertical"
                   />
-                </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0 sm:pt-2">
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Document Content
                   </label>
                   <textarea
@@ -253,12 +258,10 @@ export default function QuotationFormPage() {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Enter document content"
-                    className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 resize-vertical"
                   />
-                </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 mb-4">
-                  <label className="text-xs font-semibold text-black sm:w-32 sm:flex-shrink-0 sm:pt-2">
+                  <label className="text-xs font-semibold text-black block mb-1">
                     Offering Letter
                   </label>
                   <textarea
@@ -266,40 +269,46 @@ export default function QuotationFormPage() {
                     value={formData.offering_letter}
                     onChange={handleChange}
                     rows={4}
-                    placeholder="Enter offering letter"
-                    className="w-full sm:flex-1 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    placeholder="Enter offering letter content"
+                    className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 resize-vertical"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
-                <Link href="/finance/quotation">
-                  <button
-                    type="button"
-                    className="px-6 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
-                  >
-                    Cancel
-                  </button>
-                </Link>
+              <div className="flex gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={loading}
+                  className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center gap-2"
+                  className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Submitting...
+                      <span>Submitting...</span>
                     </>
                   ) : (
-                    "Create Quotation"
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Submit</span>
+                    </>
                   )}
                 </button>
               </div>
             </div>
           </div>
         </form>
-      )}
+      </div>
     </div>
   );
 }
+
