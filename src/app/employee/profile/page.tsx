@@ -367,13 +367,13 @@ export default function EmployeeProfilePage() {
                         </div>
                     )}
 
-                    <div className="flex items-start justify-between mb-8">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-8">
                         <h2 className="text-xl font-semibold text-black border-l-4 border-emerald-500 pl-3">Profile Detail</h2>
 
                         <button
                             type="submit"
                             disabled={isSaving}
-                            className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 w-fit"
                         >
                             {isSaving ? (
                                 <>
@@ -423,7 +423,7 @@ export default function EmployeeProfilePage() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                         <div>
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-2">
                                 Full Name <span className="text-red-500">*</span>
@@ -507,7 +507,7 @@ export default function EmployeeProfilePage() {
                             />
                         </div>
 
-                        <div className="col-span-2">
+                        <div className="col-span-1 sm:col-span-2">
                             <label className="block text-xs font-medium text-slate-500 uppercase mb-2">WhatsApp</label>
                             <input
                                 type="text"
@@ -525,7 +525,7 @@ export default function EmployeeProfilePage() {
                             Personal Information
                         </h3>
 
-                        <div className="grid grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Place of Birth</label>
                                 <input
@@ -648,7 +648,7 @@ export default function EmployeeProfilePage() {
                             Address Information
                         </h3>
 
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-xs font-medium text-slate-500 uppercase mb-2">Current Address</label>
                                 <textarea

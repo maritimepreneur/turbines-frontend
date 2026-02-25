@@ -67,10 +67,10 @@ export default function SummaryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [pagination, setPagination] = useState({
     current_page: 1,
-    page_size: 25,
+    page_size: 5,
     total_pages: 1,
     total_items: 0,
   });
@@ -331,7 +331,7 @@ export default function SummaryPage() {
         <p className="text-sm text-slate-400">
           HR / <span className="text-slate-600">Attendance</span>
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
           <h1 className="text-2xl font-semibold mt-1 text-black">Attendance</h1>
           <div className="text-sm text-slate-500">
             Total:{" "}
@@ -360,8 +360,8 @@ export default function SummaryPage() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"

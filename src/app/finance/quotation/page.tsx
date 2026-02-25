@@ -1,17 +1,12 @@
 "use client";
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faArrowLeftLong,
-  faCheck,
-  faFilter,
-} from "@fortawesome/free-solid-svg-icons";
 import { useState, useEffect } from "react";
 import Cookies from 'js-cookie';
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
 import { useTableFilters } from "@/hooks/useTableFilters";
+import axiosInstance from "@/lib/axios";
 
 type Lead = {
   number: string;
@@ -20,54 +15,60 @@ type Lead = {
   total: string;
 };
 
-export default function NewLeadsPage() {
+export default function QuotationPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [activeTab, setActiveTab] = useState("Pending");
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const fetchQuotations = async () => {
-    try {
-      const token = Cookies.get('access_token');
-      
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/quotations/`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
+  useEffect(() => {
+    const fetchQuotations = async () => {
+      try {
+        setLoading(true);
 
-      if (!response.ok) {
-        console.error('API Error:', response.status, response.statusText);
+        console.log("🚀 Fetching quotations via Axios...");
+
+        // Gunakan axiosInstance yang sudah handle authentication
+        const response = await axiosInstance.get('/api/quotations/');
+
+        console.log("📦 Response:", response.data);
+
+        // Validasi response
+        if (!response.data || response.data.code !== 200) {
+          console.error("❌ Invalid response code:", response.data?.code);
+          throw new Error("Invalid API response");
+        }
+
+        if (!Array.isArray(response.data.data)) {
+          console.error("❌ Data is not an array:", response.data.data);
+          throw new Error("Invalid data format");
+        }
+
+        // Mapping data sesuai struktur API response
+        const mappedData: Lead[] = response.data.data.map((item: any) => ({
+          number: item.id?.toString() || "-",
+          name: item.contact?.name || "-",
+          projectname: item.lead?.name || "-",
+          total: item.total_amount
+            ? `Rp ${Number(item.total_amount).toLocaleString('id-ID')}`
+            : "Rp 0",
+        }));
+
+        console.log("✅ Mapped data:", mappedData);
+        console.log(`✅ Total items: ${mappedData.length}`);
+
+        setLeadsData(mappedData);
+      } catch (error: any) {
+        console.error("❌ Error fetching quotations:", error);
+        console.error("❌ Error details:", error.response?.data || error.message);
         setLeadsData([]);
-        return;
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const result = await response.json();
-
-      const mappedData: Lead[] = result.data.map((item: any) => ({
-        number: item.id?.toString() || "-",
-        name: item.contact?.name || "-",
-        projectname: item.lead?.name || "-",
-        total: item.total_amount ? `Rp. ${item.total_amount}` : "Rp. 0",
-      }));
-
-      setLeadsData(mappedData);
-    } catch (error) {
-      console.error("Error fetching quotations:", error);
-      setLeadsData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchQuotations();
-}, []);
-
+    fetchQuotations();
+  }, []);
 
   const {
     filters,
@@ -110,8 +111,8 @@ useEffect(() => {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               {tab}
@@ -120,9 +121,8 @@ useEffect(() => {
         </nav>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowFilter(!showFilter)}
             className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
@@ -191,19 +191,29 @@ useEffect(() => {
             {loading && (
               <tr>
                 <td colSpan={4} className="text-center py-6 text-slate-400">
-                  Loading...
-                </td>
-              </tr>
-            )}
-            {!loading && paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={4} className="text-center py-6 text-slate-400">
-                  No data found
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    Loading quotations...
+                  </div>
                 </td>
               </tr>
             )}
 
-            {paginatedData.map((item) => (
+            {!loading && paginatedData.length === 0 && (
+              <tr>
+                <td colSpan={4} className="text-center py-6 text-slate-400">
+                  <div className="flex flex-col items-center justify-center">
+                    <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="font-medium">No quotations found</p>
+                    <p className="text-xs mt-1">Click "+ Add" to create a new quotation</p>
+                  </div>
+                </td>
+              </tr>
+            )}
+
+            {!loading && paginatedData.map((item) => (
               <tr
                 key={item.number}
                 className="border-b hover:bg-slate-50 transition"
@@ -211,14 +221,14 @@ useEffect(() => {
                 <td className="py-3 px-3">
                   <Link
                     href={`/finance/quotation/quotation-form?number=${item.number}`}
-                    className="text-blue-500 hover:text-blue-700"
+                    className="text-blue-500 hover:text-blue-700 font-medium"
                   >
-                    {item.number}
+                    #{item.number}
                   </Link>
                 </td>
                 <td className="py-3 px-3 font-medium">{item.name}</td>
                 <td className="py-3 px-3">{item.projectname}</td>
-                <td className="py-3 px-3">{item.total}</td>
+                <td className="py-3 px-3 font-semibold">{item.total}</td>
               </tr>
             ))}
           </tbody>

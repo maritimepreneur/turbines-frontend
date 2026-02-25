@@ -1,4 +1,5 @@
 import axiosInstance from '@/lib/axios'
+import { PaginatedResponse } from '@/types/api'
 
 export interface Partner {
   id: number
@@ -11,10 +12,23 @@ export interface Partner {
   goods?: string
 }
 
+export interface PartnerListParams {
+  page_size?: number
+  page_number?: number
+  sort_by?: string
+  sort_order?: 'ASC' | 'DESC'
+  search?: string
+  industries?: string[]
+  company_types?: string[]
+  partner_types?: string[]
+  services?: string[]
+  goods?: string[]
+}
+
 export const partnerService = {
-  async getPartners(): Promise<Partner[]> {
-    const response = await axiosInstance.get('/api/partners/')
-    return response.data.data || response.data
+  async getPartners(params?: PartnerListParams): Promise<PaginatedResponse<Partner>> {
+    const response = await axiosInstance.get('/api/partners', { params })
+    return response.data
   },
 
   async getPartner(id: number): Promise<Partner> {
