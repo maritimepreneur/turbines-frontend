@@ -217,7 +217,9 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
         filters.forEach(f => {
             if (f.value) {
                 if (f.field === 'document_type') {
-                    result = result.filter(doc => doc.document_type === f.value)
+                    result = result.filter(doc =>
+                        doc.document_type?.toLowerCase().includes(f.value.toLowerCase())
+                    )
                 } else if (f.field === 'name') {
                     result = result.filter(doc =>
                         doc.name?.toLowerCase().includes(f.value.toLowerCase())
@@ -278,7 +280,7 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100">
+        <div className="bg-white rounded-xl shadow-sm p-6 text-black">
             <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
@@ -298,68 +300,62 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                 type={notification.type}
             />
 
-            <div className="p-6 border-b border-slate-100">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-semibold text-slate-800">Documents</h2>
-                        <p className="text-sm text-slate-500 mt-1">Manage and view all your documents</p>
-                    </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setShowFilter(!showFilter)}
+                        className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        Filter
+                        {filters.length > 0 && (
+                            <span className="bg-white text-sky-500 rounded-full px-2 py-0.5 text-xs font-semibold">
+                                {filters.length}
+                            </span>
+                        )}
+                    </button>
 
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <button
-                            onClick={() => setShowFilter(!showFilter)}
-                            className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition border ${showFilter ? 'bg-sky-50 border-sky-200 text-sky-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                            </svg>
-                            Filter
-                            {filters.length > 0 && (
-                                <span className="bg-sky-100 text-sky-700 rounded-full px-2 py-0.5 text-xs font-semibold">
-                                    {filters.length}
-                                </span>
-                            )}
-                        </button>
-
-                        <SearchBar
-                            value={search}
-                            onChange={(val) => { setCurrentPage(1); setSearch(val) }}
-                            placeholder="Search by name..."
-                        />
-
-                        <button
-                            onClick={() => fetchDocuments()}
-                            className="p-2 text-slate-600 hover:text-sky-500 transition rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-200"
-                            title="Refresh"
-                        >
-                            <svg className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                        </button>
-
-                        <button
-                            onClick={handleAdd}
-                            className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                            Add Document
-                        </button>
-                    </div>
+                    <SearchBar
+                        value={search}
+                        onChange={(val) => { setCurrentPage(1); setSearch(val) }}
+                        placeholder="Search by name..."
+                    />
                 </div>
 
-                {/* Filter Panel */}
-                <FilterPanel
-                    show={showFilter}
-                    filters={filters}
-                    onAddFilter={addFilter}
-                    onRemoveFilter={removeFilter}
-                    onUpdateField={updateFilterField}
-                    onUpdateValue={updateFilterValue}
-                    onResetAll={resetFilters}
-                    fieldOptions={fieldOptions}
-                    valueOptions={{
-                        document_type: DOCUMENT_TYPES
-                    }}
-                />
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => fetchDocuments()}
+                        disabled={isLoading}
+                        className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
+                        title="Refresh data"
+                    >
+                        <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
+                    </button>
+
+                    <button
+                        onClick={handleAdd}
+                        className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition"
+                    >
+                        + Add
+                    </button>
+                </div>
             </div>
+
+            <FilterPanel
+                show={showFilter}
+                filters={filters}
+                onAddFilter={addFilter}
+                onRemoveFilter={removeFilter}
+                onUpdateField={updateFilterField}
+                onUpdateValue={updateFilterValue}
+                onResetAll={resetFilters}
+                fieldOptions={fieldOptions}
+            />
 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -451,17 +447,17 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                 </table>
             </div>
 
+
+            {/* Pagination */}
             {displayTotalPages > 0 && (
-                <div className="px-6 pb-6">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={displayTotalPages}
-                        totalItems={displayTotalItems}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={handlePageChange}
-                        onItemsPerPageChange={handleItemsPerPageChange}
-                    />
-                </div>
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={displayTotalPages}
+                    totalItems={displayTotalItems}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                />
             )}
         </div>
     )
