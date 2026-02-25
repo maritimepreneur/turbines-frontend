@@ -40,6 +40,7 @@ interface AttendanceResponse {
 
 interface EmployeeSummary {
   employee_id: string;
+  raw_employee_id: number;
   employee_name: string;
   present_days: number;
   late_days: number;
@@ -146,6 +147,7 @@ export default function SummaryPage() {
       if (!employeeMap.has(key)) {
         employeeMap.set(key, {
           employee_id: `EMP${String(record.employee_id).padStart(3, "0")}`,
+          raw_employee_id: record.employee_id,
           employee_name: record.employee_name,
           present_days: 0,
           late_days: 0,
@@ -509,7 +511,12 @@ export default function SummaryPage() {
                 >
                   <td className="py-3 px-3">{summary.employee_id}</td>
                   <td className="py-3 px-3 font-medium">
-                    {summary.employee_name}
+                    <Link
+                      href={`/human-resources/attendance/summary/${summary.raw_employee_id}`}
+                      className="hover:text-sky-600 transition cursor-pointer hover:underline"
+                    >
+                      {summary.employee_name}
+                    </Link>
                   </td>
                   <td className="py-3 px-3 font-medium">
                     {summary.present_days}
