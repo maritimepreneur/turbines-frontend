@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 
 export default function QuotationFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const quotationId = searchParams.get("number");
+  const isEditMode = !!quotationId;
+  
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState<any[]>([]);
   const [partners, setPartners] = useState<any[]>([]);
@@ -35,13 +39,27 @@ export default function QuotationFormPage() {
         setContacts(contactsRes.data.data || []);
         setPartners(partnersRes.data.data || []);
         setLeads(leadsRes.data.data || []);
+
+        if (isEditMode && quotationId) {
+          const quotationRes = await axiosInstance.get(`/api/quotations/${quotationId}`);
+          const data = quotationRes.data.data;
+          setFormData({
+            total_amount: data.total_amount ? Number(data.total_amount).toLocaleString('id-ID') : "",
+            document_content: data.document_content || "",
+            summary: data.summary || "",
+            offering_letter: data.offering_letter || "",
+            contact_id: data.contact_id?.toString() || "",
+            partner_id: data.partner_id?.toString() || "",
+            lead_id: data.lead_id?.toString() || "",
+          });
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
 
     fetchData();
-  }, []);
+  }, [isEditMode, quotationId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -92,12 +110,14 @@ export default function QuotationFormPage() {
         lead_id: formData.lead_id ? parseInt(formData.lead_id) : 0,
       };
 
-      const response = await axiosInstance.post('/api/quotations/create', payload);
+      const response = isEditMode
+        ? await axiosInstance.put(`/api/quotations/${quotationId}`, payload)
+        : await axiosInstance.post('/api/quotations/create', payload);
 
       if (response.data.code === 200 || response.data.code === 201) {
         setShowSuccessModal(true);
       } else {
-        throw new Error(response.data.message || "Failed to create quotation");
+        throw new Error(response.data.message || `Failed to ${isEditMode ? 'update' : 'create'} quotation`);
       }
     } catch (error: any) {
       console.error("Error:", error);
@@ -116,7 +136,7 @@ export default function QuotationFormPage() {
   return (
     <div>
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -125,7 +145,7 @@ export default function QuotationFormPage() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Success!</h3>
-              <p className="text-sm text-gray-600 mb-6">Quotation created successfully</p>
+              <p className="text-sm text-gray-600 mb-6">Quotation {isEditMode ? 'updated' : 'created'} successfully</p>
               <button
                 onClick={() => router.push("/finance/quotation")}
                 className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
@@ -139,7 +159,7 @@ export default function QuotationFormPage() {
 
       <div className="mb-6">
         <p className="text-sm text-slate-400">Finance</p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Create New Quotation</h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">{isEditMode ? 'Edit' : 'Create New'} Quotation</h1>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm text-black">

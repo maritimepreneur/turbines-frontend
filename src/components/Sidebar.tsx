@@ -101,20 +101,13 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Menu */}
-      <nav className="space-y-1 text-sm text-slate-600 flex-1">
-        {visibleMenuItems.map((item) => (
-          <MenuLink
-            key={item.href}
-            href={item.href}
-            label={item.label}
-            icon={item.icon}
-            active={pathname.startsWith(item.href)}
-            subMenu={item.subMenu}
-            pathname={pathname}
-          />
-        ))}
-      </nav>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
@@ -129,7 +122,9 @@ export default function Sidebar() {
         <div className="flex items-center justify-between gap-3 mb-10">
           <div className="flex items-center gap-3">
             <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
-            <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
+            <h1 className="text-2xl italic font-bold text-slate-900">
+              Turbines
+            </h1>
           </div>
           {/* Close button (mobile only) */}
           <button
@@ -149,7 +144,7 @@ export default function Sidebar() {
               href={item.href}
               label={item.label}
               icon={item.icon}
-              active={pathname === item.href}
+              active={pathname === item.href || pathname.startsWith(item.href + '/')}
               subMenu={item.subMenu}
               pathname={pathname}
             />
@@ -181,7 +176,7 @@ function MenuLink({
 
   // Check if any submenu item is active
   const hasActiveSubMenu = subMenu
-    ? subMenu.some((sub) => pathname.startsWith(sub.href))
+    ? subMenu.some((sub) => pathname === sub.href || pathname.startsWith(sub.href + '/'))
     : false;
   const isParentActive = active || hasActiveSubMenu;
 
@@ -218,7 +213,7 @@ function MenuLink({
                 href={sub.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm
                   ${
-                    pathname.startsWith(sub.href)
+                    pathname === sub.href || pathname.startsWith(sub.href + '/')
                       ? "bg-sky-50 text-sky-600 font-medium"
                       : "text-slate-600 hover:bg-slate-50"
                   }
@@ -305,6 +300,12 @@ const MENU_ITEMS = [
     icon: <FileText size={18} />,
     module: "bizdev",
   },
+  {
+    label: "Documents",
+    href: "/bizdev/documents",
+    icon: <FileText size={18} />,
+    module: "bizdev",
+  },
 
   // FINANCE
   {
@@ -331,6 +332,12 @@ const MENU_ITEMS = [
     icon: <BarChart3 size={18} />,
     module: "finance",
   },
+  {
+    label: "Documents",
+    href: "/finance/documents",
+    icon: <FileText size={18} />,
+    module: "finance",
+  },
 
   // OPERATION
   {
@@ -343,6 +350,12 @@ const MENU_ITEMS = [
     label: "Teams",
     href: "/operation/teams",
     icon: <UsersRound size={18} />,
+    module: "operation",
+  },
+  {
+    label: "Documents",
+    href: "/operation/documents",
+    icon: <FileText size={18} />,
     module: "operation",
   },
 
@@ -383,7 +396,7 @@ const MENU_ITEMS = [
       { label: "Summary", href: "/human-resources/attendance/summary" },
       { label: "Absent", href: "/human-resources/attendance/absent" },
     ],
-    module: "human-resources"
+    module: "human-resources",
   },
   // {
   //   label: "My Reports",
