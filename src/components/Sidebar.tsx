@@ -32,6 +32,7 @@ import {
   NotebookTabs,
   Menu,
   X,
+  Store,
 } from "lucide-react";
 
 export default function Sidebar() {

@@ -581,7 +581,7 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1.5 bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-sm">
                     <span>🏖️</span>
-                    Ngambil Cuti
+                    Day Off
                   </span>
                   <span className="text-xs text-slate-400">Berlaku sepanjang hari</span>
                 </div>
