@@ -78,10 +78,20 @@ export const scheduleService = {
         ? response.data
         : (response.data?.data ?? [])
       const apiData = raw.map(normaliseSchedule)
-      // Merge dengan localStorage (data lokal sementara)
+
+      // Merge `type` dari localStorage (backend tidak punya field type)
       const localData = lsGetAll()
+      const localByKey = new Map(localData.map((s) => [s.schedule_id, s]))
+      apiData.forEach((s: Schedule) => {
+        const local = localByKey.get(s.schedule_id)
+        if (local?.type) {
+          s.type = local.type
+        }
+      })
+
+      // Tambahkan data lokal-only (yg belum pernah ke API)
       const apiIds = new Set(apiData.map((s: Schedule) => s.schedule_id))
-      const localOnly = localData.filter((s) => !apiIds.has(s.schedule_id))
+      const localOnly = localData.filter((s) => !apiIds.has(s.schedule_id) && s.schedule_id.startsWith('local_'))
       return [...apiData, ...localOnly]
     } catch {
       console.warn('[scheduleService] GET /api/schedules/ failed, using localStorage')
@@ -91,22 +101,28 @@ export const scheduleService = {
 
   async createSchedule(payload: CreateSchedulePayload): Promise<Schedule> {
     try {
-      // Format waktu ke HH:mm:ss sesuai yang API harapkan
+      // Backend TIDAK punya field `type` — hapus dari payload API
+      const { type, ...rest } = payload
       const apiPayload = {
-        ...payload,
-        start_time: toTimeWithSeconds(payload.start_time),
-        end_time: toTimeWithSeconds(payload.end_time),
-        employee_id: Number(payload.employee_id),
-        tagged_ids: (payload.tagged_ids ?? []).map(Number),
+        title: rest.title,
+        description: rest.description,
+        start_time: toTimeWithSeconds(rest.start_time),
+        end_time: toTimeWithSeconds(rest.end_time),
+        date: rest.date,
+        employee_id: Number(rest.employee_id),
+        tagged_ids: (rest.tagged_ids ?? []).map(Number),
       }
+      console.log('[scheduleService] POST /api/schedules/create', apiPayload)
       const response = await axiosInstance.post('/api/schedules/create', apiPayload)
-      // API return code 201 saat sukses
       const raw = response.data?.data ?? response.data
       const created = normaliseSchedule(raw)
-      // Hapus versi localStorage jika ada (bersihkan duplikat)
+      // Simpan `type` ke localStorage sebagai metadata frontend-only
+      created.type = type
+      const existing = lsGetAll()
+      lsSave([...existing.filter((s) => s.schedule_id !== created.schedule_id), created])
       return created
     } catch (err: any) {
-      // Jika bukan 500 / network error → rethrow
+      console.error('[scheduleService] createSchedule error:', err?.response?.data ?? err?.message)
       const status = err?.response?.status
       if (status && status < 500) throw err
       // Fallback localStorage jika server down

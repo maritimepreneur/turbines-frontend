@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Plus, Clock, CheckSquare, Square, X, Star, L
 import { fetchGoogleHolidays, getMonthRange, type GoogleHoliday } from '@/services/googleCalendarService';
 import { useSchedules, useCreateSchedule } from '@/hooks/useSchedules';
 import { useAuth } from '@/contexts/AuthContext';
+import axiosInstance from '@/lib/axios';
 import type { Schedule } from '@/services/scheduleService';
 
 // ============================================================
@@ -89,6 +90,32 @@ export default function CalendarPage() {
   const { data: schedules = [], isLoading: schedulesLoading } = useSchedules();
   const createSchedule = useCreateSchedule();
   const { user } = useAuth();
+
+  // ── Resolve employee_id dari user_id (user.id ≠ employee_id!) ──
+  const [employeeId, setEmployeeId] = useState<number>(0);
+  const [employeeList, setEmployeeList] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user?.id) return;
+    axiosInstance.get('/api/employees/')
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        setEmployeeList(list);
+        const me = list.find((e: any) => e.user_id === user.id);
+        if (me) {
+          // User ini adalah employee
+          setEmployeeId(me.id);
+          setIsAdmin(false);
+          console.log('[Calendar] employee_id resolved:', me.id, 'for user_id:', user.id);
+        } else if (list.length > 0) {
+          // User tidak ada di employee list → Admin
+          setEmployeeId(list[0].id); // Default ke employee pertama
+          setIsAdmin(true);
+          console.log('[Calendar] Admin mode: default employee_id:', list[0].id);
+        }
+      })
+      .catch((err) => console.error('[Calendar] Failed to fetch employees:', err));
+  }, [user?.id]);
 
   // ── New event form state ───────────────────────────────────
   const [newEvent, setNewEvent] = useState({
@@ -204,7 +231,7 @@ export default function CalendarPage() {
       date:        toDateKey(selectedDate),
       type:        newEvent.type,
       tagged_ids:  [],
-      employee_id: user?.id ?? 0,   // integer dari user yang sedang login
+      employee_id: employeeId,   // employee table ID (bukan user.id!)
     });
 
     // Reset form & tutup modal
@@ -219,9 +246,9 @@ export default function CalendarPage() {
   }, [selectedDate]);
 
   const getBadge = (s: Schedule) => {
-    const color = BADGE_COLORS[s.title] || BADGE_COLORS['Work'];
+    const colors = SCHEDULE_TYPE_COLORS[s.type] ?? SCHEDULE_TYPE_COLORS['working'];
     return (
-      <span key={s.schedule_id} className={`hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md ${color}`}>
+      <span key={s.schedule_id} className={`hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md ${colors.bg} ${colors.text}`}>
         {s.title}
       </span>
     );
@@ -526,6 +553,26 @@ export default function CalendarPage() {
 
             {/* Body */}
             <div className="p-5 space-y-4 max-h-[70vh] sm:max-h-none overflow-y-auto">
+              {/* Admin: pilih employee */}
+              {isAdmin && employeeList.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Assign to Employee <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(Number(e.target.value))}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white"
+                  >
+                    {employeeList.map((emp: any) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.full_name} ({emp.employee_code})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-amber-500 mt-1">🔑 Admin mode — membuat jadwal untuk employee</p>
+                </div>
+              )}
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
