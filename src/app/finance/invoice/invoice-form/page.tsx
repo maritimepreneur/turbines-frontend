@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import Cookies from 'js-cookie';
+import axiosInstance from '@/lib/axios';
 
 export default function InvoiceFormPage() {
   const router = useRouter();
@@ -39,38 +39,26 @@ export default function InvoiceFormPage() {
 
   const fetchInvoiceDetail = async () => {
     try {
-      const token = Cookies.get('access_token');
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/${invoiceId}`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      if (response.ok) {
-        const result = await response.json();
-        const data = result.data;
-        setFormData({
-          number: data.number || "",
-          period: data.period || "",
-          due_date: data.due_date || "",
-          billed_amount: data.billed_amount?.toString() || "",
-          total_amount: data.total_amount?.toString() || "",
-          notes: data.notes || "",
-          vat: data.vat?.toString() || "0.00",
-          pph: data.pph?.toString() || "0.00",
-          overheads: data.overheads?.toString() || "0.00",
-          discount: data.discount?.toString() || "0.00",
-          grand_total: data.grand_total || "",
-          payment_details: data.payment_details || "",
-          agreement_letter: data.agreement_letter || "",
-          contact_id: data.contact?.id?.toString() || "",
-          partner_id: data.partner?.id?.toString() || "",
-          purchase_order_id: data.purchase_order?.id?.toString() || "",
-        });
-      }
+      const response = await axiosInstance.get(`/api/invoices/${invoiceId}`);
+      const data = response.data.data;
+      setFormData({
+        number: data.number || "",
+        period: data.period || "",
+        due_date: data.due_date || "",
+        billed_amount: data.billed_amount?.toString() || "",
+        total_amount: data.total_amount?.toString() || "",
+        notes: data.notes || "",
+        vat: data.vat?.toString() || "0.00",
+        pph: data.pph?.toString() || "0.00",
+        overheads: data.overheads?.toString() || "0.00",
+        discount: data.discount?.toString() || "0.00",
+        grand_total: data.grand_total || "",
+        payment_details: data.payment_details || "",
+        agreement_letter: data.agreement_letter || "",
+        contact_id: data.contact?.id?.toString() || "",
+        partner_id: data.partner?.id?.toString() || "",
+        purchase_order_id: data.purchase_order?.id?.toString() || "",
+      });
     } catch (error) {
       console.error("Error fetching invoice:", error);
     }
@@ -86,7 +74,6 @@ export default function InvoiceFormPage() {
     setLoading(true);
 
     try {
-      const token = Cookies.get('access_token');
       const payload = {
         number: parseInt(formData.number) || 0,
         period: formData.period,
@@ -107,49 +94,18 @@ export default function InvoiceFormPage() {
       };
 
       if (isEditMode) {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/${invoiceId}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-        if (response.ok) {
-          alert("Invoice updated successfully!");
-          router.push("/finance/invoice");
-        } else {
-          alert("Failed to update invoice");
-        }
+        await axiosInstance.put(`/api/invoices/${invoiceId}`, payload);
+        alert("Invoice updated successfully!");
+        router.push("/finance/invoice");
       } else {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/create`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-          alert("Invoice created successfully!");
-          router.push("/finance/invoice");
-        } else {
-          console.error('Error response:', result);
-          alert(`Failed to create invoice: ${result.detail || result.message || JSON.stringify(result)}`);
-        }
+        await axiosInstance.post('/api/invoices/create', payload);
+        alert("Invoice created successfully!");
+        router.push("/finance/invoice");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
-      alert("An error occurred");
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || "An error occurred";
+      alert(`Failed to ${isEditMode ? 'update' : 'create'} invoice: ${errorMsg}`);
     } finally {
       setLoading(false);
     }

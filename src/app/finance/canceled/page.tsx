@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link";
 import { useState, useEffect } from "react"
-import Cookies from 'js-cookie';
+import axiosInstance from '@/lib/axios';
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
@@ -27,27 +27,9 @@ export default function CanceledPage() {
   useEffect(() => {
     const fetchInvoices = async () => {
       try {
-        const token = Cookies.get('access_token');
-        
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/invoices/`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
+        const response = await axiosInstance.get('/api/invoices/');
 
-        if (!response.ok) {
-          console.error('API Error:', response.status, response.statusText);
-          setInvoicesData([]);
-          return;
-        }
-
-        const result = await response.json();
-
-        const mappedData: Invoice[] = result.data
+        const mappedData: Invoice[] = response.data.data
           .filter((item: any) => item.status === 'Canceled')
           .map((item: any) => ({
             id: item.id?.toString() || "-",
