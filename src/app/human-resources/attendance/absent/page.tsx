@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Pagination } from "@/components/table/Pagination";
 import { ResponsiveTable } from "@/components/table/ResponsiveTable";
+import { EmptyState } from "@/components/table/EmptyState";
 
 type AbsentEmployee = {
   id: number;
@@ -258,7 +259,7 @@ export default function AbsentPage() {
             ]}
             data={paginatedEmployees}
             keyAccessor={(employee) => employee.id}
-            emptyState="No absent employees"
+            emptyState={<EmptyState title="No absent employees" />}
           />
 
 

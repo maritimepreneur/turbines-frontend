@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Pagination } from "@/components/table/Pagination";
+import { EmptyState } from "@/components/table/EmptyState";
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
 import { NotificationModal } from "@/components/modals/NotificationModal";
 import GeneralInfo from "@/components/pipelines/GeneralInfo";
@@ -449,15 +450,11 @@ export default function PipelinesPage() {
               </div>
 
               {paginatedData.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg">
-                  <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                  <p className="font-medium">No leads in "{activeStage}"</p>
-                  <p className="text-xs mt-1">
-                    {searchQuery ? 'Try a different search term' : 'Add a new lead or try a different stage'}
-                  </p>
-                </div>
+                <EmptyState
+                  type={searchQuery ? 'search' : 'data'}
+                  title={`No leads in "${activeStage}"`}
+                  description={searchQuery ? 'Try a different search term' : 'Add a new lead or try a different stage'}
+                />
               ) : (
                 paginatedData.map((lead) => (
                   <div

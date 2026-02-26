@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AxiosError } from "axios";
 import axiosInstance from "@/lib/axios";
 import { useModal } from "@/hooks/useModal";
@@ -59,6 +59,8 @@ export default function AttendanceDetailView({
     backLabel,
 }: AttendanceDetailViewProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const queryName = searchParams?.get("name");
 
     const [attendance, setAttendance] = useState<AttendanceDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -364,7 +366,7 @@ export default function AttendanceDetailView({
                                 </svg>
                             </div>
                             <h2 className="text-xl font-semibold text-slate-800 mb-1">
-                                {attendance.employee_name ||
+                                {attendance.employee_name || queryName ||
                                     `Employee #${attendance.employee_id}`}
                             </h2>
                             <p className="text-sm text-slate-500 mb-4">
@@ -582,8 +584,8 @@ export default function AttendanceDetailView({
                                 <p className="text-xs text-slate-500 mb-1">Description</p>
                                 <p
                                     className={`text-sm ${attendance.clock_out.desc
-                                            ? "text-slate-800"
-                                            : "text-slate-400 italic"
+                                        ? "text-slate-800"
+                                        : "text-slate-400 italic"
                                         }`}
                                 >
                                     {attendance.clock_out.desc || "No description provided"}
@@ -625,7 +627,7 @@ export default function AttendanceDetailView({
                 onClose={confirmModal.close}
                 onConfirm={executeApprove}
                 title="Approve Attendance"
-                message={`Are you sure you want to approve attendance for "${attendance?.employee_name || "this employee"
+                message={`Are you sure you want to approve attendance for "${attendance?.employee_name || queryName || "this employee"
                     }"?`}
                 confirmText="Approve"
                 type="approve"

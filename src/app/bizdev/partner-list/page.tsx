@@ -7,6 +7,7 @@ import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { ResponsiveTable } from "@/components/table/ResponsiveTable"
+import { EmptyState } from "@/components/table/EmptyState"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
@@ -453,23 +454,9 @@ export default function PartnerListPage() {
           keyAccessor={(item) => item.id}
           showTopBorder={false}
           emptyState={
-            search || filters.length > 0 ? (
-              <div>
-                <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <p className="font-medium">No results found</p>
-                <p className="text-xs mt-1">Try adjusting your search or filters</p>
-              </div>
-            ) : (
-              <div>
-                <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <p className="font-medium">No partners data available</p>
-                <p className="text-xs mt-1">Click '+ Add' to create a new partner</p>
-              </div>
-            )
+            search || filters.length > 0
+              ? <EmptyState type="search" />
+              : <EmptyState title="No partners data available" description="Click '+ Add' to create a new partner" />
           }
         />
 
