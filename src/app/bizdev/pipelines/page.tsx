@@ -307,7 +307,7 @@ export default function PipelinesPage() {
           </p>
           <h1 className="text-2xl font-semibold mt-1 text-black">Pipelines</h1>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -328,7 +328,7 @@ export default function PipelinesPage() {
           </p>
           <h1 className="text-2xl font-semibold mt-1 text-black">Pipelines</h1>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,7 +374,7 @@ export default function PipelinesPage() {
         <p className="text-sm text-slate-400">
           Bizdev / <span className="text-slate-600">Pipelines</span>
         </p>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
           <h1 className="text-2xl font-semibold mt-1 text-black">Pipelines</h1>
           <div className="text-sm text-slate-500">
             Total: <span className="font-semibold text-slate-700">{leads.length}</span> leads
@@ -382,7 +382,7 @@ export default function PipelinesPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {stages.map((stage) => {
             const apiStage = reverseStageMapping[stage]
@@ -392,7 +392,7 @@ export default function PipelinesPage() {
               <button
                 key={stage}
                 onClick={() => handleStageChange(stage)}
-                className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap flex items-center gap-2 transition ${activeStage === stage ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm whitespace-nowrap flex items-center gap-1.5 sm:gap-2 transition ${activeStage === stage ? 'text-white shadow-lg' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 style={activeStage === stage ? { backgroundColor: '#00A6FB' } : {}}
               >
@@ -406,8 +406,8 @@ export default function PipelinesPage() {
           })}
         </div>
 
-        <div className="flex justify-between mb-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="relative w-full sm:w-auto">
             <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -419,7 +419,7 @@ export default function PipelinesPage() {
                 setSearchQuery(e.target.value)
                 setCurrentPage(1)
               }}
-              className="pl-10 pr-4 py-2 border rounded-lg text-sm w-64 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-sky-500"
+              className="pl-10 pr-4 py-2 border rounded-lg text-sm w-full sm:w-64 text-gray-700 placeholder-gray-400 focus:outline-none focus:border-sky-500"
             />
           </div>
 
@@ -534,7 +534,7 @@ export default function PipelinesPage() {
             {selectedLead ? (
               <>
                 <div className="border rounded-lg p-6 bg-white shadow-sm">
-                  <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div>
                       <label className="text-sm text-black block mb-2 font-semibold">STAGE</label>
                       <select
@@ -578,12 +578,12 @@ export default function PipelinesPage() {
                 </div>
 
                 <div className="border rounded-lg p-6 bg-white shadow-sm">
-                  <div className="flex gap-6 border-b mb-6">
+                  <div className="flex gap-4 sm:gap-6 border-b mb-6 overflow-x-auto">
                     {['General Info', 'Quotation', 'Purchase Order', 'Invoice'].map((tab) => (
                       <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`pb-3 text-sm font-medium transition ${activeTab === tab ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'
+                        className={`pb-3 text-sm font-medium transition whitespace-nowrap ${activeTab === tab ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'
                           }`}
                         style={activeTab === tab ? { color: '#00A6FB', borderColor: '#00A6FB' } : {}}
                       >

@@ -32,6 +32,7 @@ import {
   NotebookTabs,
   Menu,
   X,
+  Store,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -46,12 +47,18 @@ export default function Sidebar() {
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (isMobileOpen) {
-      document.body.style.overflow = "hidden";
+      const scrollY = window.scrollY;
+      document.body.classList.add("body-no-scroll");
+      document.body.style.top = `-${scrollY}px`;
     } else {
-      document.body.style.overflow = "";
+      const scrollY = document.body.style.top;
+      document.body.classList.remove("body-no-scroll");
+      document.body.style.top = "";
+      window.scrollTo(0, parseInt(scrollY || "0") * -1);
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.classList.remove("body-no-scroll");
+      document.body.style.top = "";
     };
   }, [isMobileOpen]);
 
@@ -112,14 +119,14 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-y-auto
+          sidebar-fixed fixed left-0 top-0 z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-hidden
           transition-transform duration-300 ease-in-out
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between gap-3 mb-10">
+        <div className="flex items-center justify-between gap-3 mb-10 shrink-0">
           <div className="flex items-center gap-3">
             <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
             <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
@@ -135,7 +142,7 @@ export default function Sidebar() {
         </div>
 
         {/* Menu */}
-        <nav className="space-y-1 text-sm text-slate-600 flex-1">
+        <nav className="space-y-1 text-sm text-slate-600 flex-1 overflow-y-auto min-h-0">
           {visibleMenuItems.map((item) => (
             <MenuLink
               key={item.href}
@@ -268,6 +275,12 @@ const MENU_ITEMS = [
     module: "bizdev",
   },
   {
+    label: "Vendor List",
+    href: "/bizdev/vendor-list",
+    icon: <Store size={18} />,
+    module: "bizdev",
+  },
+  {
     label: "Contact List",
     href: "/bizdev/contact-list",
     icon: <Users size={18} />,
@@ -297,6 +310,12 @@ const MENU_ITEMS = [
     icon: <FileText size={18} />,
     module: "bizdev",
   },
+  {
+    label: "Documents",
+    href: "/bizdev/documents",
+    icon: <FileText size={18} />,
+    module: "bizdev",
+  },
 
   // FINANCE
   {
@@ -323,6 +342,12 @@ const MENU_ITEMS = [
     icon: <BarChart3 size={18} />,
     module: "finance",
   },
+  {
+    label: "Documents",
+    href: "/finance/documents",
+    icon: <FileText size={18} />,
+    module: "finance",
+  },
 
   // OPERATION
   {
@@ -335,6 +360,12 @@ const MENU_ITEMS = [
     label: "Teams",
     href: "/operation/teams",
     icon: <UsersRound size={18} />,
+    module: "operation",
+  },
+  {
+    label: "Documents",
+    href: "/operation/documents",
+    icon: <FileText size={18} />,
     module: "operation",
   },
 
@@ -394,7 +425,7 @@ function UserSection() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="relative border-t pt-4 mt-4">
+    <div className="relative border-t pt-4 mt-4 shrink-0">
       {/* Trigger */}
       <button
         onClick={() => setOpen(!open)}

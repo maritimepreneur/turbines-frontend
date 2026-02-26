@@ -15,8 +15,8 @@ export default function AddLeadsPage() {
         <h1 className="text-2xl font-semibold mt-1 text-black">Form</h1>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm text-black h-[calc(100vh-160px)] overflow-y-auto">
-        <div className="p-6">
+      <div className="bg-white rounded-xl shadow-sm text-black max-h-none sm:max-h-[calc(100vh-160px)] overflow-y-auto">
+        <div className="p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-xs font-semibold text-black block mb-1">
@@ -128,7 +128,7 @@ export default function AddLeadsPage() {
             </label>
             <select className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200">
               <option value="">Select Project Type</option>
-              <option value="phone">Tipe 1</option> 
+              <option value="phone">Tipe 1</option>
               <option value="whatsapp">Tipe 2</option>
             </select>
 

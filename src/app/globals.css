@@ -69,3 +69,18 @@ body {
 .animate-shrink {
   animation: shrink linear forwards;
 }
+
+/* Mobile Sidebar Fix */
+.sidebar-fixed {
+  height: 100vh; /* fallback */
+  height: 100dvh; /* dynamic viewport height - properly handles mobile browser chrome */
+  max-height: 100vh;
+  max-height: 100dvh;
+}
+
+.body-no-scroll {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  touch-action: none;
+}

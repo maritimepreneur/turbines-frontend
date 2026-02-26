@@ -453,7 +453,7 @@ export default function EditLeadsPage() {
           <p className="text-sm text-slate-400">Bizdev</p>
           <h1 className="text-2xl font-semibold mt-1 text-black">Edit Lead</h1>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -509,8 +509,8 @@ export default function EditLeadsPage() {
 
         {/* Form Content */}
         <form onSubmit={handleSubmit}>
-          <div className="h-[calc(100vh-240px)] overflow-y-auto">
-            <div className="p-6">
+          <div className="max-h-none sm:max-h-[calc(100vh-240px)] overflow-y-auto">
+            <div className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div>

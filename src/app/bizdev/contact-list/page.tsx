@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
@@ -244,7 +245,7 @@ export default function ContactListPage() {
           <h1 className="text-2xl font-semibold mt-1 text-black">Contact List</h1>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -266,7 +267,7 @@ export default function ContactListPage() {
           <h1 className="text-2xl font-semibold mt-1 text-black">Contact List</h1>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -320,7 +321,7 @@ export default function ContactListPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-black">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex flex-wrap gap-2">
             <button
@@ -345,11 +346,11 @@ export default function ContactListPage() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={() => fetchContacts()}
               disabled={isLoading}
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
+              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center justify-center gap-2 disabled:opacity-50 flex-1 sm:flex-none"
               title="Refresh data"
             >
               <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,8 +359,8 @@ export default function ContactListPage() {
               Refresh
             </button>
 
-            <Link href="/bizdev/contact-list/add-contact">
-              <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+            <Link href="/bizdev/contact-list/add-contact" className="flex-1 sm:flex-none">
+              <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition w-full">
                 + Add
               </button>
             </Link>
@@ -377,106 +378,94 @@ export default function ContactListPage() {
           fieldOptions={fieldOptions}
         />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-3 whitespace-nowrap">ID</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Name</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Email</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Phone</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Company</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredContacts.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-400">
-                    {search || filters.length > 0
-                      ? (
-                        <div>
-                          <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                          <p className="font-medium">No results found</p>
-                          <p className="text-xs mt-1">Try adjusting your search or filters</p>
-                        </div>
-                      )
-                      : (
-                        <div>
-                          <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <p className="font-medium">No contacts data available</p>
-                          <p className="text-xs mt-1">Click '+ Add' to create a new contact</p>
-                        </div>
-                      )
-                    }
-                  </td>
-                </tr>
-              )}
-
-              {paginatedContacts.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={`hover:bg-slate-50 transition ${index !== filteredContacts.length - 1 ? 'border-b border-slate-200' : ''
-                    }`}
-                >
-                  <td className="py-3 px-3">{item.id}</td>
-                  <td className="py-3 px-3 font-medium">{item.name}</td>
-                  <td className="py-3 px-3">
-                    {item.emails && item.emails.length > 0 ? (
-                      item.emails[0]
+        <ResponsiveTable<Contact>
+          columns={[
+            {
+              header: 'ID',
+              accessor: 'id',
+            },
+            {
+              header: 'Name',
+              accessor: 'name',
+              isPrimary: true,
+              cellClassName: 'font-medium',
+            },
+            {
+              header: 'Email',
+              render: (item) => item.emails && item.emails.length > 0 ? (
+                item.emails[0]
+              ) : (
+                <span className="text-slate-400 text-xs">-</span>
+              ),
+            },
+            {
+              header: 'Phone',
+              render: (item) => item.phone_numbers && item.phone_numbers.length > 0 ? (
+                item.phone_numbers[0]
+              ) : (
+                <span className="text-slate-400 text-xs">-</span>
+              ),
+            },
+            {
+              header: 'Company',
+              render: (item) => item.company || (
+                <span className="text-slate-400 text-xs">-</span>
+              ),
+            },
+            {
+              header: 'Action',
+              render: (item) => (
+                <div className="flex gap-3">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
+                    className="text-sky-500 hover:text-sky-700 transition"
+                    title="Edit contact"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.name) }}
+                    disabled={isDeleting === item.id}
+                    className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Delete contact"
+                  >
+                    {isDeleting === item.id ? (
+                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <span className="text-slate-400 text-xs">-</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                     )}
-                  </td>
-                  <td className="py-3 px-3">
-                    {item.phone_numbers && item.phone_numbers.length > 0 ? (
-                      item.phone_numbers[0]
-                    ) : (
-                      <span className="text-slate-400 text-xs">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">
-                    {item.company || (
-                      <span className="text-slate-400 text-xs">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="text-sky-500 hover:text-sky-700 transition"
-                        title="Edit contact"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(item.id, item.name)}
-                        disabled={isDeleting === item.id}
-                        className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Delete contact"
-                      >
-                        {isDeleting === item.id ? (
-                          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={paginatedContacts}
+          keyAccessor={(item) => item.id}
+          showTopBorder={false}
+          emptyState={
+            search || filters.length > 0 ? (
+              <div>
+                <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <p className="font-medium">No results found</p>
+                <p className="text-xs mt-1">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              <div>
+                <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <p className="font-medium">No contacts data available</p>
+                <p className="text-xs mt-1">Click '+ Add' to create a new contact</p>
+              </div>
+            )
+          }
+        />
 
 
         {/* Pagination */}
