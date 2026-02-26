@@ -209,8 +209,12 @@ export default function EmployeeHistoryPage() {
         const jakartaHour = parseInt(
             date.toLocaleTimeString("en-US", jakartaOptions)
         );
+        const jakartaMinute = parseInt(
+            date.toLocaleTimeString("en-US", { timeZone: "Asia/Jakarta", minute: "numeric" })
+        );
 
-        const isLate = jakartaHour >= 10;
+        // On Time: ≤ 09:15, Late: > 09:15
+        const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
         return { text: isLate ? "Late" : "On Time", isLate };
     };
 
