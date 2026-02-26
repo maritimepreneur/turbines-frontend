@@ -183,7 +183,12 @@ function MenuLink({
   const hasActiveSubMenu = subMenu
     ? subMenu.some((sub) => pathname === sub.href)
     : false;
-  const isParentActive = active || hasActiveSubMenu;
+  
+  // Check if current path matches invoice pages
+  const isInvoicePage = label === "Invoices" && 
+    (pathname === "/finance/invoice" || pathname === "/finance/pre-invoice" || pathname === "/finance/canceled");
+  
+  const isParentActive = active || hasActiveSubMenu || isInvoicePage;
 
   // Auto-open submenu if any submenu item is active
   useEffect(() => {
@@ -237,7 +242,7 @@ function MenuLink({
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition
-        ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
+        ${isParentActive ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
       `}
     >
       {icon}

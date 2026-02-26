@@ -21,7 +21,7 @@ type Lead = {
 
 const leadsData: Lead[] = [
   {
-    number: "POXXXX",
+    number: "PO001",
     name: "Client A",
     projectname: "Project 1",
     total: "Rp. 1.xxx.xxx",
@@ -30,7 +30,7 @@ const leadsData: Lead[] = [
     status: "Pending",
   },
   {
-    number: "POXXXX",
+    number: "PO002",
     name: "Client B",
     projectname: "Project 2",
     total: "Rp. 1.xxx.xxx",
@@ -39,7 +39,7 @@ const leadsData: Lead[] = [
     status: "Pending",
   },
   {
-    number: "POXXXX",
+    number: "PO003",
     name: "Client C",
     projectname: "Project 3",
     total: "Rp. 1.xxx.xxx",
@@ -48,7 +48,7 @@ const leadsData: Lead[] = [
     status: "Pending",
   },
   {
-    number: "POXXXX",
+    number: "PO004",
     name: "Client D",
     projectname: "Project 4",
     total: "Rp. 1.xxx.xxx",
@@ -57,7 +57,7 @@ const leadsData: Lead[] = [
     status: "Pending",
   },
   {
-    number: "POXXXX",
+    number: "PO005",
     name: "Client E",
     projectname: "Project 5",
     total: "Rp. 1.xxx.xxx",
