@@ -6,6 +6,7 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { EmptyState } from "@/components/table/EmptyState"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Lead = {
@@ -115,8 +116,8 @@ export default function NewLeadsPage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
             >
               {tab}
@@ -199,7 +200,7 @@ export default function NewLeadsPage() {
             {paginatedData.length === 0 && (
               <tr>
                 <td colSpan={8} className="text-center py-6 text-slate-400">
-                  No data found
+                  <EmptyState title="No data found" />
                 </td>
               </tr>
             )}

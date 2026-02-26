@@ -4,6 +4,7 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { EmptyState } from "@/components/table/EmptyState"
 import { ResponsiveTable } from "@/components/table/ResponsiveTable"
 import { useTableFilters } from "@/hooks/useTableFilters"
 import { useVendors, useDeleteVendor } from "@/hooks/useVendors"
@@ -173,7 +174,7 @@ export default function VendorListPage() {
           ]}
           data={paginatedData}
           keyAccessor={(item: any) => item.id}
-          emptyState="No vendors found"
+          emptyState={search ? <EmptyState type="search" /> : <EmptyState title="No vendors found" />}
         />
 
         {/* Pagination */}

@@ -8,6 +8,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Pagination } from "@/components/table/Pagination";
+import { ResponsiveTable } from "@/components/table/ResponsiveTable";
+import { EmptyState } from "@/components/table/EmptyState";
 
 type AbsentEmployee = {
   id: number;
@@ -221,57 +223,44 @@ export default function AbsentPage() {
             </p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50">
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
-                    No
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
-                    Employee Name
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
-                    Employee Code
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
-                    Nickname
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-700">
-                    Phone
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {paginatedEmployees.map((employee, index) => (
-                  <tr
-                    key={employee.id}
-                    className={`hover:bg-slate-50 transition ${index !== paginatedEmployees.length - 1
-                      ? "border-b border-slate-200"
-                      : ""
-                      }`}
-                  >
-                    <td className="py-3 px-4 text-slate-600">
-                      {(currentPage - 1) * itemsPerPage + index + 1}
-                    </td>
-                    <td className="py-3 px-4 font-medium text-slate-800">
-                      {employee.employee_name}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {employee.employee_code}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      @{employee.nickname}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">
-                      {employee.phone}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable<AbsentEmployee>
+            columns={[
+              {
+                header: 'No',
+                render: (_item, index) => (
+                  <span className="text-slate-600">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </span>
+                ),
+                showOnMobile: false,
+              },
+              {
+                header: 'Employee Name',
+                accessor: 'employee_name',
+                isPrimary: true,
+                cellClassName: 'font-medium text-slate-800',
+              },
+              {
+                header: 'Employee Code',
+                accessor: 'employee_code',
+                cellClassName: 'text-slate-600',
+              },
+              {
+                header: 'Nickname',
+                render: (employee) => (
+                  <span className="text-slate-600">@{employee.nickname}</span>
+                ),
+              },
+              {
+                header: 'Phone',
+                accessor: 'phone',
+                cellClassName: 'text-slate-600',
+              },
+            ]}
+            data={paginatedEmployees}
+            keyAccessor={(employee) => employee.id}
+            emptyState={<EmptyState title="No absent employees" />}
+          />
 
 
           {/* Pagination */}

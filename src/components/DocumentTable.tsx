@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { SearchBar } from "@/components/table/SearchBar"
 import { Pagination } from "@/components/table/Pagination"
 import { ResponsiveTable } from "@/components/table/ResponsiveTable"
+import { EmptyState } from "@/components/table/EmptyState"
 import axiosInstance from "@/lib/axios"
 import { Document, DocumentsResponse, DOCUMENT_TYPES } from "@/types/document"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
@@ -420,25 +421,9 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                 keyAccessor={(doc) => doc.id}
                 showTopBorder={false}
                 emptyState={
-                    search || filters.some(f => f.value) ? (
-                        <div>
-                            <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <p className="font-medium text-slate-600">No results found</p>
-                            <p className="text-xs mt-1 text-slate-400">Try adjusting your search or filters</p>
-                        </div>
-                    ) : (
-                        <div>
-                            <svg className="w-16 h-16 mx-auto mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <h3 className="text-lg font-medium text-slate-900">No documents available</h3>
-                            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-                                There are no documents recorded in the system yet.
-                            </p>
-                        </div>
-                    )
+                    search || filters.some(f => f.value)
+                        ? <EmptyState type="search" />
+                        : <EmptyState title="No documents available" description="There are no documents recorded in the system yet." />
                 }
             />
 

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { EmptyState } from "@/components/table/EmptyState"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Proposals = {
@@ -142,7 +143,7 @@ export default function NewLeadsPage() {
             {paginatedData.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-6 text-slate-400">
-                  No data found
+                  <EmptyState title="No data found" />
                 </td>
               </tr>
             )}

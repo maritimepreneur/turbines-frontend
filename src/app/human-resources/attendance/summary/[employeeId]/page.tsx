@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import { AxiosError } from "axios";
 import { SearchBar } from "@/components/table/SearchBar";
 import { Pagination } from "@/components/table/Pagination";
+import { EmptyState } from "@/components/table/EmptyState";
 import axiosInstance from "@/lib/axios";
 
 type AttendanceRecord = {
@@ -209,8 +210,12 @@ export default function EmployeeHistoryPage() {
         const jakartaHour = parseInt(
             date.toLocaleTimeString("en-US", jakartaOptions)
         );
+        const jakartaMinute = parseInt(
+            date.toLocaleTimeString("en-US", { timeZone: "Asia/Jakarta", minute: "numeric" })
+        );
 
-        const isLate = jakartaHour >= 10;
+        // On Time: ≤ 09:15, Late: > 09:15
+        const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
         return { text: isLate ? "Late" : "On Time", isLate };
     };
 
@@ -563,44 +568,9 @@ export default function EmployeeHistoryPage() {
                                 <tr>
                                     <td colSpan={7} className="text-center py-8 text-slate-400">
                                         {search ? (
-                                            <div>
-                                                <svg
-                                                    className="w-12 h-12 mx-auto mb-3 text-slate-300"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                                    />
-                                                </svg>
-                                                <p className="font-medium">No results found</p>
-                                                <p className="text-xs mt-1">
-                                                    Try adjusting your search
-                                                </p>
-                                            </div>
+                                            <EmptyState type="search" />
                                         ) : (
-                                            <div>
-                                                <svg
-                                                    className="w-12 h-12 mx-auto mb-3 text-slate-300"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                                                    />
-                                                </svg>
-                                                <p className="font-medium">
-                                                    No attendance history found
-                                                </p>
-                                            </div>
+                                            <EmptyState title="No attendance history found" />
                                         )}
                                     </td>
                                 </tr>
@@ -677,7 +647,7 @@ export default function EmployeeHistoryPage() {
                                         </td>
                                         <td className="py-3 px-3">
                                             <Link
-                                                href={`/human-resources/attendance/summary/${employeeId}/${item.id}`}
+                                                href={`/human-resources/attendance/summary/${employeeId}/${item.id}?name=${encodeURIComponent(employeeName || "Employee #" + employeeId)}`}
                                                 className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs font-medium transition hover:underline"
                                             >
                                                 <svg
@@ -721,6 +691,6 @@ export default function EmployeeHistoryPage() {
                     />
                 )}
             </div>
-        </div>
+        </div >
     );
 }

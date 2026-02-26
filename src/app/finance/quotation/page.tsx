@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
+import { EmptyState } from "@/components/table/EmptyState";
 import { useTableFilters } from "@/hooks/useTableFilters";
 import axiosInstance from "@/lib/axios";
 
@@ -72,7 +73,7 @@ export default function NewLeadsPage() {
     const confirmDelete = window.confirm(
       `Are you sure you want to delete quotation #${quotationId}?`
     );
-    
+
     if (!confirmDelete) return;
 
     try {
@@ -226,7 +227,7 @@ export default function NewLeadsPage() {
           onResetAll={resetFilters}
           fieldOptions={fieldOptions}
         />
-        
+
         {/* Table */}
         <table className="w-full text-sm border-t border-slate-200">
           <thead className="bg-slate-50">
@@ -243,13 +244,7 @@ export default function NewLeadsPage() {
             {!loading && paginatedData.length === 0 && (
               <tr>
                 <td colSpan={5} className="text-center py-6 text-slate-400">
-                  <div className="flex flex-col items-center justify-center">
-                    <svg className="w-12 h-12 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="font-medium">No quotations found</p>
-                    <p className="text-xs mt-1">Click "+ Add" to create a new quotation</p>
-                  </div>
+                  <EmptyState title="No quotations found" description='Click "+ Add" to create a new quotation' />
                 </td>
               </tr>
             )}
