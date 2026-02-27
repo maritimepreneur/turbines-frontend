@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useMemo } from "react";
@@ -38,6 +38,8 @@ import {
 export default function Sidebar() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const moduleFromQuery = searchParams.get("module");
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -62,34 +64,24 @@ export default function Sidebar() {
     };
   }, [isMobileOpen]);
 
+  const currentActiveModule = useMemo(() => {
+    if (moduleFromQuery) return moduleFromQuery;
+    if (pathname.startsWith("/bizdev")) return "bizdev";
+    if (pathname.startsWith("/finance")) return "finance";
+    if (pathname.startsWith("/operation")) return "operation";
+    if (pathname.startsWith("/employee") || pathname === "/user-profile") return "employee";
+    if (pathname.startsWith("/human-resources")) return "human-resources";
+    return null;
+  }, [pathname, moduleFromQuery]);
+
   const visibleMenuItems = useMemo(() => {
-    if (pathname.startsWith("/bizdev")) {
+    if (currentActiveModule) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "bizdev",
-      );
-    }
-    if (pathname.startsWith("/finance")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "finance",
-      );
-    }
-    if (pathname.startsWith("/operation")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "operation",
-      );
-    }
-    if (pathname.startsWith("/employee")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "employee",
-      );
-    }
-    if (pathname.startsWith("/human-resources")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "human-resources",
+        (item) => item.module === "common" || item.module === currentActiveModule,
       );
     }
     return MENU_ITEMS;
-  }, [pathname]);
+  }, [currentActiveModule]);
 
   return (
     <>
@@ -408,21 +400,21 @@ const MENU_ITEMS = [
     ],
     module: "human-resources"
   },
-  // {
-  //   label: "My Reports",
-  //   href: "/human-resources/reports",
-  //   icon: <BarChart3 size={18} />,
-  //   subMenu: [
-  //     { label: "Weekly Report", href: "/human-resources/reports/weekly" },
-  //     { label: "Monthly Report", href: "/human-resources/reports/monthly" },
-  //   ],
-  //   module: "human-resources"
-  // },
 ];
 
 function UserSection() {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  const profileHref = useMemo(() => {
+    const currentModule = pathname.startsWith("/bizdev") ? "bizdev" :
+      pathname.startsWith("/finance") ? "finance" :
+        pathname.startsWith("/operation") ? "operation" :
+          pathname.startsWith("/employee") ? "employee" :
+            pathname.startsWith("/human-resources") ? "human-resources" : "";
+    return currentModule ? `/user-profile?module=${currentModule}` : "/user-profile";
+  }, [pathname]);
 
   return (
     <div className="relative border-t pt-4 mt-4 shrink-0">
@@ -463,7 +455,7 @@ function UserSection() {
           {/* Actions */}
           <div className="mt-2 space-y-1">
             <Link
-              href="/user-profile"
+              href={profileHref}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-100 transition"
             >
