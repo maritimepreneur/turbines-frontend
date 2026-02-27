@@ -1,82 +1,27 @@
 "use client";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
 import { useTableFilters } from "@/hooks/useTableFilters";
-import axiosInstance from "@/lib/axios";
-
-type Lead = {
-  number: string;
-  name: string;
-  projectname: string;
-  total: string;
-};
+import { useQuotationList } from "@/hooks/useQuotationList";
 
 export default function NewLeadsPage() {
-  const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
-  const [leadsData, setLeadsData] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
-
-  const fetchQuotations = async () => {
-    setLoading(true);
-    try {
-      const response = await axiosInstance.get('/api/quotations/');
-
-      if (!response.data || response.data.code !== 200) {
-        throw new Error("Invalid API response");
-      }
-
-      if (!Array.isArray(response.data.data)) {
-        throw new Error("Invalid data format");
-      }
-
-      const mappedData: Lead[] = response.data.data.map((item: any) => ({
-        number: item.id?.toString() || "-",
-        name: item.contact?.name || "-",
-        projectname: item.lead?.name || "-",
-        total: item.total_amount
-          ? `Rp ${Number(item.total_amount).toLocaleString('id-ID')}`
-          : "Rp 0",
-      }));
-      setLeadsData(mappedData);
-    } catch (error: any) {
-      setLeadsData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchQuotations();
-  }, []);
-
-  const handleEdit = (quotationId: string) => {
-    router.push(`/finance/quotation/quotation-form?number=${quotationId}`);
-  };
-
-  const handleDelete = async (quotationId: string) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete quotation #${quotationId}?`
-    );
-    
-    if (!confirmDelete) return;
-
-    try {
-      setIsDeleting(quotationId);
-      await axiosInstance.delete(`/api/quotations/${quotationId}`);
-      alert("Quotation deleted successfully!");
-      await fetchQuotations();
-    } catch (error) {
-      alert("Failed to delete quotation. Please try again.");
-    } finally {
-      setIsDeleting(null);
-    }
-  };
+  const {
+    leadsData,
+    loading,
+    isDeleting,
+    deleteModal,
+    notifModal,
+    fetchQuotations,
+    handleEdit,
+    handleDelete,
+    confirmDelete,
+    closeDeleteModal,
+    closeNotifModal,
+  } = useQuotationList();
 
 
   const {
@@ -104,41 +49,72 @@ export default function NewLeadsPage() {
 
   return (
     <div>
-      {/* {showSuccessModal && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <svg
-                  className="w-8 h-8 text-green-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Quotation</h3>
+              <p className="text-sm text-gray-600 mb-6">Are you sure you want to delete quotation #{deleteModal.id}? This action cannot be undone.</p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={closeDeleteModal}
+                  className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition font-medium"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {notifModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+                notifModal.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {notifModal.type === 'success' ? (
+                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                )}
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Success!
+                {notifModal.type === 'success' ? 'Success!' : 'Error!'}
               </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Quotation {isEditMode ? "updated" : "created"} successfully
-              </p>
+              <p className="text-sm text-gray-600 mb-6">{notifModal.message}</p>
               <button
-                onClick={() => router.push("/finance/quotation")}
-                className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
+                onClick={closeNotifModal}
+                className={`w-full px-4 py-2 rounded-lg transition font-medium text-white ${
+                  notifModal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                }`}
               >
                 OK
               </button>
             </div>
           </div>
         </div>
-      )} */}
+      )}
+      
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm text-slate-400">

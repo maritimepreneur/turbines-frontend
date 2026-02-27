@@ -1,142 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import axiosInstance from "@/lib/axios";
+import { useQuotationForm } from "@/hooks/useQuotationForm";
 
 export default function QuotationFormPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const quotationId = searchParams.get("number");
-  const isEditMode = !!quotationId;
-  
-  const [loading, setLoading] = useState(false);
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [partners, setPartners] = useState<any[]>([]);
-  const [leads, setLeads] = useState<any[]>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [formData, setFormData] = useState({
-    total_amount: "",
-    document_content: "",
-    summary: "",
-    offering_letter: "",
-    contact_id: "",
-    partner_id: "",
-    lead_id: "",
-  });
-  const [errors, setErrors] = useState<any>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [contactsRes, partnersRes, leadsRes] = await Promise.all([
-          axiosInstance.get('/api/contacts/'),
-          axiosInstance.get('/api/partners/'),
-          axiosInstance.get('/api/leads/'),
-        ]);
-
-        setContacts(contactsRes.data.data || []);
-        setPartners(partnersRes.data.data || []);
-        setLeads(leadsRes.data.data || []);
-
-        if (isEditMode && quotationId) {
-          const quotationRes = await axiosInstance.get(`/api/quotations/${quotationId}`);
-          const data = quotationRes.data.data;
-          setFormData({
-            total_amount: data.total_amount ? Number(data.total_amount).toLocaleString('id-ID') : "",
-            document_content: data.document_content || "",
-            summary: data.summary || "",
-            offering_letter: data.offering_letter || "",
-            contact_id: data.contact_id?.toString() || "",
-            partner_id: data.partner_id?.toString() || "",
-            lead_id: data.lead_id?.toString() || "",
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
-    fetchData();
-  }, [isEditMode, quotationId]);
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    
-    // Only allow numbers for total_amount and format with dots
-    if (name === "total_amount") {
-      const numericValue = value.replace(/[^0-9]/g, "");
-      const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-      setFormData((prev) => ({ ...prev, [name]: formattedValue }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-    
-    if (errors[name]) {
-      setErrors((prev: any) => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: any = {};
-    if (!formData.total_amount.trim()) {
-      newErrors.total_amount = "Total amount is required";
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    setSubmitError(null);
-
-    try {
-      const payload = {
-        total_amount: formData.total_amount.replace(/\./g, ""),
-        document_content: formData.document_content,
-        summary: formData.summary,
-        offering_letter: formData.offering_letter,
-        contact_id: formData.contact_id ? parseInt(formData.contact_id) : 0,
-        partner_id: formData.partner_id ? parseInt(formData.partner_id) : 0,
-        lead_id: formData.lead_id ? parseInt(formData.lead_id) : 0,
-      };
-
-      const response = isEditMode
-        ? await axiosInstance.put(`/api/quotations/${quotationId}`, payload)
-        : await axiosInstance.post('/api/quotations/create', payload);
-
-      if (response.data.code === 200 || response.data.code === 201) {
-        setShowSuccessModal(true);
-      } else {
-        throw new Error(response.data.message || `Failed to ${isEditMode ? 'update' : 'create'} quotation`);
-      }
-    } catch (error: any) {
-      console.error("Error:", error);
-      setSubmitError(error.response?.data?.message || error.message || "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (confirm("Are you sure you want to cancel? All changes will be lost.")) {
-      router.push("/finance/quotation");
-    }
-  };
+  const {
+    isEditMode,
+    loading,
+    contacts,
+    partners,
+    leads,
+    showSuccessModal,
+    formData,
+    errors,
+    submitError,
+    handleChange,
+    handleSubmit,
+    handleCancel,
+    closeSuccessModal,
+  } = useQuotationForm();
 
   return (
     <div>
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -147,7 +33,7 @@ export default function QuotationFormPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Success!</h3>
               <p className="text-sm text-gray-600 mb-6">Quotation {isEditMode ? 'updated' : 'created'} successfully</p>
               <button
-                onClick={() => router.push("/finance/quotation")}
+                onClick={closeSuccessModal}
                 className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
               >
                 OK
