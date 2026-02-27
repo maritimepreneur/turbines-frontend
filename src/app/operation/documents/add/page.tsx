@@ -4,7 +4,7 @@ import DocumentForm from "@/components/forms/DocumentForm"
 
 export default function OperationAddDocumentPage() {
     return (
-        <div className="p-6">
+        <div>
             <div className="mb-6">
                 <p className="text-sm text-slate-400">
                     Operation / Documents / <span className="text-slate-600">Add</span>

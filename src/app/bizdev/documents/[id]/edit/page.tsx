@@ -54,7 +54,7 @@ export default function BizdevEditDocumentPage() {
 
     if (error) {
         return (
-            <div className="p-6">
+            <div>
                 <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
                     <p className="font-semibold">Error loading document</p>
                     <p className="text-sm mt-1">{error}</p>
@@ -70,7 +70,7 @@ export default function BizdevEditDocumentPage() {
     }
 
     return (
-        <div className="p-6">
+        <div>
             <div className="mb-6">
                 <p className="text-sm text-slate-400 mb-2">
                     <span onClick={() => router.push('/bizdev/documents')} className="cursor-pointer hover:text-slate-600">Documents</span> / <span className="text-slate-600">Edit</span>

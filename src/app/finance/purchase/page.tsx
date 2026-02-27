@@ -7,6 +7,7 @@ import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
 import { EmptyState } from "@/components/table/EmptyState"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Lead = {
@@ -183,59 +184,59 @@ export default function NewLeadsPage() {
       {/* Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
         {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">Number</th>
-              <th className="text-left py-3 px-3">Client Name</th>
-              <th className="text-left py-3 px-3">Project Name</th>
-              <th className="text-left py-3 px-3">Total Amount</th>
-              <th className="text-left py-3 px-3">Summary of Requirement</th>
-              <th className="text-left py-3 px-3">Attachment</th>
-              <th className="text-left py-3 px-3">Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-center py-6 text-slate-400">
-                  <EmptyState title="No data found" />
-                </td>
-              </tr>
-            )}
-
-            {paginatedData.map((item) => (
-              <tr
-                key={item.number}
-                className="border-b hover:bg-slate-50 transition"
-              >
-                <td className="py-3 px-3">
-                  <Link
-                    href={`/finance/purchase/purchase-form?number=${item.number}`}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    {item.number}
-                  </Link>
-                </td>
-                <td className="py-3 px-3 font-medium">{item.name}</td>
-                <td className="py-3 px-3">{item.projectname}</td>
-                <td className="py-3 px-3">{item.total}</td>
-                <td className="py-3 px-3">{item.summary}</td>
-                <td className="py-3 px-3">
-                  <button
-                    onClick={() => window.open('#', '_blank')}
-                    className="text-red-600 hover:text-red-800 transition-colors"
-                    title="Download PDF"
-                  >
-                    <FontAwesomeIcon icon={faFilePdf} size="lg" />
-                  </button>
-                </td>
-                <td className="py-3 px-3">{item.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ResponsiveTable<Lead>
+          columns={[
+            {
+              header: 'Number',
+              accessor: 'number',
+              isPrimary: true,
+              render: (item) => (
+                <Link
+                  href={`/finance/purchase/purchase-form?number=${item.number}`}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  {item.number}
+                </Link>
+              ),
+            },
+            {
+              header: 'Client Name',
+              accessor: 'name',
+              cellClassName: 'font-medium',
+            },
+            {
+              header: 'Project Name',
+              accessor: 'projectname',
+            },
+            {
+              header: 'Total Amount',
+              accessor: 'total',
+            },
+            {
+              header: 'Summary of Requirement',
+              accessor: 'summary',
+            },
+            {
+              header: 'Attachment',
+              render: () => (
+                <button
+                  onClick={() => window.open('#', '_blank')}
+                  className="text-red-600 hover:text-red-800 transition-colors"
+                  title="Download PDF"
+                >
+                  <FontAwesomeIcon icon={faFilePdf} size="lg" />
+                </button>
+              ),
+            },
+            {
+              header: 'Status',
+              accessor: 'status',
+            },
+          ]}
+          data={paginatedData}
+          keyAccessor={(item) => item.number}
+          emptyState={<EmptyState title="No data found" />}
+        />
 
         {/* Pagination */}
         <Pagination

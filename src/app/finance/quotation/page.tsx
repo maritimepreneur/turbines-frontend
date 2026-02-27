@@ -6,6 +6,7 @@ import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
 import { EmptyState } from "@/components/table/EmptyState";
+import { ResponsiveTable } from "@/components/table/ResponsiveTable";
 import { useTableFilters } from "@/hooks/useTableFilters";
 import axiosInstance from "@/lib/axios";
 
@@ -16,7 +17,7 @@ type Lead = {
   total: string;
 };
 
-export default function NewLeadsPage() {
+export default function QuotationPage() {
   const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
@@ -153,7 +154,7 @@ export default function NewLeadsPage() {
       {/* Card */}
       <div className="bg-white rounded-xl shadow-sm p-6 text-black">
         {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
           <div className="flex gap-3">
             <button
               onClick={() => setShowFilter(!showFilter)}
@@ -229,73 +230,71 @@ export default function NewLeadsPage() {
         />
 
         {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">Number</th>
-              <th className="text-left py-3 px-3">Name</th>
-              <th className="text-left py-3 px-3">Project Name</th>
-              <th className="text-left py-3 px-3">Total Amount</th>
-              <th className="text-left py-3 px-3">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {!loading && paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={5} className="text-center py-6 text-slate-400">
-                  <EmptyState title="No quotations found" description='Click "+ Add" to create a new quotation' />
-                </td>
-              </tr>
-            )}
-
-            {!loading && paginatedData.map((item) => (
-              <tr
-                key={item.number}
-                className="border-b hover:bg-slate-50 transition"
-              >
-                <td className="py-3 px-3">
-                  <Link
-                    href={`/finance/quotation/quotation-form?number=${item.number}`}
-                    className="text-blue-500 hover:text-blue-700 font-medium"
+        <ResponsiveTable<Lead>
+          columns={[
+            {
+              header: 'Number',
+              accessor: 'number',
+              isPrimary: true,
+              render: (item) => (
+                <Link
+                  href={`/finance/quotation/quotation-form?number=${item.number}`}
+                  className="text-blue-500 hover:text-blue-700 font-medium"
+                >
+                  #{item.number}
+                </Link>
+              ),
+            },
+            {
+              header: 'Name',
+              accessor: 'name',
+              cellClassName: 'font-medium',
+            },
+            {
+              header: 'Project Name',
+              accessor: 'projectname',
+            },
+            {
+              header: 'Total Amount',
+              accessor: 'total',
+            },
+            {
+              header: 'Action',
+              render: (item) => (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleEdit(item.number)}
+                    className="text-sky-500 hover:text-sky-700 transition"
+                    title="Edit quotation"
                   >
-                    #{item.number}
-                  </Link>
-                </td>
-                <td className="py-3 px-3 font-medium">{item.name}</td>
-                <td className="py-3 px-3">{item.projectname}</td>
-                <td className="py-3 px-3">{item.total}</td>
-                <td className="py-3 px-3">
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleEdit(item.number)}
-                      className="text-sky-500 hover:text-sky-700 transition"
-                      title="Edit quotation"
-                    >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.number)}
+                    disabled={isDeleting === item.number}
+                    className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Delete quotation"
+                  >
+                    {isDeleting === item.number ? (
+                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.number)}
-                      disabled={isDeleting === item.number}
-                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Delete quotation"
-                    >
-                      {isDeleting === item.number ? (
-                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    )}
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={loading ? [] : paginatedData}
+          keyAccessor={(item) => item.number}
+          emptyState={
+            <EmptyState title="No quotations found" description='Click "+ Add" to create a new quotation' />
+          }
+        />
 
         {/* Pagination */}
         <Pagination
