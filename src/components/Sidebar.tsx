@@ -155,7 +155,7 @@ export default function Sidebar() {
               href={item.href}
               label={item.label}
               icon={item.icon}
-              active={pathname === item.href}
+              active={pathname === item.href || pathname.startsWith(item.href + '/')}
               subMenu={item.subMenu}
               pathname={pathname}
             />
@@ -409,7 +409,7 @@ const MENU_ITEMS = [
       { label: "Summary", href: "/human-resources/attendance/summary" },
       { label: "Absent", href: "/human-resources/attendance/absent" },
     ],
-    module: "human-resources"
+    module: "human-resources",
   },
 
   // Training Course
