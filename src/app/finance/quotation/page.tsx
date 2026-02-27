@@ -4,14 +4,10 @@ import { useState } from "react";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
-import { EmptyState } from "@/components/table/EmptyState";
-import { ResponsiveTable } from "@/components/table/ResponsiveTable";
 import { useTableFilters } from "@/hooks/useTableFilters";
 import { useQuotationList } from "@/hooks/useQuotationList";
 
-export default function NewLeadsPage() {
 export default function QuotationPage() {
-  const router = useRouter();
   const [showFilter, setShowFilter] = useState(false);
   const {
     leadsData,
@@ -141,8 +137,8 @@ export default function QuotationPage() {
       {/* Card */}
       <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6 text-black">
         {/* Toolbar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm flex items-center justify-center gap-2 hover:bg-sky-600 transition"
