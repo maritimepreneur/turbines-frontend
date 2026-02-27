@@ -3,7 +3,7 @@
 import RoleCard from "@/components/RoleCard";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { Briefcase, Wallet, Settings, LogOut, User2, UserCircle2 } from "lucide-react";
+import { Briefcase, Wallet, Settings, LogOut, User2, UserCircle2, GraduationCap } from "lucide-react";
 
 export default function Home() {
   const { user, logout } = useAuth();
@@ -88,6 +88,17 @@ export default function Home() {
               textColor="text-cyan-500"
               icon={<User2 size={20} />}
               href="/human-resources/attendance"
+            />
+          )}
+
+          {/* Training Course - Visible to Admin & Training */}
+          {['admin', 'training course', 'training', 'trainer'].includes(user?.role?.toLowerCase() || '') && (
+            <RoleCard
+              title="Training Course"
+              color="bg-purple-500"
+              textColor="text-purple-500"
+              icon={<GraduationCap size={20} />}
+              href="/training-course/dashboard"
             />
           )}
 

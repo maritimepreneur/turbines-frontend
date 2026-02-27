@@ -33,6 +33,7 @@ import {
   Menu,
   X,
   Store,
+  GraduationCap,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -88,6 +89,11 @@ export default function Sidebar() {
         (item) => item.module === "common" || item.module === "human-resources",
       );
     }
+    if (pathname.startsWith("/training-course")) {
+      return MENU_ITEMS.filter(
+        (item) => item.module === "common" || item.module === "training-course",
+      );
+    }
     return MENU_ITEMS;
   }, [pathname]);
 
@@ -102,10 +108,10 @@ export default function Sidebar() {
         >
           <Menu size={22} />
         </button>
-        <div className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <Image src="/logo_marmud.png" alt="Logo" width={32} height={20} />
           <h1 className="text-lg italic font-bold text-slate-900">Turbines</h1>
-        </div>
+        </Link>
       </div>
 
       {/* Mobile Overlay */}
@@ -127,10 +133,10 @@ export default function Sidebar() {
       >
         {/* Logo */}
         <div className="flex items-center justify-between gap-3 mb-10 shrink-0">
-          <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
             <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
-          </div>
+          </Link>
           {/* Close button (mobile only) */}
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -183,11 +189,11 @@ function MenuLink({
   const hasActiveSubMenu = subMenu
     ? subMenu.some((sub) => pathname === sub.href)
     : false;
-  
+
   // Check if current path matches invoice pages
-  const isInvoicePage = label === "Invoices" && 
+  const isInvoicePage = label === "Invoices" &&
     (pathname === "/finance/invoice" || pathname === "/finance/pre-invoice" || pathname === "/finance/canceled");
-  
+
   const isParentActive = active || hasActiveSubMenu || isInvoicePage;
 
   // Auto-open submenu if any submenu item is active
@@ -252,14 +258,6 @@ function MenuLink({
 }
 
 const MENU_ITEMS = [
-  // COMMON
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <LayoutGrid size={18} />,
-    module: "common",
-  },
-
   // BIZDEV
   {
     label: "New Leads",
@@ -412,6 +410,44 @@ const MENU_ITEMS = [
       { label: "Absent", href: "/human-resources/attendance/absent" },
     ],
     module: "human-resources"
+  },
+
+  // Training Course
+  {
+    label: "Registration",
+    href: "/training-course/registration",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Form Data",
+    href: "/training-course/form-data",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Scholarships",
+    href: "/training-course/scholarships",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Gform",
+    href: "/training-course/gform",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Interview",
+    href: "/training-course/interview",
+    icon: <Users size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Public Registration",
+    href: "/training-course/public-registration",
+    icon: <UsersRound size={18} />,
+    module: "training-course",
   },
   // {
   //   label: "My Reports",
