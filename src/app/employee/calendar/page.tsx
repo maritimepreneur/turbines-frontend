@@ -4,7 +4,6 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Clock, CheckSquare, Square, X, Star, Loader2 } from 'lucide-react';
 import { fetchGoogleHolidays, getMonthRange, type GoogleHoliday } from '@/services/googleCalendarService';
 import { useSchedules, useCreateSchedule } from '@/hooks/useSchedules';
-import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/contexts/AuthContext';
 import axiosInstance from '@/lib/axios';
 import type { Schedule } from '@/services/scheduleService';
@@ -89,7 +88,6 @@ export default function CalendarPage() {
 
   // ── API hooks ─────────────────────────────────────────────
   const { data: schedules = [], isLoading: schedulesLoading } = useSchedules();
-  const { data: employees = [] } = useEmployees();
   const createSchedule = useCreateSchedule();
   const { user } = useAuth();
 
@@ -143,12 +141,12 @@ export default function CalendarPage() {
   }, [user?.id]);
 
   // ── New event form state ───────────────────────────────────
-  const [newEvent, setNewEvent] = useState<Omit<CreateSchedulePayload, 'date'>>({
+  const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
     start_time: '09:00',
     end_time: '10:00',
-    tagged_ids: [],
+    type: 'meeting' as Schedule['type'],
   });
   const [taggedIds, setTaggedIds] = useState<number[]>([]);
   const [tagSearch, setTagSearch] = useState('');
@@ -279,10 +277,10 @@ export default function CalendarPage() {
 
   // ── Create event handler ──────────────────────────────────
   const handleCreateEvent = async () => {
-    if (!newEvent.title.trim() || !user?.id) return;
+    if (!newEvent.title.trim()) return;
 
     await createSchedule.mutateAsync({
-      title: newEvent.title.trim(),
+      title:       newEvent.title.trim(),
       description: newEvent.description.trim(),
       start_time:  newEvent.start_time,
       end_time:    newEvent.end_time,
@@ -317,7 +315,7 @@ export default function CalendarPage() {
 
   const getDot = (s: Schedule) => {
     const colors = SCHEDULE_TYPE_COLORS[s.type];
-    return <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${colors.dot} sm:hidden`} />;
+    return <span key={s.schedule_id} className={`w-1.5 h-1.5 rounded-full ${colors.dot} sm:hidden`} />;
   };
 
   // ── Sidebar content (shared desktop + mobile sheet) ───────
@@ -701,34 +699,48 @@ export default function CalendarPage() {
                 />
               </div>
 
-              {/* Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    value={newEvent.start_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                  />
+              {/* Time — disembunyikan jika type = holiday */}
+              {newEvent.type !== 'holiday' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
+                    <input
+                      type="time"
+                      value={newEvent.start_time}
+                      onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
+                    <input
+                      type="time"
+                      value={newEvent.end_time}
+                      onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
-                  <input
-                    type="time"
-                    value={newEvent.end_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Tag Employees */}
+              {/* Label merah saat Day Off dipilih */}
+              {newEvent.type === 'holiday' && (
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-sm">
+                    <span>🏖️</span>
+                    Day Off
+                  </span>
+                  <span className="text-xs text-slate-400">Berlaku sepanjang hari</span>
+                </div>
+              )}
+
+              {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tag Employees</label>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-lg">
-                  {employees.map((emp) => {
-                    const isSelected = newEvent.tagged_ids.includes(emp.id);
+                <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {(['meeting', 'working', 'personal', 'holiday'] as Schedule['type'][]).map((type) => {
+                    const selected = newEvent.type === type;
+                    const colors   = SCHEDULE_TYPE_COLORS[type];
                     return (
                       <button
                         key={type}
@@ -747,14 +759,12 @@ export default function CalendarPage() {
                             : 'border-slate-200 text-slate-600 hover:bg-slate-50'}
                         `}
                       >
-                        {emp.full_name}
+                        <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
+                        <span className="capitalize">{type === 'holiday' ? 'Day Off' : type}</span>
                       </button>
                     );
                   })}
                 </div>
-                {newEvent.tagged_ids.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">{newEvent.tagged_ids.length} employee(s) tagged</p>
-                )}
               </div>
 
               {/* Tag Employee */}
