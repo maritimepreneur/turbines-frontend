@@ -109,7 +109,7 @@ export default function Sidebar() {
           <Menu size={22} />
         </button>
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Image src="/logo_marmud.png" alt="Logo" width={32} height={20} />
+          <Image src="/logo_horizontal.jpeg" alt="Logo" width={32} height={20} />
           <h1 className="text-lg italic font-bold text-slate-900">Turbines</h1>
         </Link>
       </div>
@@ -132,10 +132,10 @@ export default function Sidebar() {
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between gap-3 mb-10 shrink-0">
-          <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
-            <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1>
+        <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Image src="/logo_horizontal.jpeg" alt="Logo" width={180} height={200} />
+            {/* <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1> */}
           </Link>
           {/* Close button (mobile only) */}
           <button
