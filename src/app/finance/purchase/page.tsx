@@ -1,49 +1,80 @@
 "use client";
+
 import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFilePdf } from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
+import { faFilePdf, faPenToSquare, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
+import { NotificationModal } from "@/components/modals/NotificationModal";
+import axiosInstance from "@/lib/axios";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
 import { useTableFilters } from "@/hooks/useTableFilters";
-import { usePurchaseOrders } from "@/hooks/usePurchaseOrder";
+import { PurchaseOrder } from "@/types/purchaseOrder";
 
 type PurchaseOrderRow = {
   id: number;
   number: string;
   clientName: string;
-  contactName: string;     // sekarang ambil dari contact.name
-  summary: string;         // dari quotation.summary
-  totalAmount: string;     // tidak ada di swagger → tampilkan "-"
+  contactName: string;
+  summary: string;
   attachment: string | null;
-  status: string;          // tidak ada di swagger → tampilkan "New"
+  status: string;
 };
 
 export default function PurchaseOrderListPage() {
+  const router = useRouter();
+
   const [showFilter, setShowFilter] = useState(false);
   const [activeTab, setActiveTab] = useState("New");
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const { data: purchaseOrders = [], isLoading } = usePurchaseOrders();
+  const [confirmModal, setConfirmModal] = useState({ open: false, id: 0 });
+  const [notifModal, setNotifModal] = useState({ open: false, title: "", message: "", type: "success" as "success" | "error" | "info" });
 
-  // Map data sesuai field terbaru
-  const mappedData: PurchaseOrderRow[] = (purchaseOrders || []).map((po) => {
-    // Handle attachments safely (bisa string, array, atau null)
+  const fetchPurchaseOrders = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await axiosInstance.get("/api/purchase-orders/");
+      const data =
+        response.data?.data?.list ||
+        response.data?.data ||
+        response.data ||
+        [];
+      setPurchaseOrders(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        "Gagal memuat data Purchase Order";
+      setNotifModal({ open: true, title: "Gagal", message: msg, type: "error" });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPurchaseOrders();
+  }, [fetchPurchaseOrders]);
+
+  const mappedData: PurchaseOrderRow[] = purchaseOrders.map((po) => {
     let attachment: string | null = null;
-    if (typeof po.attachments === "string") {
+    if (typeof po.attachments === "string" && po.attachments.trim() !== "") {
       attachment = po.attachments;
     } else if (Array.isArray(po.attachments) && po.attachments.length > 0) {
       attachment = po.attachments[0];
     }
-
     return {
       id: Number(po.id),
       number: po.number || `PO-${po.id}`,
       clientName: po.partner?.name || "-",
       contactName: po.contact?.name || "-",
-      totalAmount: "-",
       summary: po.quotation?.summary || "-",
-      attachment: attachment,
+      attachment,
       status: po.status || "New",
     };
   });
@@ -69,8 +100,26 @@ export default function PurchaseOrderListPage() {
   const fieldOptions = [
     { label: "PO Number", value: "number" },
     { label: "Client Name", value: "clientName" },
-    { label: "Contact Name", value: "contactName" }, // ubah opsi filter
+    { label: "Contact Name", value: "contactName" },
   ];
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await axiosInstance.delete(`/api/purchase-orders/${confirmModal.id}`);
+      setNotifModal({ open: true, title: "Berhasil", message: "Purchase Order berhasil dihapus", type: "success" });
+      await fetchPurchaseOrders();
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.response?.data?.error ||
+        "Gagal menghapus Purchase Order";
+      setNotifModal({ open: true, title: "Gagal", message: msg, type: "error" });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div>
@@ -79,9 +128,7 @@ export default function PurchaseOrderListPage() {
         <p className="text-sm text-slate-400">
           Finance / <span className="text-slate-600">Purchase Order</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-slate-900">
-          Purchase Order
-        </h1>
+        <h1 className="text-2xl font-semibold mt-1 text-slate-900">Purchase Order</h1>
       </div>
 
       {/* Navigation Tabs */}
@@ -91,10 +138,11 @@ export default function PurchaseOrderListPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
+              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${
+                activeTab === tab
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
             >
               {tab}
             </button>
@@ -110,7 +158,10 @@ export default function PurchaseOrderListPage() {
             className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
                 d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
               />
             </svg>
@@ -121,7 +172,11 @@ export default function PurchaseOrderListPage() {
               </span>
             )}
           </button>
-          <SearchBar value={search} onChange={setSearch} placeholder="Search number, client, or contact..." />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Search number, client, or contact..."
+          />
         </div>
 
         <Link href="/finance/purchase/purchase-form">
@@ -154,17 +209,18 @@ export default function PurchaseOrderListPage() {
               <th className="text-left py-3 px-3 text-slate-900">Summary</th>
               <th className="text-left py-3 px-3 text-slate-900">Doc</th>
               <th className="text-left py-3 px-3 text-slate-900">Status</th>
+              <th className="text-center py-3 px-3 text-slate-900">Action</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-slate-400">Loading...</td>
+                <td colSpan={7} className="text-center py-6 text-slate-400">Loading...</td>
               </tr>
             )}
             {!isLoading && paginatedData.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center py-6 text-slate-400">No data found</td>
+                <td colSpan={7} className="text-center py-6 text-slate-400">No data found</td>
               </tr>
             )}
             {paginatedData.map((item) => (
@@ -198,6 +254,24 @@ export default function PurchaseOrderListPage() {
                     {item.status}
                   </span>
                 </td>
+                <td className="py-3 px-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      title="Edit"
+                      onClick={() => router.push(`/finance/purchase/purchase-form?id=${item.id}`)}
+                      className="text-sky-500 hover:text-sky-700 transition-colors"
+                    >
+                      <FontAwesomeIcon icon={faPenToSquare} size="lg" />
+                    </button>
+                    <button
+                      title="Delete"
+                      onClick={() => setConfirmModal({ open: true, id: item.id })}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <FontAwesomeIcon icon={faTrashCan} size="lg" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -211,6 +285,27 @@ export default function PurchaseOrderListPage() {
           onPageChange={setCurrentPage}
         />
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.open}
+        title="Hapus Purchase Order"
+        message="Apakah Anda yakin ingin menghapus Purchase Order ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText={deleting ? "Menghapus..." : "Hapus"}
+        cancelText="Batal"
+        type="reject"
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setConfirmModal({ open: false, id: 0 })}
+      />
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notifModal.open}
+        title={notifModal.title}
+        message={notifModal.message}
+        type={notifModal.type}
+        onClose={() => setNotifModal({ open: false, title: "", message: "", type: "success" })}
+      />
     </div>
   );
 }
