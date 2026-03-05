@@ -9,7 +9,7 @@ import { useState } from "react";
 export default function NewPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+
   const isLengthValid = password.length >= 8;
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   const passwordsMatch = password === confirmPassword && confirmPassword !== "";
@@ -19,7 +19,7 @@ export default function NewPassword() {
       {/* Logo */}
       <div className="flex justify-center mb-6">
         <Image
-          src="/logo_marmud.png"
+          src="/turbines_logo.jpeg"
           alt="Logo Maritim Muda"
           width={120}
           height={40}
@@ -64,16 +64,16 @@ export default function NewPassword() {
       {/* Password Requirements */}
       <div className="mb-6 space-y-2">
         <div className="flex items-center gap-2 text-xs text-gray-600">
-          <FontAwesomeIcon 
-            icon={isLengthValid ? faCheck : faXmark} 
-            className={`w-3 h-3 ${isLengthValid ? 'text-green-500' : 'text-red-500'}`} 
+          <FontAwesomeIcon
+            icon={isLengthValid ? faCheck : faXmark}
+            className={`w-3 h-3 ${isLengthValid ? 'text-green-500' : 'text-red-500'}`}
           />
           <span>Must be at least 8 characters</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-600">
-          <FontAwesomeIcon 
-            icon={hasSpecialChar ? faCheck : faXmark} 
-            className={`w-3 h-3 ${hasSpecialChar ? 'text-green-500' : 'text-red-500'}`} 
+          <FontAwesomeIcon
+            icon={hasSpecialChar ? faCheck : faXmark}
+            className={`w-3 h-3 ${hasSpecialChar ? 'text-green-500' : 'text-red-500'}`}
           />
           <span>Must contain one special character</span>
         </div>
@@ -83,9 +83,9 @@ export default function NewPassword() {
       <Link href="/login" className="text-blue-500 font-medium">
         <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4">
           Reset Password
-        </button>      
+        </button>
       </Link>
-      
+
       {/* Back to Login */}
       <p className="text-xs text-center text-black flex items-center justify-center gap-2">
         <FontAwesomeIcon icon={faArrowLeftLong} className="w-4 h-4" />

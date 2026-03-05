@@ -60,7 +60,7 @@ export default function CheckEmail() {
     <div>
       <div className="flex justify-center mb-6">
         <Image
-          src="/logo_marmud.png"
+          src="/turbines_logo.jpeg"
           alt="Logo Maritim Muda"
           width={120}
           height={40}
@@ -93,14 +93,14 @@ export default function CheckEmail() {
         ))}
       </div>
       <Link href="/new-password" className="text-blue-500 font-medium">
-      <button
-        onClick={handleSubmit}
-        className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4"
-      >
-        Next
-      </button>
+        <button
+          onClick={handleSubmit}
+          className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium mb-4"
+        >
+          Next
+        </button>
       </Link>
-      
+
 
       <p className="text-xs text-center text-black mb-4">
         Didn't get any code?{" "}

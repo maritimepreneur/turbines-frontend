@@ -4,7 +4,7 @@ import DocumentTable from "@/components/DocumentTable"
 
 export default function BizdevDocumentsPage() {
     return (
-        <div className="p-6">
+        <div>
             <div className="mb-6">
                 <p className="text-sm text-slate-400">
                     Bizdev / <span className="text-slate-600">Documents</span>

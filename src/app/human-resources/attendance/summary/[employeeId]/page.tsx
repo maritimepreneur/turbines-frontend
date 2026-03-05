@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from "react";
 import { AxiosError } from "axios";
 import { SearchBar } from "@/components/table/SearchBar";
 import { Pagination } from "@/components/table/Pagination";
+import { ResponsiveTable, TableColumn } from "@/components/table/ResponsiveTable";
 import { EmptyState } from "@/components/table/EmptyState";
 import axiosInstance from "@/lib/axios";
 
@@ -539,144 +540,77 @@ export default function EmployeeHistoryPage() {
                     </button>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead className="bg-slate-50">
-                            <tr className="border-b border-slate-200">
-                                <th className="text-left py-3 px-3 whitespace-nowrap">No</th>
-                                <th className="text-left py-3 px-3 whitespace-nowrap">Date</th>
-                                <th className="text-left py-3 px-3 whitespace-nowrap">
-                                    Clock In
-                                </th>
-                                <th className="text-left py-3 px-3 whitespace-nowrap">
-                                    Clock Out
-                                </th>
-                                <th className="text-left py-3 px-3 whitespace-nowrap">
-                                    Clock In Status
-                                </th>
-                                <th className="text-left py-3 px-3 whitespace-nowrap">
-                                    Approval
-                                </th>
-                                <th className="text-left py-3 px-3 whitespace-nowrap">
-                                    Action
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {paginatedHistory.length === 0 && (
-                                <tr>
-                                    <td colSpan={7} className="text-center py-8 text-slate-400">
-                                        {search ? (
-                                            <EmptyState type="search" />
-                                        ) : (
-                                            <EmptyState title="No attendance history found" />
-                                        )}
-                                    </td>
-                                </tr>
-                            )}
-
-                            {paginatedHistory.map((item, index) => {
-                                const clockInStatus = getClockInStatus(
-                                    item.clock_in?.timestamp
-                                );
-                                const rowNumber =
-                                    (currentPage - 1) * itemsPerPage + index + 1;
-
-                                return (
-                                    <tr
-                                        key={item.id}
-                                        className={`hover:bg-slate-50 transition ${item.checked ? "bg-gray-50" : ""
-                                            } ${index !== paginatedHistory.length - 1
-                                                ? "border-b border-slate-200"
-                                                : ""
-                                            }`}
+                <div className="mt-4">
+                    <ResponsiveTable<AttendanceRecord>
+                        columns={[
+                            {
+                                header: 'No',
+                                render: (item, index) => {
+                                    const rowNumber = (currentPage - 1) * itemsPerPage + index + 1;
+                                    return <span className={item.checked ? "text-gray-500" : ""}>{rowNumber}</span>;
+                                }
+                            },
+                            {
+                                header: 'Date',
+                                render: (item) => <span className={`whitespace-nowrap ${item.checked ? "text-gray-500" : ""}`}>{formatDate(item.date)}</span>,
+                            },
+                            {
+                                header: 'Clock In',
+                                render: (item) => <span className={`whitespace-nowrap ${item.checked ? "text-gray-500" : "text-sky-600 font-medium"}`}>{formatTime(item.clock_in?.timestamp)}</span>,
+                            },
+                            {
+                                header: 'Clock Out',
+                                render: (item) => <span className={`whitespace-nowrap ${item.checked ? "text-gray-500" : "text-orange-600 font-medium"}`}>{formatTime(item.clock_out?.timestamp)}</span>,
+                            },
+                            {
+                                header: 'Clock In Status',
+                                render: (item) => {
+                                    const clockInStatus = getClockInStatus(item.clock_in?.timestamp);
+                                    return item.clock_in?.timestamp ? (
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${clockInStatus.isLate ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}`}>
+                                            {clockInStatus.text}
+                                        </span>
+                                    ) : (
+                                        <span className="text-slate-400">-</span>
+                                    );
+                                }
+                            },
+                            {
+                                header: 'Approval',
+                                render: (item) => item.checked ? (
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Approved</span>
+                                ) : (
+                                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Pending</span>
+                                ),
+                            },
+                            {
+                                header: 'Action',
+                                render: (item) => (
+                                    <Link
+                                        href={`/human-resources/attendance/summary/${employeeId}/${item.id}?name=${encodeURIComponent(employeeName || "Employee #" + employeeId)}`}
+                                        className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs font-medium transition hover:underline"
                                     >
-                                        <td
-                                            className={`py-3 px-3 ${item.checked ? "text-gray-500" : ""
-                                                }`}
+                                        <svg
+                                            className="w-4 h-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
                                         >
-                                            {rowNumber}
-                                        </td>
-                                        <td
-                                            className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : ""
-                                                }`}
-                                        >
-                                            {formatDate(item.date)}
-                                        </td>
-                                        <td
-                                            className={`py-3 px-3 whitespace-nowrap ${item.checked
-                                                ? "text-gray-500"
-                                                : "text-sky-600 font-medium"
-                                                }`}
-                                        >
-                                            {formatTime(item.clock_in?.timestamp)}
-                                        </td>
-                                        <td
-                                            className={`py-3 px-3 whitespace-nowrap ${item.checked
-                                                ? "text-gray-500"
-                                                : "text-orange-600 font-medium"
-                                                }`}
-                                        >
-                                            {formatTime(item.clock_out?.timestamp)}
-                                        </td>
-                                        <td className="py-3 px-3">
-                                            {item.clock_in?.timestamp ? (
-                                                <span
-                                                    className={`px-2 py-1 rounded-full text-xs font-medium ${clockInStatus.isLate
-                                                        ? "bg-red-100 text-red-800"
-                                                        : "bg-green-100 text-green-800"
-                                                        }`}
-                                                >
-                                                    {clockInStatus.text}
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="py-3 px-3">
-                                            {item.checked ? (
-                                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                                    Approved
-                                                </span>
-                                            ) : (
-                                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                                                    Pending
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-3 px-3">
-                                            <Link
-                                                href={`/human-resources/attendance/summary/${employeeId}/${item.id}?name=${encodeURIComponent(employeeName || "Employee #" + employeeId)}`}
-                                                className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-700 text-xs font-medium transition hover:underline"
-                                            >
-                                                <svg
-                                                    className="w-4 h-4"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                    />
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        strokeWidth={2}
-                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                    />
-                                                </svg>
-                                                Detail
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Detail
+                                    </Link>
+                                ),
+                            }
+                        ]}
+                        data={paginatedHistory}
+                        keyAccessor={(item) => item.id}
+                        rowClassName={(item) => item.checked ? "bg-gray-50" : ""}
+                        emptyState={
+                            search ? <EmptyState type="search" /> : <EmptyState title="No attendance history found" />
+                        }
+                    />
                 </div>
 
                 {/* Pagination */}

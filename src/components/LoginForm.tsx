@@ -43,7 +43,7 @@ export default function LoginForm() {
       {/* Logo */}
       <div className="mb-6 flex justify-center">
         <Image
-          src="/logo_marmud.png"
+          src="/turbines_logo.jpeg"
           alt="Logo Maritim Muda"
           width={120}
           height={40}
@@ -51,13 +51,6 @@ export default function LoginForm() {
       </div>
 
       {/* Title */}
-      <h1 className="text-xl text-black font-semibold italic mb-2 text-center">
-        Turbines
-      </h1>
-      <p className="text-black text-xs mb-6 text-center">
-        Enter your credentials account to access internal tools,
-        dashboards, and company services
-      </p>
 
       {/* Error Message */}
       {error && (
