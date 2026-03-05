@@ -359,73 +359,75 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                 fieldOptions={fieldOptions}
             />
 
-            <ResponsiveTable<Document>
-                columns={[
-                    {
-                        header: 'Number',
-                        accessor: 'number',
-                        cellClassName: 'font-medium text-slate-900',
-                    },
-                    {
-                        header: 'Type',
-                        isPrimary: true,
-                        render: (doc) => (
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-transparent ${getDocBadgeColor(doc.document_type)}`}>
-                                {DOCUMENT_TYPES.find(t => t.value === doc.document_type)?.label || doc.document_type || 'Other'}
-                            </span>
-                        ),
-                    },
-                    {
-                        header: 'Name',
-                        render: (doc) => doc.name || <span className="text-slate-400 italic">-</span>,
-                        cellClassName: 'text-slate-600',
-                    },
-                    {
-                        header: 'Project ID',
-                        render: (doc) => doc.project_id ? `#${doc.project_id}` : <span className="text-slate-300">-</span>,
-                        cellClassName: 'text-slate-600',
-                    },
-                    {
-                        header: 'Quotation ID',
-                        render: (doc) => doc.quotation_id ? `#${doc.quotation_id}` : <span className="text-slate-300">-</span>,
-                        cellClassName: 'text-slate-600',
-                    },
-                    {
-                        header: 'Actions',
-                        render: (doc) => (
-                            <div className="flex items-center justify-end gap-3">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleEdit(doc) }}
-                                    className="text-sky-500 hover:text-sky-700 transition"
-                                    title="Edit"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(doc) }}
-                                    disabled={isDeleting === doc.id}
-                                    className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Delete"
-                                >
-                                    {isDeleting === doc.id ? (
-                                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    )}
-                                </button>
-                            </div>
-                        ),
-                    },
-                ]}
-                data={displayData}
-                keyAccessor={(doc) => doc.id}
-                showTopBorder={false}
-                emptyState={
-                    search || filters.some(f => f.value)
-                        ? <EmptyState type="search" />
-                        : <EmptyState title="No documents available" description="There are no documents recorded in the system yet." />
-                }
-            />
+            <div className="mt-4">
+                <ResponsiveTable<Document>
+                    columns={[
+                        {
+                            header: 'Number',
+                            accessor: 'number',
+                            cellClassName: 'font-medium text-slate-900',
+                        },
+                        {
+                            header: 'Type',
+                            isPrimary: true,
+                            render: (doc) => (
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border border-transparent ${getDocBadgeColor(doc.document_type)}`}>
+                                    {DOCUMENT_TYPES.find(t => t.value === doc.document_type)?.label || doc.document_type || 'Other'}
+                                </span>
+                            ),
+                        },
+                        {
+                            header: 'Name',
+                            render: (doc) => doc.name || <span className="text-slate-400 italic">-</span>,
+                            cellClassName: 'text-slate-600',
+                        },
+                        {
+                            header: 'Project ID',
+                            render: (doc) => doc.project_id ? `#${doc.project_id}` : <span className="text-slate-300">-</span>,
+                            cellClassName: 'text-slate-600',
+                        },
+                        {
+                            header: 'Quotation ID',
+                            render: (doc) => doc.quotation_id ? `#${doc.quotation_id}` : <span className="text-slate-300">-</span>,
+                            cellClassName: 'text-slate-600',
+                        },
+                        {
+                            header: 'Actions',
+                            render: (doc) => (
+                                <div className="flex items-center justify-end gap-3">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleEdit(doc) }}
+                                        className="text-sky-500 hover:text-sky-700 transition"
+                                        title="Edit"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(doc) }}
+                                        disabled={isDeleting === doc.id}
+                                        className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Delete"
+                                    >
+                                        {isDeleting === doc.id ? (
+                                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        )}
+                                    </button>
+                                </div>
+                            ),
+                        },
+                    ]}
+                    data={displayData}
+                    keyAccessor={(doc) => doc.id}
+                    showTopBorder={false}
+                    emptyState={
+                        search || filters.some(f => f.value)
+                            ? <EmptyState type="search" />
+                            : <EmptyState title="No documents available" description="There are no documents recorded in the system yet." />
+                    }
+                />
+            </div>
 
 
             {/* Pagination */}

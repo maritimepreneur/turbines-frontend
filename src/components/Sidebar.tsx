@@ -393,30 +393,50 @@ const MENU_ITEMS = [
     label: "Attendance",
     href: "/human-resources/attendance",
     icon: <CalendarCheck size={18} />,
-    subMenu: [
-      {
-        label: "Recent Activity",
-        href: "/human-resources/attendance/recent-activity",
-      },
-      { label: "Summary", href: "/human-resources/attendance/summary" },
-      { label: "Absent", href: "/human-resources/attendance/absent" },
-    ],
+    module: "human-resources",
+  },
+  {
+    label: "Employee List",
+    href: "/human-resources/employee-list",
+    icon: <UserCircle size={18} />,
     module: "human-resources",
   },
 
   // Training Course
-  {
-    label: "Registration",
-    href: "/training-course/registration",
-    icon: <FileText size={18} />,
-    module: "training-course",
-  },
   {
     label: "Form Data",
     href: "/training-course/form-data",
     icon: <FileText size={18} />,
     module: "training-course",
   },
+  {
+    label: "Data",
+    href: "/training-course/form-data",
+    icon: <CalendarCheck size={18} />,
+    subMenu: [
+      {
+        label: "All",
+        href: "training-course/form-data/all",
+      },
+      { label: "Foundation", href: "training-course/form-data/foundation" },
+      { label: "Specialization", href: "training-course/form-data/specialization" },
+      { label: "Executive", href: "training-course/form-data/executive" },
+
+    ],
+    module: "training course",
+  },
+  {
+    label: "Interview",
+    href: "/training-course/interview",
+    icon: <Users size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Registration",
+    href: "/training-course/registration",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  }, 
   {
     label: "Scholarships",
     href: "/training-course/scholarships",
@@ -429,15 +449,10 @@ const MENU_ITEMS = [
     icon: <FileText size={18} />,
     module: "training-course",
   },
+  
   {
-    label: "Interview",
-    href: "/training-course/interview",
-    icon: <Users size={18} />,
-    module: "training-course",
-  },
-  {
-    label: "Public Registration",
-    href: "/training-course/public-registration",
+    label: "Scholarships Type",
+    href: "/training-course/scholarships-type",
     icon: <UsersRound size={18} />,
     module: "training-course",
   },

@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable, TableColumn } from "@/components/table/ResponsiveTable"
 import { EmptyState } from "@/components/table/EmptyState"
 import axiosInstance from "@/lib/axios"
 
@@ -379,95 +380,93 @@ export default function NewLeadsPage() {
           fieldOptions={fieldOptions}
         />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-3 whitespace-nowrap">ID</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Name</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Contact</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Company</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Period</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Stage</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Partner</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredLeads.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-400">
-                    {search || filters.length > 0
-                      ? <EmptyState type="search" />
-                      : <EmptyState title="No leads data available" description="Click '+ Add' to create a new lead" />
-                    }
-                  </td>
-                </tr>
-              )}
-
-              {paginatedLeads.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={`hover:bg-slate-50 transition ${index !== filteredLeads.length - 1 ? 'border-b border-slate-200' : ''
-                    }`}
-                >
-                  <td className="py-3 px-3">
+        <div className="mt-4">
+          <ResponsiveTable<Lead>
+            columns={[
+              {
+                header: 'ID',
+                accessor: 'id',
+                isPrimary: true,
+                render: (item) => (
+                  <button
+                    onClick={() => handleIdClick(item.id)}
+                    className="text-sky-500 hover:text-sky-700 font-medium hover:underline transition"
+                  >
+                    #{item.id}
+                  </button>
+                ),
+              },
+              {
+                header: 'Name',
+                accessor: 'name',
+                cellClassName: 'font-medium',
+              },
+              {
+                header: 'Contact',
+                render: (item) => item.contact_name || (
+                  <span className="text-slate-400 text-xs italic">No contact</span>
+                ),
+              },
+              {
+                header: 'Company',
+                render: (item) => item.company || (
+                  <span className="text-slate-400 text-xs">-</span>
+                ),
+              },
+              {
+                header: 'Period',
+                render: (item) => formatDate(item.period),
+                cellClassName: 'whitespace-nowrap',
+              },
+              {
+                header: 'Stage',
+                render: (item) => getStageBadge(item.current_stages),
+              },
+              {
+                header: 'Partner',
+                accessor: 'partner_name',
+                cellClassName: 'text-xs',
+              },
+              {
+                header: 'Action',
+                render: (item) => (
+                  <div className="flex gap-3">
                     <button
-                      onClick={() => handleIdClick(item.id)}
-                      className="text-sky-500 hover:text-sky-700 font-medium hover:underline transition"
+                      onClick={() => handleEdit(item.id)}
+                      className="text-sky-500 hover:text-sky-700 transition"
+                      title="Edit lead"
                     >
-                      #{item.id}
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
                     </button>
-                  </td>
-                  <td className="py-3 px-3 font-medium">{item.name}</td>
-                  <td className="py-3 px-3">
-                    {item.contact_name || (
-                      <span className="text-slate-400 text-xs italic">No contact</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">
-                    {item.company || (
-                      <span className="text-slate-400 text-xs">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap">{formatDate(item.period)}</td>
-                  <td className="py-3 px-3">{getStageBadge(item.current_stages)}</td>
-                  <td className="py-3 px-3 text-xs">{item.partner_name}</td>
-                  <td className="py-3 px-3">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="text-sky-500 hover:text-sky-700 transition"
-                        title="Edit lead"
-                      >
+                    <button
+                      onClick={() => handleDelete(item.id, item.name)}
+                      disabled={isDeleting === item.id}
+                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete lead"
+                    >
+                      {isDeleting === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id, item.name)}
-                        disabled={isDeleting === item.id}
-                        className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Delete lead"
-                      >
-                        {isDeleting === item.id ? (
-                          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      )}
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginatedLeads}
+            keyAccessor={(item) => item.id}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No leads data available" description="Click '+ Add' to create a new lead" />
+            }
+          />
         </div>
-
-
 
         {/* Pagination */}
         {totalPages > 0 && (
