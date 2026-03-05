@@ -157,7 +157,7 @@ export default function LocationMap({
   const position: LatLngExpression = [location.lat, location.lng];
 
   return (
-    <div className={`relative rounded-lg overflow-hidden border-2 border-blue-200 ${className}`}>
+    <div className={`relative rounded-lg overflow-hidden border-2 border-blue-200 ${className}`} style={{ zIndex: 0, isolation: 'isolate' }}>
       <div style={{ height }}>
         <MapContainer
           center={position}
