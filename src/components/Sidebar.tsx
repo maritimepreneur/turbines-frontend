@@ -413,16 +413,6 @@ const MENU_ITEMS = [
     label: "Data",
     href: "/training-course/form-data",
     icon: <CalendarCheck size={18} />,
-    subMenu: [
-      {
-        label: "All",
-        href: "training-course/form-data/all",
-      },
-      { label: "Foundation", href: "training-course/form-data/foundation" },
-      { label: "Specialization", href: "training-course/form-data/specialization" },
-      { label: "Executive", href: "training-course/form-data/executive" },
-
-    ],
     module: "training course",
   },
   {
@@ -435,6 +425,17 @@ const MENU_ITEMS = [
     label: "Registration",
     href: "/training-course/registration",
     icon: <FileText size={18} />,
+    subMenu: [
+      {
+        label: "All",
+        href: "training-course/form-data/all",
+      },
+      { label: "Foundation", href: "training-course/form-data/foundation" },
+      { label: "Specialization", href: "training-course/form-data/specialization" },
+      { label: "Foundation and Specialization", href: "training-course/form-data/foundation-specialization" },
+      { label: "Executive", href: "training-course/form-data/executive" },
+
+    ],
     module: "training-course",
   }, 
   {
