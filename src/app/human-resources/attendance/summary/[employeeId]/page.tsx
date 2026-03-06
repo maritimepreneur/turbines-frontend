@@ -29,6 +29,7 @@ type AttendanceRecord = {
     checked: boolean;
     employee_id: number;
     employee_name: string;
+    employee_code: string;
 };
 
 interface EmployeeHistoryResponse {
@@ -64,6 +65,7 @@ export default function EmployeeHistoryPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [employeeName, setEmployeeName] = useState<string>("");
+    const [employeeCode, setEmployeeCode] = useState<string>("");
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -91,6 +93,7 @@ export default function EmployeeHistoryPage() {
                 setHistoryData(records);
                 if (records.length > 0) {
                     setEmployeeName(records[0].employee_name);
+                    setEmployeeCode(records[0].employee_code || `EMP-${String(records[0].employee_id).padStart(4, "0")}`);
                 }
             } else {
                 throw new Error(
@@ -345,7 +348,7 @@ export default function EmployeeHistoryPage() {
                                 <span className="font-medium text-slate-700">
                                     {employeeName}
                                 </span>{" "}
-                                — EMP{String(employeeId).padStart(3, "0")}
+                                — {employeeCode}
                             </p>
                         )}
                     </div>

@@ -24,6 +24,7 @@ type AttendanceRecord = {
   checked: boolean;
   employee_id: number;
   employee_name: string;
+  employee_code: string;
 };
 
 interface AttendanceResponse {
@@ -68,6 +69,8 @@ export default function SummaryPage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Mapping employee_id → employee_code dari /api/employees/
+  const [employeeCodeMap, setEmployeeCodeMap] = useState<Record<number, string>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -98,12 +101,10 @@ export default function SummaryPage() {
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
         {
-          params: {
-            page: 1,
-            page_size: 1000,
-            sort_by: 'id',
-            sort_order: 'DESC',
-          },
+          page: 1,
+          page_size: 1000,
+          sort_by: 'id',
+          sort_order: 'DESC',
         }
       );
 
@@ -138,6 +139,21 @@ export default function SummaryPage() {
 
   useEffect(() => {
     fetchAttendances();
+    // Fetch employee list untuk mapping employee_id → employee_code
+    axiosInstance.get('/api/employees/')
+      .then((res) => {
+        const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        const map: Record<number, string> = {};
+        list.forEach((emp) => {
+          if (emp.id && emp.employee_code) {
+            map[emp.id] = emp.employee_code;
+          }
+        });
+        setEmployeeCodeMap(map);
+      })
+      .catch(() => {
+        // Jika gagal, biarkan kosong — fallback ke format EMP-XXXX
+      });
   }, []);
 
   // Calculate summary from attendance data
@@ -148,7 +164,7 @@ export default function SummaryPage() {
       const key = record.employee_id;
       if (!employeeMap.has(key)) {
         employeeMap.set(key, {
-          employee_id: `EMP${String(record.employee_id).padStart(3, "0")}`,
+          employee_id: employeeCodeMap[record.employee_id] || `EMP-${String(record.employee_id).padStart(4, "0")}`,
           raw_employee_id: record.employee_id,
           employee_name: record.employee_name,
           present_days: 0,
@@ -183,16 +199,17 @@ export default function SummaryPage() {
     });
 
     return Array.from(employeeMap.values());
-  }, [attendanceData]);
+  }, [attendanceData, employeeCodeMap]);
 
   const filteredSummary = useMemo(() => {
     let filtered = [...summaryData];
 
     if (search) {
+      const q = search.toLowerCase();
       filtered = filtered.filter(
         (summary) =>
-          summary.employee_name.toLowerCase().includes(search.toLowerCase()) ||
-          summary.employee_id.toLowerCase().includes(search.toLowerCase())
+          summary.employee_name?.toLowerCase().includes(q) ||
+          summary.employee_id?.toLowerCase().includes(q)
       );
     }
 
@@ -201,8 +218,10 @@ export default function SummaryPage() {
         filtered = filtered.filter((summary) => {
           const fieldValue = summary[filter.field as keyof EmployeeSummary];
           return (
-            fieldValue &&
-            String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
+            fieldValue !== undefined &&
+            String(fieldValue)
+              .toLowerCase()
+              .includes(filter.value.toLowerCase())
           );
         });
       }
@@ -435,7 +454,7 @@ export default function SummaryPage() {
         <ResponsiveTable<EmployeeSummary>
           columns={[
             {
-              header: 'Employee ID',
+              header: 'Employee Code',
               accessor: 'employee_id',
             },
             {
