@@ -4,7 +4,7 @@ import DocumentForm from "@/components/forms/DocumentForm"
 
 export default function BizdevAddDocumentPage() {
     return (
-        <div className="p-6">
+        <div>
             <div className="mb-6">
                 <p className="text-sm text-slate-400">
                     Bizdev / Documents / <span className="text-slate-600">Add</span>

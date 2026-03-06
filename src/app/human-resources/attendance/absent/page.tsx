@@ -61,7 +61,8 @@ export default function AbsentPage() {
 
       if (response.data.code === 200) {
         logger.success("Absent employees fetched successfully");
-        setAbsentEmployees(response.data.data);
+        const sorted = [...response.data.data].sort((a, b) => a.id - b.id);
+        setAbsentEmployees(sorted);
       } else {
         throw new Error(response.data.message || "Failed to fetch absent employees");
       }

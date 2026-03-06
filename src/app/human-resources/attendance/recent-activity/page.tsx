@@ -34,6 +34,7 @@ type AttendanceRecord = {
   checked: boolean;
   employee_id: number;
   employee_name: string;
+  employee_code: string;
 };
 
 interface AttendanceResponse {
@@ -69,6 +70,8 @@ export default function RecentActivityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
+  // Mapping employee_id → employee_code dari /api/employees/
+  const [employeeCodeMap, setEmployeeCodeMap] = useState<Record<number, string>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -106,11 +109,9 @@ export default function RecentActivityPage() {
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
         {
-          params: {
-            page: 1,
-            page_size: 1000,
-            sort_by: 'id',
-          },
+          page: 1,
+          page_size: 1000,
+          sort_by: 'id',
         }
       );
 
@@ -136,6 +137,21 @@ export default function RecentActivityPage() {
 
   useEffect(() => {
     fetchAttendances();
+    // Fetch employee list untuk mapping employee_id → employee_code
+    axiosInstance.get('/api/employees/')
+      .then((res) => {
+        const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        const map: Record<number, string> = {};
+        list.forEach((emp) => {
+          if (emp.id && emp.employee_code) {
+            map[emp.id] = emp.employee_code;
+          }
+        });
+        setEmployeeCodeMap(map);
+      })
+      .catch(() => {
+        // Jika gagal, biarkan kosong — fallback ke format EMP-XXXX
+      });
   }, []);
 
   const filteredAttendances = useMemo(() => {
@@ -166,16 +182,22 @@ export default function RecentActivityPage() {
       filtered = filtered.filter(
         (record) =>
           record.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-          `EMP${String(record.employee_id).padStart(3, "0")}`
+          (employeeCodeMap[record.employee_id] || `EMP-${String(record.employee_id).padStart(4, "0")}`)
             .toLowerCase()
-            .includes(search.toLowerCase())
+            .includes(search.toLowerCase()) ||
+          record.date?.toLowerCase().includes(search.toLowerCase())
       );
     }
 
     filters.forEach((filter) => {
       if (filter.value) {
         filtered = filtered.filter((record) => {
-          const fieldValue = record[filter.field as keyof AttendanceRecord];
+          // Dukung nested field seperti clock_in.status
+          const fieldParts = filter.field.split('.');
+          let fieldValue: any = record;
+          for (const part of fieldParts) {
+            fieldValue = fieldValue?.[part];
+          }
           return (
             fieldValue &&
             String(fieldValue)
@@ -187,7 +209,7 @@ export default function RecentActivityPage() {
     });
 
     return filtered;
-  }, [attendanceData, search, filters]);
+  }, [attendanceData, search, filters, employeeCodeMap]);
 
   // Client-side pagination
   const paginatedAttendances = useMemo(() => {
@@ -487,10 +509,10 @@ export default function RecentActivityPage() {
         <ResponsiveTable<AttendanceRecord>
           columns={[
             {
-              header: 'Employee ID',
+              header: 'Employee Code',
               render: (item) => (
                 <span className={item.checked ? 'text-gray-500' : ''}>
-                  EMP{String(item.employee_id).padStart(3, '0')}
+                  {employeeCodeMap[item.employee_id] || `EMP-${String(item.employee_id).padStart(4, '0')}`}
                 </span>
               ),
             },

@@ -9,7 +9,7 @@ export default function ForgotPassword() {
       {/* Logo */}
       <div className="flex justify-center">
         <Image
-          src="/logo_marmud.png" // ganti dengan path logo kamu
+          src="/turbines_logo.jpeg" // ganti dengan path logo kamu
           alt="Logo Maritim Muda"
           width={120} // sesuaikan ukuran
           height={40} // sesuaikan ukuran
@@ -35,9 +35,9 @@ export default function ForgotPassword() {
       <Link href="/check-email" className="text-blue-500 font-medium">
         <button className="w-full  bg-sky-500 hover:bg-sky-600 text-white py-2 rounded-xl  font-medium mb-4">
           Send Code
-        </button>        
+        </button>
       </Link>
-      
+
 
       <p className="text-xs text-center text-black flex items-center justify-center gap-2">
         <FontAwesomeIcon icon={faArrowLeftLong} className="w-5 h-5" />

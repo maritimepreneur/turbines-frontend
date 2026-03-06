@@ -132,52 +132,56 @@ export default function ProjectsPage() {
         />
 
         {/* Table */}
-        <ResponsiveTable
-          columns={[
-            { header: 'ID', accessor: 'id' },
-            { header: 'Project Name', accessor: 'name', isPrimary: true, cellClassName: 'font-medium' },
-            { header: 'Project Type', accessor: 'project_type' },
-            { header: 'Payment', accessor: 'payment_type' },
-            { header: 'Duration', accessor: 'duration' },
-            {
-              header: 'Period',
-              render: (item: any) => (
-                <span className="whitespace-nowrap">{item.start_data} – {item.end_date}</span>
-              ),
-            },
-            {
-              header: 'Action',
-              render: () => (
-                <div className="flex gap-4">
-                  <button className="text-sky-500 hover:text-sky-700">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button className="text-red-500 hover:text-red-700">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              ),
-            },
-          ]}
-          data={paginatedData}
-          keyAccessor={(item: any) => item.id}
-          emptyState={search ? <EmptyState type="search" /> : <EmptyState title="No data found" />}
-        />
+        <div className="mt-4">
+          <ResponsiveTable
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Project Name', accessor: 'name', isPrimary: true, cellClassName: 'font-medium' },
+              { header: 'Project Type', accessor: 'project_type' },
+              { header: 'Payment', accessor: 'payment_type' },
+              { header: 'Duration', accessor: 'duration' },
+              {
+                header: 'Period',
+                render: (item: any) => (
+                  <span className="whitespace-nowrap">{item.start_data} – {item.end_date}</span>
+                ),
+              },
+              {
+                header: 'Action',
+                render: () => (
+                  <div className="flex gap-4">
+                    <button className="text-sky-500 hover:text-sky-700" title="Edit">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button className="text-red-500 hover:text-red-700" title="Delete">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginatedData}
+            keyAccessor={(item: any) => item.id}
+            emptyState={search || filters.length > 0 ? <EmptyState type="search" /> : <EmptyState title="No data found" />}
+          />
+        </div>
 
 
         {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredData.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredData.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
     </div>
   )

@@ -55,11 +55,11 @@ export function EmptyState({
         type === "search" ? "Try adjusting your search or filters" : undefined;
 
     return (
-        <div className="text-center">
+        <div className="text-center py-8">
             {icon || (type === "search" ? <SearchIcon /> : <InboxIcon />)}
-            <p className="font-medium">{title || defaultTitle}</p>
+            <p className="font-medium text-slate-800">{title || defaultTitle}</p>
             {(description || defaultDescription) && (
-                <p className="text-xs mt-1">{description || defaultDescription}</p>
+                <p className="text-sm text-slate-500 mt-1">{description || defaultDescription}</p>
             )}
         </div>
     );

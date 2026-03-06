@@ -385,80 +385,82 @@ export default function PartnerListPage() {
           fieldOptions={fieldOptions}
         />
 
-        <ResponsiveTable<Partner>
-          columns={[
-            {
-              header: 'ID',
-              accessor: 'id',
-            },
-            {
-              header: 'Company Name',
-              accessor: 'name',
-              isPrimary: true,
-              cellClassName: 'font-medium',
-            },
-            {
-              header: 'Initial',
-              accessor: 'initials',
-            },
-            {
-              header: 'Industry',
-              accessor: 'industry',
-            },
-            {
-              header: 'Service',
-              render: (item) => item.service || (
-                <span className="text-slate-400 text-xs">-</span>
-              ),
-            },
-            {
-              header: 'Company Type',
-              accessor: 'company_type',
-            },
-            {
-              header: 'Partner Type',
-              accessor: 'partner_type',
-            },
-            {
-              header: 'Action',
-              render: (item) => (
-                <div className="flex gap-3">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
-                    className="text-sky-500 hover:text-sky-700 transition"
-                    title="Edit partner"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.name) }}
-                    disabled={isDeleting === item.id}
-                    className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Delete partner"
-                  >
-                    {isDeleting === item.id ? (
-                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
+        <div className="mt-4">
+          <ResponsiveTable<Partner>
+            columns={[
+              {
+                header: 'ID',
+                accessor: 'id',
+              },
+              {
+                header: 'Company Name',
+                accessor: 'name',
+                isPrimary: true,
+                cellClassName: 'font-medium',
+              },
+              {
+                header: 'Initial',
+                accessor: 'initials',
+              },
+              {
+                header: 'Industry',
+                accessor: 'industry',
+              },
+              {
+                header: 'Service',
+                render: (item) => item.service || (
+                  <span className="text-slate-400 text-xs">-</span>
+                ),
+              },
+              {
+                header: 'Company Type',
+                accessor: 'company_type',
+              },
+              {
+                header: 'Partner Type',
+                accessor: 'partner_type',
+              },
+              {
+                header: 'Action',
+                render: (item) => (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
+                      className="text-sky-500 hover:text-sky-700 transition"
+                      title="Edit partner"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                    )}
-                  </button>
-                </div>
-              ),
-            },
-          ]}
-          data={paginatedPartners}
-          keyAccessor={(item) => item.id}
-          showTopBorder={false}
-          emptyState={
-            search || filters.length > 0
-              ? <EmptyState type="search" />
-              : <EmptyState title="No partners data available" description="Click '+ Add' to create a new partner" />
-          }
-        />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.name) }}
+                      disabled={isDeleting === item.id}
+                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete partner"
+                    >
+                      {isDeleting === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginatedPartners}
+            keyAccessor={(item) => item.id}
+            showTopBorder={false}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No partners data available" description="Click '+ Add' to create a new partner" />
+            }
+          />
+        </div>
 
 
         {/* Pagination */}

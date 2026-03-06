@@ -31,7 +31,7 @@ export default function StaticMapContent({
     const position: LatLngExpression = [latitude, longitude];
 
     return (
-        <div className={`relative rounded-lg overflow-hidden border border-gray-300 ${className}`}>
+        <div className={`relative rounded-lg overflow-hidden border border-gray-300 ${className}`} style={{ zIndex: 0, isolation: 'isolate' }}>
             <div style={{ height }}>
                 <MapContainer
                     center={position}

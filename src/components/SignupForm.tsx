@@ -12,7 +12,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://turbines-murex.verce
 
 export default function SignUpForm() {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -77,7 +77,7 @@ export default function SignUpForm() {
       {/* Logo */}
       <div className="mb-6 flex justify-center">
         <Image
-          src="/logo_marmud.png"
+          src="/turbines_logo.jpeg"
           alt="Logo Maritim Muda"
           width={120}
           height={40}
