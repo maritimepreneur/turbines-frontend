@@ -93,7 +93,21 @@ export default function EmployeeHistoryPage() {
                 setHistoryData(records);
                 if (records.length > 0) {
                     setEmployeeName(records[0].employee_name);
-                    setEmployeeCode(records[0].employee_code || `EMP-${String(records[0].employee_id).padStart(4, "0")}`);
+                    const empId = records[0].employee_id;
+                    // Fetch employee list untuk mendapatkan employee_code yang benar
+                    axiosInstance.get('/api/employees/')
+                        .then((empRes) => {
+                            const list: any[] = Array.isArray(empRes.data)
+                                ? empRes.data
+                                : (empRes.data?.data ?? []);
+                            const emp = list.find((e) => e.id === empId);
+                            setEmployeeCode(
+                                emp?.employee_code || `EMP-${String(empId).padStart(4, '0')}`
+                            );
+                        })
+                        .catch(() => {
+                            setEmployeeCode(`EMP-${String(empId).padStart(4, '0')}`);
+                        });
                 }
             } else {
                 throw new Error(
