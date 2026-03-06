@@ -109,36 +109,36 @@ export default function ClockOutPage() {
       </div>
 
       {/* Clock In Card */}
-      <div className="bg-white rounded-xl shadow-sm p-8 text-black max-w-lg mx-auto">
+      <div className="bg-white rounded-xl shadow-sm p-3 sm:p-4 text-black max-w-lg mx-auto">
         {/* Profile Section */}
-        <div className="flex items-center gap-4 mb-6 p-4 bg-slate-50 rounded-lg">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 p-2 sm:p-3 bg-slate-50 rounded-lg">
           <div className="relative">
             <Image
               src="/api/placeholder/80/80"
               alt="Profile"
-              width={80}
-              height={80}
-              className="rounded-full border-4 border-white shadow-sm"
+              width={50}
+              height={50}
+              className="rounded-full border-2 border-white shadow-sm"
             />
-            <div className="absolute -bottom-1 -right-1 bg-green-500 w-6 h-6 rounded-full border-2 border-white"></div>
+            <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></div>
           </div>
           <div>
-            <h3 className="font-semibold text-lg">{user?.username}</h3>
-            <p className="text-slate-600 capitalize">{user?.role || 'Employee'}</p>
+            <h3 className="font-semibold text-sm sm:text-base">{user?.username}</h3>
+            <p className="text-slate-600 text-xs sm:text-sm capitalize">{user?.role || 'Employee'}</p>
           </div>
         </div>
 
         {/* Time Display */}
-        <div className="text-center mb-6 relative">
+        <div className="text-center mb-2 sm:mb-3 relative">
           {/* Gradient Background */}
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 rounded-2xl -z-10"></div>
 
-          <div className="py-2 px-6">
+          <div className="py-1 sm:py-2 px-3 sm:px-4">
             {/* Animated Clock Icon */}
-            <div className="relative inline-block mb-4">
+            <div className="relative inline-block mb-1">
               <div className="absolute inset-0 bg-orange-400 rounded-full blur-xl opacity-30 animate-pulse"></div>
-              <div className="relative bg-gradient-to-br from-orange-400 to-red-500 p-4 rounded-full shadow-lg">
-                <Clock size={25} className="text-white" strokeWidth={2.5} />
+              <div className="relative bg-gradient-to-br from-orange-400 to-red-500 p-2 sm:p-3 rounded-full shadow-lg">
+                <Clock size={18} className="text-white sm:w-5 sm:h-5" strokeWidth={2.5} />
               </div>
             </div>
 
@@ -147,14 +147,14 @@ export default function ClockOutPage() {
         </div>
 
         {/* Location Section with Map */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <MapPin size={18} className="text-blue-600" />
-            <p className="text-sm font-medium text-blue-800">Lokasi Saat Ini</p>
+        <div className="mb-2 sm:mb-3">
+          <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+            <MapPin size={14} className="text-blue-600 sm:w-4 sm:h-4" />
+            <p className="text-xs font-medium text-blue-800">Lokasi Saat Ini</p>
           </div>
 
           <LocationMap
-            height="250px"
+            height="150px"
             onLocationChange={(lat, lng, address) => {
               setCoordinates({ lat, lng, address });
               setLocation(address);
@@ -162,18 +162,18 @@ export default function ClockOutPage() {
           />
 
           {location && coordinates && (
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+            <div className="mt-1 sm:mt-2 p-2 bg-blue-50 rounded-lg">
               <p className="text-xs text-blue-900 font-medium mb-1">Address   :</p>
-              <p className="text-sm text-blue-700">{location}</p>
+              <p className="text-xs text-blue-700">{location}</p>
             </div>
           )}
         </div>
 
         {/* Work Description Section */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <FileText size={18} className="text-slate-600" />
-            <label className="text-sm font-medium text-slate-700">
+        <div className="mb-2 sm:mb-3">
+          <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+            <FileText size={14} className="text-slate-600 sm:w-4 sm:h-4" />
+            <label className="text-xs font-medium text-slate-700">
               Deskripsi Kegiatan Pekerjaan
             </label>
           </div>
@@ -181,8 +181,8 @@ export default function ClockOutPage() {
             value={workDescription}
             onChange={(e) => setWorkDescription(e.target.value)}
             placeholder="Jelaskan kegiatan pekerjaan yang akan dilakukan hari ini..."
-            className="w-full p-3 border border-slate-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
-            rows={4}
+            className="w-full p-2 text-xs sm:text-sm border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
+            rows={2}
             disabled={clockedIn}
           />
         </div>
@@ -192,23 +192,23 @@ export default function ClockOutPage() {
           <button
             onClick={handleClockInClick}
             disabled={!location || !coordinates}
-            className={`px-8 py-4 rounded-lg text-lg font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
+            className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-green-500 text-white hover:bg-green-600"
               }`}
           >
-            <DoorClosed size={20} />
+            <DoorClosed size={18} className="sm:w-5 sm:h-5" />
             {!location || !coordinates ? "Menunggu Lokasi..." : "Absen Pulang"}
           </button>
         ) : (
           <div className="text-center">
-            <div className="bg-green-100 text-green-800 px-4 py-3 rounded-lg mb-4 flex items-center justify-center gap-2">
-              <CheckCircle size={20} />
+            <div className="bg-green-100 text-green-800 px-2 sm:px-3 py-2 rounded-lg mb-2 sm:mb-3 flex items-center justify-center gap-2 text-xs sm:text-sm">
+              <CheckCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
               Berhasil absen pada {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
             </div>
             <button
               disabled
-              className="bg-gray-300 text-gray-500 px-8 py-4 rounded-lg text-lg font-semibold w-full cursor-not-allowed"
+              className="bg-gray-300 text-gray-500 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-semibold w-full cursor-not-allowed"
             >
               Sudah Absen Hari Ini
             </button>

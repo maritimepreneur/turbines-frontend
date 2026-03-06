@@ -34,7 +34,7 @@ export const useUpdateSchedule = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateSchedulePayload> }) =>
+    mutationFn: ({ id, data }: { id: number; data: Partial<CreateSchedulePayload> }) =>
       scheduleService.updateSchedule(id, data),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
@@ -52,7 +52,7 @@ export const useDeleteSchedule = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: string) => scheduleService.deleteSchedule(id),
+    mutationFn: (id: number) => scheduleService.deleteSchedule(id),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
     },
