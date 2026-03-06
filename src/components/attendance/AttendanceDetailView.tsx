@@ -32,6 +32,7 @@ export type AttendanceDetail = {
     checked: boolean;
     employee_id: number;
     employee_name: string;
+    employee_code?: string;
 };
 
 interface AttendanceDetailResponse {
@@ -66,6 +67,7 @@ export default function AttendanceDetailView({
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [employeeCode, setEmployeeCode] = useState<string | null>(null);
 
     const confirmModal = useModal();
     const notify = useNotification();
@@ -86,7 +88,27 @@ export default function AttendanceDetailView({
             );
 
             if (response.data.code === 200) {
-                setAttendance(response.data.data);
+                const data = response.data.data;
+                setAttendance(data);
+                // Jika API sudah mengembalikan employee_code langsung, pakai itu
+                if (data.employee_code) {
+                    setEmployeeCode(data.employee_code);
+                } else {
+                    // Fallback: fetch /api/employees/ untuk mapping
+                    axiosInstance.get('/api/employees/')
+                        .then((empRes) => {
+                            const list: any[] = Array.isArray(empRes.data)
+                                ? empRes.data
+                                : (empRes.data?.data ?? []);
+                            const emp = list.find((e) => e.id === data.employee_id);
+                            setEmployeeCode(
+                                emp?.employee_code || `EMP-${String(data.employee_id).padStart(4, '0')}`
+                            );
+                        })
+                        .catch(() => {
+                            setEmployeeCode(`EMP-${String(data.employee_id).padStart(4, '0')}`);
+                        });
+                }
             } else {
                 throw new Error(
                     response.data.message || "Failed to fetch attendance detail"
@@ -370,7 +392,10 @@ export default function AttendanceDetailView({
                                     `Employee #${attendance.employee_id}`}
                             </h2>
                             <p className="text-sm text-slate-500 mb-4">
-                                EMP{String(attendance.employee_id).padStart(3, "0")}
+                                {employeeCode === null
+                                    ? <span className="inline-block w-20 h-4 bg-slate-200 rounded animate-pulse" />
+                                    : employeeCode
+                                }
                             </p>
 
                             {/* Status Badge */}
