@@ -146,10 +146,31 @@ export const scheduleService = {
 
   async updateSchedule(id: string, payload: Partial<CreateSchedulePayload>): Promise<Schedule> {
     try {
-      const response = await axiosInstance.put(`/api/schedules/${id}`, payload)
+      // Backend hanya terima: title, description, start_time, end_time, date, tagged_ids
+      // Hapus employee_id dan type dari payload API
+      const { type, employee_id, ...rest } = payload as any
+      const apiPayload: Record<string, any> = {}
+      if (rest.title       !== undefined) apiPayload.title       = rest.title
+      if (rest.description !== undefined) apiPayload.description = rest.description
+      if (rest.start_time  !== undefined) apiPayload.start_time  = toTimeWithSeconds(rest.start_time)
+      if (rest.end_time    !== undefined) apiPayload.end_time    = toTimeWithSeconds(rest.end_time)
+      if (rest.date        !== undefined) apiPayload.date        = rest.date
+      if (rest.tagged_ids  !== undefined) apiPayload.tagged_ids  = (rest.tagged_ids ?? []).map(Number)
+
+      console.log('[scheduleService] PUT /api/schedules/' + id, apiPayload)
+      const response = await axiosInstance.put(`/api/schedules/${id}`, apiPayload)
       const raw = response.data?.data ?? response.data
-      return normaliseSchedule(raw)
-    } catch {
+      const updated = normaliseSchedule(raw)
+
+      // Simpan type ke localStorage jika ada (frontend-only metadata)
+      if (type) {
+        updated.type = type
+        const existing = lsGetAll()
+        lsSave([...existing.filter((s) => s.schedule_id !== id), updated])
+      }
+      return updated
+    } catch (err: any) {
+      console.error('[scheduleService] updateSchedule error:', err?.response?.data ?? err?.message)
       // Fallback: update di localStorage
       const all = lsGetAll()
       const updated = all.map((s) =>
