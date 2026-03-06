@@ -23,6 +23,15 @@ type Partner = {
   goods?: string
 }
 
+type Contact = {
+  id: number
+  name: string
+  emails?: string[]
+  partner_id?: number
+  position?: string
+  role?: string
+}
+
 interface PartnersResponse {
   message: string
   code: number
@@ -37,6 +46,12 @@ interface PartnersResponse {
   }
 }
 
+interface ContactsResponse {
+  message: string
+  code: number
+  data: { list: Contact[]; pagination: any }
+}
+
 export default function PartnerListPage() {
   const router = useRouter()
   const [showFilter, setShowFilter] = useState(false)
@@ -44,6 +59,7 @@ export default function PartnerListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
+  const [contactsByPartnerId, setContactsByPartnerId] = useState<Record<number, Contact[]>>({})
 
   // Modals state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -80,53 +96,65 @@ export default function PartnerListPage() {
     { label: "Goods", value: "goods" },
   ]
 
+
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Fetch partners (critical — show error if fails)
+        const partnerRes = await axiosInstance.post<PartnersResponse>('/api/partners/', {
+          params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+        })
+        if (partnerRes.data.code === 200) {
+          setPartnersData(partnerRes.data.data.list)
+          setPagination(partnerRes.data.data.pagination)
+        } else throw new Error(partnerRes.data.message || 'Failed to fetch partners')
+      } catch (err: any) {
+        if (err.response?.status === 401) { setError('Session expired.'); router.push('/login') }
+        else setError(err.response?.data?.message || 'Failed to load partners data.')
+      } finally { setIsLoading(false) }
+
+      // Fetch contacts separately — non-blocking, silently ignore errors
+      try {
+        const contactRes = await axiosInstance.post<ContactsResponse>('/api/contacts/', {
+          params: { page_size: 1000 }
+        })
+        if (contactRes.data.code === 200) {
+          const grouped: Record<number, Contact[]> = {}
+          contactRes.data.data.list.forEach(c => {
+            if (c.partner_id) {
+              if (!grouped[c.partner_id]) grouped[c.partner_id] = []
+              grouped[c.partner_id].push(c)
+            }
+          })
+          setContactsByPartnerId(grouped)
+        }
+      } catch {
+        // Contacts API failed — PIC column will show "—", but partner list still works fine
+      }
+    }
+    fetchAll()
+  }, [])
+
   const fetchPartners = async () => {
     try {
       setIsLoading(true)
       setError(null)
-
-      console.log('📥 Fetching all partners data...')
-
-      const response = await axiosInstance.post<PartnersResponse>(
-        '/api/partners/',
-        {
-          params: {
-            page_number: 1,
-            page_size: 1000, // Fetch all data
-            sort_by: 'id',
-            sort_order: 'DESC',
-          }
-        }
-      )
-
-      console.log('📦 Response:', response.data)
-
+      const response = await axiosInstance.post<PartnersResponse>('/api/partners/', {
+        params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+      })
       if (response.data.code === 200) {
-        console.log('✅ Partners data fetched:', response.data.data.list.length, 'items')
         setPartnersData(response.data.data.list)
         setPagination(response.data.data.pagination)
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch partners')
-      }
+      } else throw new Error(response.data.message || 'Failed to fetch partners')
     } catch (err: any) {
-      console.error('❌ Error fetching partners:', err)
-
-      if (err.response?.status === 401) {
-        setError('Session expired. Please login again.')
-        router.push('/login')
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message)
-      } else {
-        setError('Failed to load partners data. Please try again.')
-      }
-    } finally {
-      setIsLoading(false)
-    }
+      if (err.response?.status === 401) { setError('Session expired.'); router.push('/login') }
+      else setError(err.response?.data?.message || 'Failed to load partners data.')
+    } finally { setIsLoading(false) }
   }
-
-  useEffect(() => {
-    fetchPartners()
-  }, [])
 
   const filteredPartners = useMemo(() => {
     let filtered = [...partnersData]
@@ -419,6 +447,28 @@ export default function PartnerListPage() {
               {
                 header: 'Partner Type',
                 accessor: 'partner_type',
+              },
+              {
+                header: 'PIC',
+                render: (item) => {
+                  const pics = contactsByPartnerId[item.id]
+                  if (!pics || pics.length === 0) return <span className="text-slate-400 text-xs">—</span>
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      {pics.map(pic => (
+                        <div key={pic.id} className="flex items-center gap-2">
+                          <div className="shrink-0 w-6 h-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-semibold">
+                            {pic.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-slate-800 truncate">{pic.name}</p>
+                            {pic.position && <p className="text-xs text-slate-400 truncate">{pic.position}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                },
               },
               {
                 header: 'Action',
