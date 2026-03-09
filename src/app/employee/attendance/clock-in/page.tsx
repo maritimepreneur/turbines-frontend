@@ -2,26 +2,31 @@
 
 import { useState, useEffect } from "react"
 import { Clock, MapPin, User, CheckCircle, DoorOpen } from "lucide-react";
-import Image from "next/image"
 import LocationMap from "@/components/LocationMap"
 import TimeStamp from "@/components/TimeStamp"
-import type { AttendanceLocation } from "@/types/location"
-import { useAuth } from "@/contexts/AuthContext";
-import api from "@/lib/axios";
-
+import { useClockIn } from "@/hooks/useClockIn";
 
 export default function ClockInPage() {
-  const { user, accessToken } = useAuth();
-  const [clockedIn, setClockedIn] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [location, setLocation] = useState<string>("")
-  const [coordinates, setCoordinates] = useState<AttendanceLocation | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [clockInTime, setClockInTime] = useState<Date | null>(null)
-  const [attendanceStatus, setAttendanceStatus] = useState<"Hadir" | "Izin" | "Sakit">("Hadir")
-  const [keterangan, setKeterangan] = useState<string>("")
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const {
+    user,
+    clockedIn,
+    showConfirmModal,
+    showSuccessModal,
+    location,
+    coordinates,
+    isSubmitting,
+    clockInTime,
+    attendanceStatus,
+    keterangan,
+    setShowConfirmModal,
+    setShowSuccessModal,
+    setLocation,
+    setCoordinates,
+    setAttendanceStatus,
+    setKeterangan,
+    handleClockIn,
+  } = useClockIn();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -29,91 +34,6 @@ export default function ClockInPage() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
-
-  const handleClockInClick = () => {
-    setShowConfirmModal(true)
-  }
-
-  useEffect(() => {
-    if (user) {
-      // Use Asia/Jakarta timezone for date consistency
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-      const storedDate = localStorage.getItem(`attendance_clock_in_date_${user.id}`);
-      const storedTime = localStorage.getItem(`attendance_clock_in_time_${user.id}`);
-
-      if (storedDate === today && storedTime) {
-        setClockedIn(true);
-        setClockInTime(new Date(storedTime));
-      }
-    }
-  }, [user]);
-
-  const handleConfirmYes = async () => {
-    setIsSubmitting(true);
-
-    try {
-      const res = await api.post(
-        "/api/attendances/clock-in",
-        {
-          timestamp: new Date().toISOString(),
-          status: attendanceStatus === "Hadir" ? "On Time" : attendanceStatus,
-          desc: attendanceStatus === "Izin" && keterangan ? keterangan : `Clock in via web app - ${attendanceStatus}`,
-          latitude: coordinates?.lat ?? 0,
-          longitude: coordinates?.lng ?? 0,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-
-      const clockTime = new Date();
-      setClockInTime(clockTime);
-      setClockedIn(true);
-      setShowConfirmModal(false);
-      setShowSuccessModal(true);
-
-      // Save to localStorage with Asia/Jakarta timezone
-      if (user) {
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-        localStorage.setItem(`attendance_clock_in_date_${user.id}`, today);
-        localStorage.setItem(`attendance_clock_in_time_${user.id}`, clockTime.toISOString());
-      }
-
-    } catch (error: any) {
-      console.error(error.response?.data || error);
-      
-      if (error.response?.status === 400 && error.response?.data?.message === "Already clocked in today") {
-        alert("Anda sudah melakukan absensi masuk hari ini.");
-        setClockedIn(true);
-        setShowConfirmModal(false);
-        
-        // Save to localStorage to persist after refresh
-        if (user) {
-          const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-          localStorage.setItem(`attendance_clock_in_date_${user.id}`, today);
-          localStorage.setItem(`attendance_clock_in_time_${user.id}`, new Date().toISOString());
-        }
-      } else {
-        alert(
-          error.response?.data?.message ||
-            "Gagal melakukan absensi. Silakan coba lagi.",
-        );
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-
-  const handleConfirmNo = () => {
-    setShowConfirmModal(false)
-  }
-
-  const handleCloseSuccess = () => {
-    setShowSuccessModal(false)
-  }
 
   return (
     <div>
@@ -131,13 +51,9 @@ export default function ClockInPage() {
         {/* Profile Section */}
         <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 p-2 sm:p-3 bg-slate-50 rounded-lg">
           <div className="relative">
-            <Image
-              src="/api/placeholder/80/80"
-              alt="Profile"
-              width={50}
-              height={50}
-              className="rounded-full border-2 border-white shadow-sm"
-            />
+            <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-sm">
+              <User size={28} className="text-white" />
+            </div>
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></div>
           </div>
           <div>
@@ -225,7 +141,7 @@ export default function ClockInPage() {
         {/* Action Button */}
         {!clockedIn ? (
           <button
-            onClick={handleClockInClick}
+            onClick={() => setShowConfirmModal(true)}
             disabled={!location || !coordinates || (attendanceStatus === "Izin" && !keterangan.trim())}
             className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates || (attendanceStatus === "Izin" && !keterangan.trim())
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -263,13 +179,13 @@ export default function ClockInPage() {
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={handleConfirmNo}
+                  onClick={() => setShowConfirmModal(false)}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition"
                 >
                   Tidak
                 </button>
                 <button
-                  onClick={handleConfirmYes}
+                  onClick={handleClockIn}
                   disabled={isSubmitting}
                   className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -294,7 +210,7 @@ export default function ClockInPage() {
                 {clockInTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockInTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
               </p>
               <button
-                onClick={handleCloseSuccess}
+                onClick={() => setShowSuccessModal(false)}
                 className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-600 transition"
               >
                 OK

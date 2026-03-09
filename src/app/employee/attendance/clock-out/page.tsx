@@ -2,24 +2,29 @@
 
 import { useState, useEffect } from "react"
 import { Clock, MapPin, User, CheckCircle, FileText, DoorClosed } from "lucide-react"
-import Image from "next/image"
 import LocationMap from "@/components/LocationMap"
 import TimeStamp from "@/components/TimeStamp"
-import type { AttendanceLocation } from "@/types/location"
-import { useAuth } from "@/contexts/AuthContext";
-import api from "@/lib/axios";
+import { useClockOut } from "@/hooks/useClockOut";
 
 export default function ClockOutPage() {
-  const { user, accessToken } = useAuth();
-  const [clockedIn, setClockedIn] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [location, setLocation] = useState<string>("")
-  const [coordinates, setCoordinates] = useState<AttendanceLocation | null>(null)
-  const [workDescription, setWorkDescription] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [clockOutTime, setClockOutTime] = useState<Date | null>(null)
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const {
+    user,
+    clockedOut,
+    showConfirmModal,
+    showSuccessModal,
+    location,
+    coordinates,
+    workDescription,
+    isSubmitting,
+    clockOutTime,
+    setShowConfirmModal,
+    setShowSuccessModal,
+    setLocation,
+    setCoordinates,
+    setWorkDescription,
+    handleClockOut,
+  } = useClockOut();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -27,75 +32,6 @@ export default function ClockOutPage() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
-
-  const handleClockInClick = () => {
-    setShowConfirmModal(true)
-  }
-
-  useEffect(() => {
-    if (user) {
-      // Use Asia/Jakarta timezone for date consistency
-      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-      const storedDate = localStorage.getItem(`attendance_clock_out_date_${user.id}`);
-      const storedTime = localStorage.getItem(`attendance_clock_out_time_${user.id}`);
-
-      if (storedDate === today && storedTime) {
-        setClockedIn(true);
-        setClockOutTime(new Date(storedTime));
-      }
-    }
-  }, [user]);
-
-  const handleConfirmYes = async () => {
-    setIsSubmitting(true);
-
-    try {
-      const res = await api.post(
-        "/api/attendances/clock-out",
-        {
-          timestamp: new Date().toISOString(),
-          status: "On Time",
-          desc: workDescription || "Clock out via web app",
-          latitude: coordinates?.lat ?? 0,
-          longitude: coordinates?.lng ?? 0,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-
-      const clockTime = new Date();
-      setClockOutTime(clockTime);
-      setClockedIn(true);
-      setShowConfirmModal(false);
-      setShowSuccessModal(true);
-
-      // Save to localStorage with Asia/Jakarta timezone
-      if (user) {
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-        localStorage.setItem(`attendance_clock_out_date_${user.id}`, today);
-        localStorage.setItem(`attendance_clock_out_time_${user.id}`, clockTime.toISOString());
-      }
-    } catch (error: any) {
-      console.error(error.response?.data || error);
-      alert(
-        error.response?.data?.message ||
-        "Gagal melakukan absensi pulang. Silakan coba lagi.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleConfirmNo = () => {
-    setShowConfirmModal(false)
-  }
-
-  const handleCloseSuccess = () => {
-    setShowSuccessModal(false)
-  }
 
   return (
     <div>
@@ -113,13 +49,9 @@ export default function ClockOutPage() {
         {/* Profile Section */}
         <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 p-2 sm:p-3 bg-slate-50 rounded-lg">
           <div className="relative">
-            <Image
-              src="/api/placeholder/80/80"
-              alt="Profile"
-              width={50}
-              height={50}
-              className="rounded-full border-2 border-white shadow-sm"
-            />
+            <div className="w-[50px] h-[50px] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-sm">
+              <User size={28} className="text-white" />
+            </div>
             <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></div>
           </div>
           <div>
@@ -183,14 +115,14 @@ export default function ClockOutPage() {
             placeholder="Jelaskan kegiatan pekerjaan yang akan dilakukan hari ini..."
             className="w-full p-2 text-xs sm:text-sm border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-500"
             rows={2}
-            disabled={clockedIn}
+            disabled={clockedOut}
           />
         </div>
 
         {/* Action Button */}
-        {!clockedIn ? (
+        {!clockedOut ? (
           <button
-            onClick={handleClockInClick}
+            onClick={() => setShowConfirmModal(true)}
             disabled={!location || !coordinates}
             className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition w-full flex items-center justify-center gap-2 ${!location || !coordinates
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -228,13 +160,13 @@ export default function ClockOutPage() {
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={handleConfirmNo}
+                  onClick={() => setShowConfirmModal(false)}
                   className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition"
                 >
                   Tidak
                 </button>
                 <button
-                  onClick={handleConfirmYes}
+                  onClick={handleClockOut}
                   disabled={isSubmitting}
                   className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -259,7 +191,7 @@ export default function ClockOutPage() {
                 {clockOutTime?.toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' })} Pukul {clockOutTime?.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace('.', ':')}
               </p>
               <button
-                onClick={handleCloseSuccess}
+                onClick={() => setShowSuccessModal(false)}
                 className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-600 transition"
               >
                 OK
