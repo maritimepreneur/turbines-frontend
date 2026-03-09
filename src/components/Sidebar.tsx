@@ -264,17 +264,12 @@ const MENU_ITEMS = [
     module: "bizdev",
   },
   {
-    label: "Partner List",
+    label: "Affiliation List",
     href: "/bizdev/partner-list",
     icon: <Handshake size={18} />,
     module: "bizdev",
   },
-  {
-    label: "Vendor List",
-    href: "/bizdev/vendor-list",
-    icon: <Store size={18} />,
-    module: "bizdev",
-  },
+
   {
     label: "Contact List",
     href: "/bizdev/contact-list",
