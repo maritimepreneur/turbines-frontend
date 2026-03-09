@@ -9,9 +9,8 @@ const axiosInstance = axios.create({
   },
 });
 
-// Interceptor untuk menambahkan token ke setiap request
+// Request interceptor: tambahkan token ke setiap request
 axiosInstance.interceptors.request.use((config) => {
-  // Pastikan hanya berjalan di client-side
   if (typeof window !== 'undefined') {
     const token = Cookies.get('access_token');
     if (token) {
@@ -20,5 +19,22 @@ axiosInstance.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Response interceptor: jika 401 (token expired/invalid) → redirect ke login
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (typeof window !== 'undefined' && error.response?.status === 401) {
+      // Hapus token yang sudah expired
+      Cookies.remove('access_token');
+
+      // Hindari redirect loop jika sudah di halaman login
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default axiosInstance;

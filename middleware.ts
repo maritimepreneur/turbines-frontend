@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes yang tidak perlu authentication
-  const publicRoutes = ['/login', '/signup', '/forgot-password'];
+  const publicRoutes = ['/login', '/signup', '/forgot-password', '/register-training'];
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
   // Jika user sudah login dan mengakses public route, redirect ke dashboard
