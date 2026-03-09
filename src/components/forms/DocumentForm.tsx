@@ -8,7 +8,6 @@ import axiosInstance from "@/lib/axios"
 import { DOCUMENT_TYPES } from "@/types/document"
 
 interface DocumentFormData {
-    number: string
     name: string
     document_type: string
     url: string
@@ -25,10 +24,8 @@ interface DocumentFormProps {
 export default function DocumentForm({ moduleId, isEdit = false, initialData, documentId }: DocumentFormProps) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
-    const [isGeneratingNumber, setIsGeneratingNumber] = useState(false)
 
     const [formData, setFormData] = useState<DocumentFormData>({
-        number: initialData?.number || "",
         name: initialData?.name || "",
         document_type: initialData?.document_type || "",
         url: (initialData as any)?.url || "",
@@ -38,35 +35,15 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
     const [errors, setErrors] = useState<Partial<DocumentFormData>>({})
     const [submitError, setSubmitError] = useState<string | null>(null)
 
-    const fetchGeneratedNumber = async () => {
-        try {
-            setIsGeneratingNumber(true)
-            const res = await axiosInstance.get('/api/documents/generate-number')
-            if (res.data?.data?.number) {
-                setFormData(prev => ({ ...prev, number: res.data.data.number }))
-            } else if (res.data?.number) {
-                setFormData(prev => ({ ...prev, number: res.data.number }))
-            }
-        } catch {
-            // silently fail — user can type manually or retry
-        } finally {
-            setIsGeneratingNumber(false)
-        }
-    }
-
     // Sync formData once on mount (parent only renders this component after data is fetched)
     useEffect(() => {
         if (initialData) {
             setFormData({
-                number: initialData.number || "",
                 name: initialData.name || "",
                 document_type: initialData.document_type || "",
                 url: (initialData as any)?.url || "",
                 description: (initialData as any)?.description || ""
             })
-        } else if (!isEdit) {
-            // Auto-fetch generated number from backend for new documents
-            fetchGeneratedNumber()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
@@ -97,7 +74,6 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
     const validateForm = (): boolean => {
         const newErrors: Partial<DocumentFormData> = {}
 
-        if (!formData.number.trim()) newErrors.number = "Document Number is required"
         if (!formData.name.trim()) newErrors.name = "Document Name is required"
         if (!formData.document_type) newErrors.document_type = "Document Type is required"
 
@@ -115,7 +91,6 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
             setSubmitError(null)
 
             const payload = {
-                number: formData.number,
                 name: formData.name.trim(),
                 document_type: formData.document_type,
                 ...(formData.url.trim() ? { url: formData.url.trim() } : {}),
@@ -217,28 +192,6 @@ export default function DocumentForm({ moduleId, isEdit = false, initialData, do
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Document Number */}
-                            <div>
-                                <label className="text-xs font-semibold text-black block mb-1">
-                                    Document Number <span className="text-red-500">*</span>
-                                    {!isEdit && (
-                                        <span className="ml-2 text-xs font-normal text-sky-600 bg-sky-50 border border-sky-200 px-2 py-0.5 rounded-full">Auto</span>
-                                    )}
-                                </label>
-                                <input
-                                    type="text"
-                                    name="number"
-                                    value={formData.number}
-                                    readOnly={!isEdit}
-                                    onChange={isEdit ? handleChange : undefined}
-                                    placeholder={isGeneratingNumber ? "Generating..." : "Document number"}
-                                    className={`w-full h-10 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 font-mono text-sm
-                                        ${!isEdit ? 'bg-slate-50 text-slate-600 cursor-default' : ''}
-                                        ${errors.number ? 'border-red-500' : 'border-gray-300'}`}
-                                />
-                                {errors.number && <p className="text-xs text-red-500 mt-1">{errors.number}</p>}
-                            </div>
-
                             {/* Document Type */}
                             <div>
                                 <label className="text-xs font-semibold text-black block mb-1">
