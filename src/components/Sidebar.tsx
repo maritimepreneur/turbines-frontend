@@ -70,7 +70,8 @@ export default function Sidebar() {
     if (pathname.startsWith("/bizdev")) return "bizdev";
     if (pathname.startsWith("/finance")) return "finance";
     if (pathname.startsWith("/operation")) return "operation";
-    if (pathname.startsWith("/employee") || pathname === "/user-profile") return "employee";
+    if (pathname.startsWith("/employee") || pathname === "/user-profile")
+      return "employee";
     if (pathname.startsWith("/human-resources")) return "human-resources";
     return null;
   }, [pathname, moduleFromQuery]);
@@ -78,7 +79,8 @@ export default function Sidebar() {
   const visibleMenuItems = useMemo(() => {
     if (currentActiveModule) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === currentActiveModule,
+        (item) =>
+          item.module === "common" || item.module === currentActiveModule,
       );
     }
     if (pathname.startsWith("/training-course")) {
@@ -101,7 +103,12 @@ export default function Sidebar() {
           <Menu size={22} />
         </button>
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Image src="/logo_horizontal.jpeg" alt="Logo" width={32} height={20} />
+          <Image
+            src="/logo_horizontal.jpeg"
+            alt="Logo"
+            width={32}
+            height={20}
+          />
           <h1 className="text-lg italic font-bold text-slate-900">Turbines</h1>
         </Link>
       </div>
@@ -111,13 +118,14 @@ export default function Sidebar() {
         <div
           className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <aside
         className={`
-          sidebar-fixed fixed left-0 top-0 z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-hidden
+          sidebar-fixed fixed left-0 top-0 h-screen z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-hidden
           transition-transform duration-300 ease-in-out
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
@@ -126,7 +134,12 @@ export default function Sidebar() {
         {/* Logo */}
         <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <Image src="/logo_horizontal.jpeg" alt="Logo" width={180} height={200} />
+            <Image
+              src="/logo_horizontal.jpeg"
+              alt="Logo"
+              width={180}
+              height={200}
+            />
             {/* <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1> */}
           </Link>
           {/* Close button (mobile only) */}
@@ -147,7 +160,9 @@ export default function Sidebar() {
               href={item.href}
               label={item.label}
               icon={item.icon}
-              active={pathname === item.href || pathname.startsWith(item.href + '/')}
+              active={
+                pathname === item.href || pathname.startsWith(item.href + "/")
+              }
               subMenu={item.subMenu}
               pathname={pathname}
             />
@@ -183,8 +198,11 @@ function MenuLink({
     : false;
 
   // Check if current path matches invoice pages
-  const isInvoicePage = label === "Invoices" &&
-    (pathname === "/finance/invoice" || pathname === "/finance/pre-invoice" || pathname === "/finance/canceled");
+  const isInvoicePage =
+    label === "Invoices" &&
+    (pathname === "/finance/invoice" ||
+      pathname === "/finance/pre-invoice" ||
+      pathname === "/finance/canceled");
 
   const isParentActive = active || hasActiveSubMenu || isInvoicePage;
 
@@ -220,9 +238,10 @@ function MenuLink({
                 key={sub.href}
                 href={sub.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm
-                  ${pathname === sub.href
-                    ? "bg-sky-50 text-sky-600 font-medium"
-                    : "text-slate-600 hover:bg-slate-50"
+                  ${
+                    pathname === sub.href
+                      ? "bg-sky-50 text-sky-600 font-medium"
+                      : "text-slate-600 hover:bg-slate-50"
                   }
                 `}
               >
@@ -426,13 +445,18 @@ const MENU_ITEMS = [
         href: "training-course/form-data/all",
       },
       { label: "Foundation", href: "training-course/form-data/foundation" },
-      { label: "Specialization", href: "training-course/form-data/specialization" },
-      { label: "Foundation and Specialization", href: "training-course/form-data/foundation-specialization" },
+      {
+        label: "Specialization",
+        href: "training-course/form-data/specialization",
+      },
+      {
+        label: "Foundation and Specialization",
+        href: "training-course/form-data/foundation-specialization",
+      },
       { label: "Executive", href: "training-course/form-data/executive" },
-
     ],
     module: "training-course",
-  }, 
+  },
   {
     label: "Scholarships",
     href: "/training-course/scholarships",
@@ -445,7 +469,7 @@ const MENU_ITEMS = [
     icon: <FileText size={18} />,
     module: "training-course",
   },
-  
+
   {
     label: "Scholarships Type",
     href: "/training-course/scholarships-type",
@@ -460,12 +484,20 @@ function UserSection() {
   const pathname = usePathname();
 
   const profileHref = useMemo(() => {
-    const currentModule = pathname.startsWith("/bizdev") ? "bizdev" :
-      pathname.startsWith("/finance") ? "finance" :
-        pathname.startsWith("/operation") ? "operation" :
-          pathname.startsWith("/employee") ? "employee" :
-            pathname.startsWith("/human-resources") ? "human-resources" : "";
-    return currentModule ? `/user-profile?module=${currentModule}` : "/user-profile";
+    const currentModule = pathname.startsWith("/bizdev")
+      ? "bizdev"
+      : pathname.startsWith("/finance")
+        ? "finance"
+        : pathname.startsWith("/operation")
+          ? "operation"
+          : pathname.startsWith("/employee")
+            ? "employee"
+            : pathname.startsWith("/human-resources")
+              ? "human-resources"
+              : "";
+    return currentModule
+      ? `/user-profile?module=${currentModule}`
+      : "/user-profile";
   }, [pathname]);
 
   return (

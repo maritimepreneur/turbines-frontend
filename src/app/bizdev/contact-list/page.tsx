@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/table/EmptyState"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
+import * as XLSX from 'xlsx-js-style'
 
 type Partner = {
   id: number
@@ -174,6 +175,86 @@ export default function ContactListPage() {
   const updateFilterValue = (id: string, value: string) => setFilters(filters.map(f => f.id === id ? { ...f, value } : f))
   const resetFilters = () => { setFilters([]); setSearch('') }
 
+  const handleDownloadExcel = () => {
+    const dataToExport = filteredContacts.map(contact => {
+      const partner = contact.partner_id ? partnersMap[contact.partner_id] : null
+      return {
+        ID: contact.id,
+        Name: contact.name,
+        'Email 1': contact.emails?.[0] || '-',
+        'Email 2': contact.emails?.[1] || '-',
+        'Phone 1': contact.phone_numbers?.[0] || '-',
+        'Phone 2': contact.phone_numbers?.[1] || '-',
+        Affiliation: partner?.name || '-',
+        'Type of Affiliation': partner?.company_type || '-',
+        Position: contact.position || '-',
+        Category: partner?.partner_type || '-',
+        Role: contact.role || '-',
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    
+    const columnWidths = [
+      { wch: 5 },   // ID
+      { wch: 25 },  // Name
+      { wch: 30 },  // Email 1
+      { wch: 30 },  // Email 2
+      { wch: 18 },  // Phone 1
+      { wch: 18 },  // Phone 2
+      { wch: 30 },  // Affiliation
+      { wch: 20 },  // Type of Affiliation
+      { wch: 40 },  // Position
+      { wch: 15 },  // Category
+      { wch: 20 },  // Role
+    ]
+    worksheet['!cols'] = columnWidths
+
+    // Styling header dengan warna hijau
+    const headerStyle = {
+      fill: { fgColor: { rgb: "22C55E" } },
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    }
+    
+    const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1', 'K1']
+    headerCells.forEach(cell => {
+      if (worksheet[cell]) {
+        worksheet[cell].s = headerStyle
+      }
+    })
+
+    filteredContacts.forEach((contact, index) => {
+      const rowNum = index + 2 
+      
+      // Email 1
+      if (contact.emails?.[0] && contact.emails[0] !== '-') {
+        const cellC = `C${rowNum}`
+        if (worksheet[cellC]) {
+          worksheet[cellC].l = { Target: `mailto:${contact.emails[0]}` }
+          worksheet[cellC].s = {
+            font: { color: { rgb: "0563C1" }, underline: true }
+          }
+        }
+      }
+      
+      // Email 2
+      if (contact.emails?.[1] && contact.emails[1] !== '-') {
+        const cellD = `D${rowNum}`
+        if (worksheet[cellD]) {
+          worksheet[cellD].l = { Target: `mailto:${contact.emails[1]}` }
+          worksheet[cellD].s = {
+            font: { color: { rgb: "0563C1" }, underline: true }
+          }
+        }
+      }
+    })
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Contact List')
+    XLSX.writeFile(workbook, `Contact_List_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
   if (isLoading && contactsData.length === 0) return (
     <div>
       <div className="mb-6"><p className="text-sm text-slate-400">Bizdev / <span className="text-slate-600">Contact List</span></p><h1 className="text-2xl font-semibold mt-1 text-black">Contact List</h1></div>
@@ -242,6 +323,10 @@ export default function ContactListPage() {
             <SearchBar value={search} onChange={setSearch} placeholder="Search name, email, company..." />
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+            <button onClick={handleDownloadExcel} disabled={filteredContacts.length === 0} className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Excel
+            </button>
             <button onClick={fetchContacts} disabled={isLoading} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50 flex-1 sm:flex-none">
               <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Refresh
