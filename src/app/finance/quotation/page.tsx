@@ -6,6 +6,7 @@ import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
 import { useTableFilters } from "@/hooks/useTableFilters";
 import { useQuotationList } from "@/hooks/useQuotationList";
+import { NotificationModal } from "@/components/modals/NotificationModal";
 
 export default function NewLeadsPage() {
   const [showFilter, setShowFilter] = useState(false);
@@ -81,39 +82,13 @@ export default function NewLeadsPage() {
       )}
 
       {/* Notification Modal */}
-      {notifModal.show && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full shadow-xl">
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
-                notifModal.type === 'success' ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                {notifModal.type === 'success' ? (
-                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                )}
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {notifModal.type === 'success' ? 'Success!' : 'Error!'}
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">{notifModal.message}</p>
-              <button
-                onClick={closeNotifModal}
-                className={`w-full px-4 py-2 rounded-lg transition font-medium text-white ${
-                  notifModal.type === 'success' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                }`}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <NotificationModal
+        isOpen={notifModal.show}
+        onClose={closeNotifModal}
+        title={notifModal.type === 'success' ? 'Success!' : 'Error!'}
+        message={notifModal.message}
+        type={notifModal.type}
+      />
       
       {/* Header */}
       <div className="mb-6">
