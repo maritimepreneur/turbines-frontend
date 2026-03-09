@@ -4,6 +4,8 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable, TableColumn } from "@/components/table/ResponsiveTable"
+import { EmptyState } from "@/components/table/EmptyState"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Proposals = {
@@ -125,37 +127,38 @@ export default function NewLeadsPage() {
         />
 
         {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">ID</th>
-              <th className="text-left py-3 px-3">Company Name</th>
-              <th className="text-left py-3 px-3">Initial</th>
-              <th className="text-left py-3 px-3">Industry</th>
-              <th className="text-left py-3 px-3">Contact</th>
-              <th className="text-left py-3 px-3">Type</th>
-              <th className="text-left py-3 px-3">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">
-                  No data found
-                </td>
-              </tr>
-            )}
-
-            {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.company_name}</td>
-                <td className="py-3 px-3">{item.company_initial}</td>
-                <td className="py-3 px-3">{item.company_industrial}</td>
-                <td className="py-3 px-3">{item.contacts.join(", ")}</td>
-                <td className="py-3 px-3">{item.company_type.join(", ")}</td>
-                <td className="py-3 px-3">
+        <div className="mt-4">
+          <ResponsiveTable<Proposals>
+            columns={[
+              {
+                header: 'ID',
+                accessor: 'id',
+                isPrimary: true,
+              },
+              {
+                header: 'Company Name',
+                accessor: 'company_name',
+                cellClassName: 'font-medium',
+              },
+              {
+                header: 'Initial',
+                accessor: 'company_initial',
+              },
+              {
+                header: 'Industry',
+                accessor: 'company_industrial',
+              },
+              {
+                header: 'Contact',
+                render: (item) => item.contacts.join(", "),
+              },
+              {
+                header: 'Type',
+                render: (item) => item.company_type.join(", "),
+              },
+              {
+                header: 'Action',
+                render: (item) => (
                   <div className="flex gap-4">
                     <button className="text-sky-500 hover:text-sky-700">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,21 +171,30 @@ export default function NewLeadsPage() {
                       </svg>
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                ),
+              },
+            ]}
+            data={paginatedData}
+            keyAccessor={(item) => item.id}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No proposals found" description="Click '+ Add' to create a new proposal" />
+            }
+          />
+        </div>
 
         {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredData.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredData.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
     </div>
   )

@@ -1,290 +1,280 @@
 "use client"
 
-import { useState, FormEvent } from "react"
+import { useState, useEffect, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 
-interface FormData {
-  name: string
-  emails: string
-  phone_numbers: string
-  company: string
-}
+type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string; goods?: string }
+interface PartnersResponse { message: string; code: number; data: { list: Partner[]; pagination: any } }
 
 export default function AddContactPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [partners, setPartners] = useState<Partner[]>([])
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
 
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    emails: "",
-    phone_numbers: "",
-    company: "",
-  })
+  const [name, setName] = useState("")
+  const [company, setCompany] = useState("")
+  const [emails, setEmails] = useState<string[]>([""])
+  const [phoneNumbers, setPhoneNumbers] = useState<string[]>([""])
+  const [partnerId, setPartnerId] = useState<string>("")
+  const [position, setPosition] = useState("")
+  const [role, setRole] = useState("")
 
-  // Modals state
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [notification, setNotification] = useState<{
-    isOpen: boolean
-    title: string
-    message: string
-    type: "success" | "error" | "info"
-  }>({
-    isOpen: false,
-    title: "",
-    message: "",
-    type: "success"
-  })
-
-  const [errors, setErrors] = useState<Partial<FormData>>({})
+  const [notification, setNotification] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "info" }>({ isOpen: false, title: "", message: "", type: "success" })
+  const [nameError, setNameError] = useState("")
+  const [emailErrors, setEmailErrors] = useState<string[]>([""])
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  // Handle input change
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  useEffect(() => {
+    axiosInstance.post<PartnersResponse>('/api/partners/', { params: { page_size: 1000 } })
+      .then(res => { if (res.data.code === 200) setPartners(res.data.data.list) })
+      .catch(() => { })
+  }, [])
 
-    if (errors[name as keyof FormData]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }))
-    }
+  const handlePartnerChange = (id: string) => {
+    setPartnerId(id)
+    setSelectedPartner(id ? (partners.find(p => p.id === parseInt(id)) || null) : null)
   }
 
-  // Validate form
-  const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {}
+  const handleEmailChange = (idx: number, value: string) => { setEmails(prev => prev.map((e, i) => i === idx ? value : e)); setEmailErrors(prev => prev.map((e, i) => i === idx ? "" : e)) }
+  const addEmail = () => { setEmails(prev => [...prev, ""]); setEmailErrors(prev => [...prev, ""]) }
+  const removeEmail = (idx: number) => { setEmails(prev => prev.filter((_, i) => i !== idx)); setEmailErrors(prev => prev.filter((_, i) => i !== idx)) }
+  const handlePhoneChange = (idx: number, value: string) => setPhoneNumbers(prev => prev.map((p, i) => i === idx ? value : p))
+  const addPhone = () => setPhoneNumbers(prev => [...prev, ""])
+  const removePhone = (idx: number) => setPhoneNumbers(prev => prev.filter((_, i) => i !== idx))
 
-    // Required fields
-    if (!formData.name.trim()) {
-      newErrors.name = "Contact name is required"
-    }
-
-    if (!formData.emails.trim()) {
-      newErrors.emails = "Email is required"
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.emails)) {
-      newErrors.emails = "Invalid email format"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const validate = () => {
+    let valid = true
+    if (!name.trim()) { setNameError("Contact name is required"); valid = false } else setNameError("")
+    const errs = emails.map((e, i) => { if (i === 0 && !e.trim()) return "At least one email is required"; if (e.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())) return "Invalid email format"; return "" })
+    setEmailErrors(errs); if (errs.some(e => e)) valid = false
+    return valid
   }
 
-  // Handle submit
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-
-    if (!validateForm()) {
-      return
-    }
-
+    e.preventDefault(); if (!validate()) return
     try {
-      setIsLoading(true)
-      setSubmitError(null)
+      setIsLoading(true); setSubmitError(null)
 
-      const contactData = {
-        name: formData.name,
-        emails: formData.emails ? [formData.emails] : [],
-        phone_numbers: formData.phone_numbers ? [formData.phone_numbers] : [],
-        company: formData.company,
+      const fullPayload = {
+        name: name.trim(),
+        company: company.trim() || undefined,
+        emails: emails.filter(e => e.trim()),
+        phone_numbers: phoneNumbers.filter(p => p.trim()),
+        ...(partnerId ? { partner_id: parseInt(partnerId) } : {}),
+        ...(position.trim() ? { position: position.trim() } : {}),
+        ...(role.trim() ? { role: role.trim() } : {}),
       }
 
-      const contactRes = await axiosInstance.post('/api/contacts/create', contactData)
+      let res = await axiosInstance.post('/api/contacts/create', fullPayload)
 
-      if (contactRes.data.code === 200 || contactRes.data.code === 201) {
-        setNotification({
-          isOpen: true,
-          title: "Success",
-          message: "Contact created successfully!",
-          type: "success"
-        })
-        // Redirect after short delay
-        setTimeout(() => {
-          router.push("/bizdev/contact-list")
-        }, 1500)
-      } else {
-        throw new Error(contactRes.data.message || 'Failed to create contact')
-      }
-
+      if (res.data.code === 200 || res.data.code === 201) {
+        setNotification({ isOpen: true, title: "Success", message: "Contact created successfully!", type: "success" })
+        setTimeout(() => router.push("/bizdev/contact-list"), 1500)
+      } else throw new Error(res.data.message || 'Failed to create contact')
     } catch (err: any) {
-      console.error("❌ Failed to create contact:", err)
-      setSubmitError(err.response?.data?.message || err.message || "Failed to create contact. Please try again.")
-      setNotification({
-        isOpen: true,
-        title: "Error",
-        message: err.response?.data?.message || "Failed to create contact",
-        type: "error"
-      })
-    } finally {
-      setIsLoading(false)
-    }
+      const status = err.response?.status
+      const backendMsg: string = err.response?.data?.message || err.response?.data?.detail || err.message || ''
+
+      // If 500 with possible schema issue, try minimal payload
+      if (status === 500) {
+        try {
+          const minimalPayload = {
+            name: name.trim(),
+            emails: emails.filter(e => e.trim()),
+            phone_numbers: phoneNumbers.filter(p => p.trim()),
+          }
+          const fallbackRes = await axiosInstance.post('/api/contacts/create', minimalPayload)
+          if (fallbackRes.data.code === 200 || fallbackRes.data.code === 201) {
+            setNotification({ isOpen: true, title: "Partial Success", message: "Contact created, but some fields (partner/position/role) may not be supported by the backend yet.", type: "info" })
+            setTimeout(() => router.push("/bizdev/contact-list"), 2000)
+            return
+          }
+        } catch { /* fallback also failed, show original error */ }
+      }
+
+      const displayMsg = status === 500
+        ? `Server Error (500): ${backendMsg || 'Internal server error — the backend may not support all fields yet.'}`
+        : backendMsg || 'Failed to create contact.'
+
+      setSubmitError(displayMsg)
+      setNotification({ isOpen: true, title: "Error", message: displayMsg.slice(0, 120), type: "error" })
+    } finally { setIsLoading(false) }
   }
 
-  // Handle cancel
-  const handleCancel = () => {
-    setShowCancelModal(true)
-  }
-
-  const confirmCancel = () => {
-    router.push("/bizdev/contact-list")
-  }
+  const inputCls = "w-full h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+  const trashIcon = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+  const plusIcon = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
 
   return (
     <div>
-      <ConfirmationModal
-        isOpen={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
-        onConfirm={confirmCancel}
-        title="Cancel Creation"
-        message="Are you sure you want to cancel? All unsaved changes will be lost."
-        confirmText="Yes, Cancel"
-        cancelText="No, Keep Editing"
-        type="info"
-      />
-
-      <NotificationModal
-        isOpen={notification.isOpen}
-        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
-        title={notification.title}
-        message={notification.message}
-        type={notification.type}
-      />
+      <ConfirmationModal isOpen={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={() => router.push("/bizdev/contact-list")} title="Cancel Creation" message="Are you sure you want to cancel? All unsaved changes will be lost." confirmText="Yes, Cancel" cancelText="No, Keep Editing" type="info" />
+      <NotificationModal isOpen={notification.isOpen} onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))} title={notification.title} message={notification.message} type={notification.type} />
 
       <div className="mb-6">
-        <p className="text-sm text-slate-400">
-          Bizdev / Contact List / <span className="text-slate-600">Add</span>
-        </p>
+        <p className="text-sm text-slate-400">Bizdev / Contact List / <span className="text-slate-600">Add</span></p>
         <h1 className="text-2xl font-semibold mt-1 text-black">Add Contact</h1>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm text-black">
-        {/* Submit Error Alert */}
-        {submitError && (
-          <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-red-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <form onSubmit={handleSubmit} className="space-y-4">
+
+        {/* ── Section 1: Contact Info ── */}
+        <div className="bg-white rounded-xl shadow-sm text-black">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-slate-700">Contact Information</h2>
+          </div>
+          <div className="p-4 sm:p-6 space-y-5">
+            {submitError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <svg className="w-5 h-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div><h3 className="text-sm font-semibold text-red-800">Error</h3><p className="text-xs text-red-600 mt-1">{submitError}</p></div>
+              </div>
+            )}
+
+            {/* Name */}
+            <div>
+              <label className="text-xs font-semibold text-black block mb-1">Contact Name <span className="text-red-500">*</span></label>
+              <input type="text" value={name} onChange={e => { setName(e.target.value); setNameError("") }} placeholder="Person in charge" className={`${inputCls} ${nameError ? "border-red-500" : ""}`} />
+              {nameError && <p className="text-xs text-red-500 mt-1">{nameError}</p>}
+            </div>
+
+            {/* Company */}
+            <div>
+              <label className="text-xs font-semibold text-black block mb-1">Company</label>
+              <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. PT Mahakarya Maritim Muda Nusantara" className={inputCls} />
+              <p className="text-xs text-slate-400 mt-1">Direct company name (optional, separate from partner affiliation)</p>
+            </div>
+
+            {/* Emails */}
+            <div>
+              <label className="text-xs font-semibold text-black block mb-2">Email <span className="text-red-500">*</span></label>
+              <div className="space-y-2">
+                {emails.map((email, idx) => (
+                  <div key={idx}>
+                    <div className="flex items-center gap-2">
+                      <input type="email" value={email} onChange={e => handleEmailChange(idx, e.target.value)} placeholder={`example${idx > 0 ? idx + 1 : ""}@email.com`} className={`flex-1 h-10 px-4 border rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 ${emailErrors[idx] ? "border-red-500" : "border-gray-300"}`} />
+                      {emails.length > 1 && <button type="button" onClick={() => removeEmail(idx)} className="shrink-0 h-10 w-10 flex items-center justify-center border border-red-200 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">{trashIcon}</button>}
+                    </div>
+                    {emailErrors[idx] && <p className="text-xs text-red-500 mt-1">{emailErrors[idx]}</p>}
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addEmail} className="mt-2 flex items-center gap-2 px-4 py-2 text-sm text-sky-600 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded-lg transition font-medium">{plusIcon} Add Another Email</button>
+            </div>
+
+            {/* Phones */}
+            <div>
+              <label className="text-xs font-semibold text-black block mb-2">Phone Number</label>
+              <div className="space-y-2">
+                {phoneNumbers.map((phone, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input type="tel" value={phone} onChange={e => handlePhoneChange(idx, e.target.value)} placeholder="+62 xxx xxxx xxxx" className={`flex-1 h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200`} />
+                    {phoneNumbers.length > 1 && <button type="button" onClick={() => removePhone(idx)} className="shrink-0 h-10 w-10 flex items-center justify-center border border-red-200 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">{trashIcon}</button>}
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={addPhone} className="mt-2 flex items-center gap-2 px-4 py-2 text-sm text-sky-600 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded-lg transition font-medium">{plusIcon} Add Another Phone</button>
+            </div>
+
+            {/* Position & Role */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h3 className="text-sm font-semibold text-red-800">Error</h3>
-                <p className="text-xs text-red-600 mt-1">{submitError}</p>
+                <label className="text-xs font-semibold text-black block mb-1">Position</label>
+                <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Manager" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-black block mb-1">Role</label>
+                <input type="text" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Decision Maker" className={inputCls} />
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Form Content */}
-        <form onSubmit={handleSubmit}>
-          <div className="h-[calc(100vh-240px)] overflow-y-auto">
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div>
-                  <label className="text-xs font-semibold text-black block mb-1">
-                    Contact Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Person in charge"
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 ${errors.name ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errors.name && (
-                    <p className="text-xs text-red-500 mb-3">{errors.name}</p>
-                  )}
-                  {!errors.name && <div className="mb-3"></div>}
-
-                  <label className="text-xs font-semibold text-black block mb-1">
-                    Email <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="emails"
-                    value={formData.emails}
-                    onChange={handleChange}
-                    placeholder="example@email.com"
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 ${errors.emails ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
-                  {errors.emails && (
-                    <p className="text-xs text-red-500 mb-3">{errors.emails}</p>
-                  )}
-                  {!errors.emails && <div className="mb-3"></div>}
-                </div>
-
-                {/* Right Column */}
-                <div>
-                  <label className="text-xs font-semibold text-black block mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone_numbers"
-                    value={formData.phone_numbers}
-                    onChange={handleChange}
-                    placeholder="+62 xxx xxxx xxxx"
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                  />
-
-                  <label className="text-xs font-semibold text-black block mb-1">
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    placeholder="Company name"
-                    className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                  />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={isLoading}
-                  className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Submit</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+        {/* ── Section 2: Affiliation ── */}
+        <div className="bg-white rounded-xl shadow-sm text-black">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-slate-700">Affiliation</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Link this contact to a partner company</p>
           </div>
-        </form>
-      </div>
+          <div className="p-4 sm:p-6 space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-black block mb-1">Partner Company</label>
+              <select value={partnerId} onChange={e => handlePartnerChange(e.target.value)} className={inputCls}>
+                <option value="">— No affiliation —</option>
+                {partners.map(p => <option key={p.id} value={p.id}>{p.name} ({p.initials})</option>)}
+              </select>
+            </div>
+
+            {selectedPartner && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Partner Details</p>
+
+                {/* Row 1: ID + Name + Initials */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Partner ID</p>
+                    <p className="text-sm font-mono font-medium text-slate-800">#{selectedPartner.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Company Name</p>
+                    <p className="text-sm font-medium text-slate-800">{selectedPartner.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Initials</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      <span className="inline-block px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-700 font-mono">{selectedPartner.initials}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Row 2: Industry + Company Type + Partner Type */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Type of Industry</p>
+                    <p className="text-sm text-slate-700">{selectedPartner.industry || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Company Type</p>
+                    <span className="inline-block px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-xs font-medium">{selectedPartner.company_type || '—'}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Partner Type</p>
+                    {(() => {
+                      const colorMap: Record<string, string> = { CLIENT: 'bg-green-100 text-green-700', VENDOR: 'bg-orange-100 text-orange-700', BOTH: 'bg-purple-100 text-purple-700' }
+                      const cls = colorMap[selectedPartner.partner_type] || 'bg-slate-100 text-slate-700'
+                      return <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{selectedPartner.partner_type || '—'}</span>
+                    })()}
+                  </div>
+                </div>
+
+                {/* Row 3: Service + Goods */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Service</p>
+                    <p className="text-sm text-slate-700">{selectedPartner.service || <span className="text-slate-400 italic">—</span>}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">Goods</p>
+                    <p className="text-sm text-slate-700">{selectedPartner.goods || <span className="text-slate-400 italic">—</span>}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Action Buttons ── */}
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={() => setShowCancelModal(true)} disabled={isLoading} className="px-4 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50">Cancel</button>
+          <button type="submit" disabled={isLoading} className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 flex items-center gap-2">
+            {isLoading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Submitting...</span></>) : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg><span>Submit</span></>)}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

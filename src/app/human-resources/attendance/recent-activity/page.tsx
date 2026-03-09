@@ -7,6 +7,8 @@ import { AxiosError } from "axios";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
+import { ResponsiveTable } from "@/components/table/ResponsiveTable";
+import { EmptyState } from "@/components/table/EmptyState";
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
 import { NotificationModal } from "@/components/modals/NotificationModal";
 import { useModal } from "@/hooks/useModal";
@@ -32,6 +34,7 @@ type AttendanceRecord = {
   checked: boolean;
   employee_id: number;
   employee_name: string;
+  employee_code: string;
 };
 
 interface AttendanceResponse {
@@ -67,6 +70,8 @@ export default function RecentActivityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
+  // Mapping employee_id → employee_code dari /api/employees/
+  const [employeeCodeMap, setEmployeeCodeMap] = useState<Record<number, string>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -104,11 +109,9 @@ export default function RecentActivityPage() {
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
         {
-          params: {
-            page: 1,
-            page_size: 1000,
-            sort_by: 'id',
-          },
+          page: 1,
+          page_size: 1000,
+          sort_by: 'id',
         }
       );
 
@@ -134,6 +137,21 @@ export default function RecentActivityPage() {
 
   useEffect(() => {
     fetchAttendances();
+    // Fetch employee list untuk mapping employee_id → employee_code
+    axiosInstance.get('/api/employees/')
+      .then((res) => {
+        const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        const map: Record<number, string> = {};
+        list.forEach((emp) => {
+          if (emp.id && emp.employee_code) {
+            map[emp.id] = emp.employee_code;
+          }
+        });
+        setEmployeeCodeMap(map);
+      })
+      .catch(() => {
+        // Jika gagal, biarkan kosong — fallback ke format EMP-XXXX
+      });
   }, []);
 
   const filteredAttendances = useMemo(() => {
@@ -164,16 +182,22 @@ export default function RecentActivityPage() {
       filtered = filtered.filter(
         (record) =>
           record.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-          `EMP${String(record.employee_id).padStart(3, "0")}`
+          (employeeCodeMap[record.employee_id] || `EMP-${String(record.employee_id).padStart(4, "0")}`)
             .toLowerCase()
-            .includes(search.toLowerCase())
+            .includes(search.toLowerCase()) ||
+          record.date?.toLowerCase().includes(search.toLowerCase())
       );
     }
 
     filters.forEach((filter) => {
       if (filter.value) {
         filtered = filtered.filter((record) => {
-          const fieldValue = record[filter.field as keyof AttendanceRecord];
+          // Dukung nested field seperti clock_in.status
+          const fieldParts = filter.field.split('.');
+          let fieldValue: any = record;
+          for (const part of fieldParts) {
+            fieldValue = fieldValue?.[part];
+          }
           return (
             fieldValue &&
             String(fieldValue)
@@ -185,7 +209,7 @@ export default function RecentActivityPage() {
     });
 
     return filtered;
-  }, [attendanceData, search, filters]);
+  }, [attendanceData, search, filters, employeeCodeMap]);
 
   // Client-side pagination
   const paginatedAttendances = useMemo(() => {
@@ -482,195 +506,115 @@ export default function RecentActivityPage() {
           fieldOptions={fieldOptions}
         />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Employee ID
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Employee Name
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Date</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Clock In
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Clock Out
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Status</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {paginatedAttendances.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400">
-                    {search || filters.length > 0 ? (
-                      <div>
-                        <svg
-                          className="w-12 h-12 mx-auto mb-3 text-slate-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                          />
-                        </svg>
-                        <p className="font-medium">No results found</p>
-                        <p className="text-xs mt-1">
-                          Try adjusting your search or filters
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <svg
-                          className="w-12 h-12 mx-auto mb-3 text-slate-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                          />
-                        </svg>
-                        <p className="font-medium">No attendance data available</p>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )}
-
-              {paginatedAttendances.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={`hover:bg-slate-50 transition ${item.checked ? "bg-gray-50" : ""
-                    } ${index !== paginatedAttendances.length - 1
-                      ? "border-b border-slate-200"
-                      : ""
-                    }`}
+        <ResponsiveTable<AttendanceRecord>
+          columns={[
+            {
+              header: 'Employee Code',
+              render: (item) => (
+                <span className={item.checked ? 'text-gray-500' : ''}>
+                  {employeeCodeMap[item.employee_id] || `EMP-${String(item.employee_id).padStart(4, '0')}`}
+                </span>
+              ),
+            },
+            {
+              header: 'Employee Name',
+              isPrimary: true,
+              render: (item) => (
+                <Link
+                  href={`/human-resources/attendance/recent-activity/${item.id}?name=${encodeURIComponent(item.employee_name || "Employee #" + item.employee_id)}`}
+                  className={`font-medium hover:text-sky-600 transition cursor-pointer hover:underline ${item.checked ? 'text-gray-500' : ''}`}
                 >
-                  <td
-                    className={`py-3 px-3 ${item.checked ? "text-gray-500" : ""}`}
-                  >
-                    EMP{String(item.employee_id).padStart(3, "0")}
-                  </td>
-                  <td
-                    className={`py-3 px-3 font-medium ${item.checked ? "text-gray-500" : ""
-                      }`}
-                  >
-                    <Link
-                      href={`/human-resources/attendance/recent-activity/${item.id}`}
-                      className="hover:text-sky-600 transition cursor-pointer hover:underline"
-                    >
-                      {item.employee_name || `Employee #${item.employee_id}`}
-                    </Link>
-                  </td>
-                  <td
-                    className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : ""
-                      }`}
-                  >
-                    {formatDate(item.date)}
-                  </td>
-                  <td
-                    className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : "font-medium"
-                      }`}
-                  >
-                    <div className="flex flex-col">
-                      <span className={item.checked ? "text-gray-500" : "text-sky-600"}>
-                        {formatTime(item.clock_in.timestamp)}
+                  {item.employee_name || `Employee #${item.employee_id}`}
+                </Link>
+              ),
+            },
+            {
+              header: 'Date',
+              render: (item) => (
+                <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : ''}`}>
+                  {formatDate(item.date)}
+                </span>
+              ),
+            },
+            {
+              header: 'Clock In',
+              render: (item) => (
+                <div className="flex flex-col">
+                  <span className={item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}>
+                    {formatTime(item.clock_in.timestamp)}
+                  </span>
+                  {(() => {
+                    if (!item.clock_in.timestamp) return null;
+                    let dateStr = item.clock_in.timestamp;
+                    if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
+                      dateStr += 'Z';
+                    }
+                    const date = new Date(dateStr);
+                    const jakartaOptions = { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false } as const;
+                    const jakartaHour = parseInt(date.toLocaleTimeString('en-US', jakartaOptions));
+                    const jakartaMinute = parseInt(date.toLocaleTimeString('en-US', { timeZone: 'Asia/Jakarta', minute: 'numeric' }));
+                    // On Time: ≤ 09:15, Late: > 09:15
+                    const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
+                    const statusText = isLate ? 'Late' : 'On Time';
+                    const statusColor = isLate ? 'text-red-500' : 'text-emerald-500';
+                    return (
+                      <span className={`text-xs ${item.checked ? 'text-gray-400' : statusColor} font-medium`}>
+                        {statusText}
                       </span>
-                      {(() => {
-                        if (!item.clock_in.timestamp) return null;
-
-                        // Parse timestamp
-                        let dateStr = item.clock_in.timestamp;
-                        if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
-                          dateStr += 'Z';
-                        }
-                        const date = new Date(dateStr);
-
-                        // Convert to Jakarta time for hour check
-                        const jakartaOptions = { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false } as const;
-                        const jakartaHour = parseInt(date.toLocaleTimeString("en-US", jakartaOptions));
-
-                        // Logic: < 10 (until 09:59) is On Time, >= 10 is Late
-                        const isLate = jakartaHour >= 10;
-                        const statusText = isLate ? "Late" : "On Time";
-                        const statusColor = isLate ? "text-red-500" : "text-emerald-500";
-
-                        return (
-                          <span className={`text-xs ${item.checked ? "text-gray-400" : statusColor} font-medium`}>
-                            {statusText}
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </td>
-                  <td
-                    className={`py-3 px-3 whitespace-nowrap ${item.checked ? "text-gray-500" : "text-sky-600 font-medium"
-                      }`}
-                  >
-                    {formatTime(item.clock_out.timestamp)}
-                    <span className="ml-2 text-xs text-gray-500">
-                      ({item.clock_out.status})
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    {item.checked ? (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                        Approved
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                        Pending
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">
-                    {item.checked ? (
-                      <span className="text-slate-400 text-xs">-</span>
-                    ) : (
-                      <button
-                        onClick={() => handleApprove(item.id, item.employee_name)}
-                        disabled={isProcessing === item.id}
-                        className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Approve"
-                      >
-                        {isProcessing === item.id ? (
-                          <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    );
+                  })()}
+                </div>
+              ),
+            },
+            {
+              header: 'Clock Out',
+              render: (item) => (
+                <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}`}>
+                  {formatTime(item.clock_out.timestamp)}
+                  <span className="ml-1 text-xs text-gray-500">({item.clock_out.status})</span>
+                </span>
+              ),
+            },
+            {
+              header: 'Status',
+              render: (item) => item.checked ? (
+                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Approved</span>
+              ) : (
+                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Pending</span>
+              ),
+            },
+            {
+              header: 'Action',
+              render: (item) => item.checked ? (
+                <span className="text-slate-400 text-xs">-</span>
+              ) : (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleApprove(item.id, item.employee_name) }}
+                  disabled={isProcessing === item.id}
+                  className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Approve"
+                >
+                  {isProcessing === item.id ? (
+                    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ),
+            },
+          ]}
+          data={paginatedAttendances}
+          keyAccessor={(item) => item.id}
+          showTopBorder={false}
+          rowClassName={(item) => item.checked ? 'bg-gray-50' : ''}
+          emptyState={
+            search || filters.length > 0
+              ? <EmptyState type="search" />
+              : <EmptyState title="No attendance data available" />
+          }
+        />
 
         {/* Pagination */}
         {totalPages > 0 && (
@@ -703,6 +647,6 @@ export default function RecentActivityPage() {
         message={notify.notification?.message || ""}
         type={notify.notification?.type || "success"}
       />
-    </div>
+    </div >
   );
 } 

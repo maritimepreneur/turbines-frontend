@@ -4,6 +4,8 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable, TableColumn } from "@/components/table/ResponsiveTable"
+import { EmptyState } from "@/components/table/EmptyState"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Employee = {
@@ -123,42 +125,43 @@ export default function HRPage() {
         />
 
         {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">ID</th>
-              <th className="text-left py-3 px-3">Name</th>
-              <th className="text-left py-3 px-3">Position</th>
-              <th className="text-left py-3 px-3">Department</th>
-              <th className="text-left py-3 px-3">Email</th>
-              <th className="text-left py-3 px-3">Status</th>
-              <th className="text-left py-3 px-3">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">
-                  No data found
-                </td>
-              </tr>
-            )}
-
-            {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3">{item.id}</td>
-                <td className="py-3 px-3 font-medium">{item.name}</td>
-                <td className="py-3 px-3">{item.position}</td>
-                <td className="py-3 px-3">{item.department}</td>
-                <td className="py-3 px-3">{item.email}</td>
-                <td className="py-3 px-3">
-                  <span className={`px-2 py-1 rounded-full text-xs ${item.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+        <div className="mt-4">
+          <ResponsiveTable<Employee>
+            columns={[
+              {
+                header: 'ID',
+                accessor: 'id',
+                isPrimary: true,
+              },
+              {
+                header: 'Name',
+                accessor: 'name',
+                cellClassName: 'font-medium',
+              },
+              {
+                header: 'Position',
+                accessor: 'position',
+              },
+              {
+                header: 'Department',
+                accessor: 'department',
+              },
+              {
+                header: 'Email',
+                accessor: 'email',
+              },
+              {
+                header: 'Status',
+                render: (item) => (
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                     }`}>
                     {item.status}
                   </span>
-                </td>
-                <td className="py-3 px-3">
+                ),
+              },
+              {
+                header: 'Action',
+                render: (item) => (
                   <div className="flex gap-4">
                     <button className="text-purple-500 hover:text-purple-700">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,21 +174,30 @@ export default function HRPage() {
                       </svg>
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                ),
+              },
+            ]}
+            data={paginatedData}
+            keyAccessor={(item) => item.id}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No employees found" description="Click '+ Add Employee' to create a new employee" />
+            }
+          />
+        </div>
 
         {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredData.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredData.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
     </div>
   )

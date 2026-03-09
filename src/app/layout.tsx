@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Turbines",
   description: "Internal tools, dashboards, and company services",
   icons: {
-    icon: "/logo_marmud.png",
+    icon: "/turbines_logo.jpeg",
   },
 };
   

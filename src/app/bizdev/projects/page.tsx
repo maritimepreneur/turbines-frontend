@@ -4,6 +4,8 @@ import { useState } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { EmptyState } from "@/components/table/EmptyState"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
 import { useTableFilters } from "@/hooks/useTableFilters"
 
 type Projects = {
@@ -86,10 +88,10 @@ export default function ProjectsPage() {
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-black">
         {/* Toolbar */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
@@ -112,7 +114,7 @@ export default function ProjectsPage() {
             />
           </div>
 
-          <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+          <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition w-full sm:w-auto">
             + Add
           </button>
         </div>
@@ -130,67 +132,56 @@ export default function ProjectsPage() {
         />
 
         {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-center py-3 px-3">ID</th>
-              <th className="text-center py-3 px-3">Project Name</th>
-              <th className="text-center py-3 px-3">Project Type</th>
-              <th className="text-center py-3 px-3">Payment</th>
-              <th className="text-center py-3 px-3">Duration</th>
-              <th className="py-3 px-3 text-center">Period</th>
-              <th className="text-center py-3 px-3">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-6 text-slate-400">
-                  No data found
-                </td>
-              </tr>
-            )}
-
-            {paginatedData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-slate-50 transition">
-                <td className="py-3 px-3 text-center">{item.id}</td>
-                <td className="py-3 px-3 font-medium text-center">{item.name}</td>
-                <td className="py-3 px-3 text-center">{item.project_type}</td>
-                <td className="py-3 px-3 text-center">{item.payment_type}</td>
-                <td className="py-3 px-3 text-center">{item.duration}</td>
-                <td className="py-3 px-3 text-center">
-                  {item.start_data} – {item.end_date}
-                </td>
-                <td className="py-3 px-3">
+        <div className="mt-4">
+          <ResponsiveTable
+            columns={[
+              { header: 'ID', accessor: 'id' },
+              { header: 'Project Name', accessor: 'name', isPrimary: true, cellClassName: 'font-medium' },
+              { header: 'Project Type', accessor: 'project_type' },
+              { header: 'Payment', accessor: 'payment_type' },
+              { header: 'Duration', accessor: 'duration' },
+              {
+                header: 'Period',
+                render: (item: any) => (
+                  <span className="whitespace-nowrap">{item.start_data} – {item.end_date}</span>
+                ),
+              },
+              {
+                header: 'Action',
+                render: () => (
                   <div className="flex gap-4">
-                    <button className="text-sky-500 hover:text-sky-700">
+                    <button className="text-sky-500 hover:text-sky-700" title="Edit">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                     </button>
-                    <button className="text-red-500 hover:text-red-700">
+                    <button className="text-red-500 hover:text-red-700" title="Delete">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                ),
+              },
+            ]}
+            data={paginatedData}
+            keyAccessor={(item: any) => item.id}
+            emptyState={search || filters.length > 0 ? <EmptyState type="search" /> : <EmptyState title="No data found" />}
+          />
+        </div>
 
 
         {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredData.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+        {totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredData.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
     </div>
   )

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect, useMemo } from "react";
@@ -33,11 +33,14 @@ import {
   Menu,
   X,
   Store,
+  GraduationCap,
 } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const moduleFromQuery = searchParams.get("module");
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -47,43 +50,44 @@ export default function Sidebar() {
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (isMobileOpen) {
-      document.body.style.overflow = "hidden";
+      const scrollY = window.scrollY;
+      document.body.classList.add("body-no-scroll");
+      document.body.style.top = `-${scrollY}px`;
     } else {
-      document.body.style.overflow = "";
+      const scrollY = document.body.style.top;
+      document.body.classList.remove("body-no-scroll");
+      document.body.style.top = "";
+      window.scrollTo(0, parseInt(scrollY || "0") * -1);
     }
     return () => {
-      document.body.style.overflow = "";
+      document.body.classList.remove("body-no-scroll");
+      document.body.style.top = "";
     };
   }, [isMobileOpen]);
 
+  const currentActiveModule = useMemo(() => {
+    if (moduleFromQuery) return moduleFromQuery;
+    if (pathname.startsWith("/bizdev")) return "bizdev";
+    if (pathname.startsWith("/finance")) return "finance";
+    if (pathname.startsWith("/operation")) return "operation";
+    if (pathname.startsWith("/employee") || pathname === "/user-profile") return "employee";
+    if (pathname.startsWith("/human-resources")) return "human-resources";
+    return null;
+  }, [pathname, moduleFromQuery]);
+
   const visibleMenuItems = useMemo(() => {
-    if (pathname.startsWith("/bizdev")) {
+    if (currentActiveModule) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "bizdev",
+        (item) => item.module === "common" || item.module === currentActiveModule,
       );
     }
-    if (pathname.startsWith("/finance")) {
+    if (pathname.startsWith("/training-course")) {
       return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "finance",
-      );
-    }
-    if (pathname.startsWith("/operation")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "operation",
-      );
-    }
-    if (pathname.startsWith("/employee")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "employee",
-      );
-    }
-    if (pathname.startsWith("/human-resources")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "human-resources",
+        (item) => item.module === "common" || item.module === "training-course",
       );
     }
     return MENU_ITEMS;
-  }, [pathname]);
+  }, [currentActiveModule]);
 
   return (
     <>
@@ -96,10 +100,10 @@ export default function Sidebar() {
         >
           <Menu size={22} />
         </button>
-        <div className="flex items-center gap-2">
-          <Image src="/logo_marmud.png" alt="Logo" width={32} height={20} />
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Image src="/logo_horizontal.jpeg" alt="Logo" width={32} height={20} />
           <h1 className="text-lg italic font-bold text-slate-900">Turbines</h1>
-        </div>
+        </Link>
       </div>
 
       {/* Mobile Overlay */}
@@ -113,20 +117,18 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-y-auto
+          sidebar-fixed fixed left-0 top-0 z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-hidden
           transition-transform duration-300 ease-in-out
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between gap-3 mb-10">
-          <div className="flex items-center gap-3">
-            <Image src="/logo_marmud.png" alt="Logo" width={70} height={40} />
-            <h1 className="text-2xl italic font-bold text-slate-900">
-              Turbines
-            </h1>
-          </div>
+        <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Image src="/logo_horizontal.jpeg" alt="Logo" width={180} height={200} />
+            {/* <h1 className="text-2xl italic font-bold text-slate-900">Turbines</h1> */}
+          </Link>
           {/* Close button (mobile only) */}
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -138,7 +140,7 @@ export default function Sidebar() {
         </div>
 
         {/* Menu */}
-        <nav className="space-y-1 text-sm text-slate-600 flex-1">
+        <nav className="space-y-1 text-sm text-slate-600 flex-1 overflow-y-auto min-h-0">
           {visibleMenuItems.map((item) => (
             <MenuLink
               key={item.href}
@@ -177,9 +179,14 @@ function MenuLink({
 
   // Check if any submenu item is active
   const hasActiveSubMenu = subMenu
-    ? subMenu.some((sub) => pathname === sub.href || pathname.startsWith(sub.href + '/'))
+    ? subMenu.some((sub) => pathname === sub.href)
     : false;
-  const isParentActive = active || hasActiveSubMenu;
+
+  // Check if current path matches invoice pages
+  const isInvoicePage = label === "Invoices" &&
+    (pathname === "/finance/invoice" || pathname === "/finance/pre-invoice" || pathname === "/finance/canceled");
+
+  const isParentActive = active || hasActiveSubMenu || isInvoicePage;
 
   // Auto-open submenu if any submenu item is active
   useEffect(() => {
@@ -213,10 +220,9 @@ function MenuLink({
                 key={sub.href}
                 href={sub.href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm
-                  ${
-                    pathname === sub.href || pathname.startsWith(sub.href + '/')
-                      ? "bg-sky-50 text-sky-600 font-medium"
-                      : "text-slate-600 hover:bg-slate-50"
+                  ${pathname === sub.href
+                    ? "bg-sky-50 text-sky-600 font-medium"
+                    : "text-slate-600 hover:bg-slate-50"
                   }
                 `}
               >
@@ -234,7 +240,7 @@ function MenuLink({
     <Link
       href={href}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition
-        ${active ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
+        ${isParentActive ? "bg-sky-100 text-sky-600 font-semibold" : "hover:bg-slate-100"}
       `}
     >
       {icon}
@@ -244,14 +250,6 @@ function MenuLink({
 }
 
 const MENU_ITEMS = [
-  // COMMON
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <LayoutGrid size={18} />,
-    module: "common",
-  },
-
   // BIZDEV
   {
     label: "New Leads",
@@ -266,17 +264,12 @@ const MENU_ITEMS = [
     module: "bizdev",
   },
   {
-    label: "Partner List",
+    label: "Affiliation List",
     href: "/bizdev/partner-list",
     icon: <Handshake size={18} />,
     module: "bizdev",
   },
-  {
-    label: "Vendor List",
-    href: "/bizdev/vendor-list",
-    icon: <Store size={18} />,
-    module: "bizdev",
-  },
+
   {
     label: "Contact List",
     href: "/bizdev/contact-list",
@@ -395,34 +388,88 @@ const MENU_ITEMS = [
     label: "Attendance",
     href: "/human-resources/attendance",
     icon: <CalendarCheck size={18} />,
-    subMenu: [
-      {
-        label: "Recent Activity",
-        href: "/human-resources/attendance/recent-activity",
-      },
-      { label: "Summary", href: "/human-resources/attendance/summary" },
-      { label: "Absent", href: "/human-resources/attendance/absent" },
-    ],
     module: "human-resources",
   },
-  // {
-  //   label: "My Reports",
-  //   href: "/human-resources/reports",
-  //   icon: <BarChart3 size={18} />,
-  //   subMenu: [
-  //     { label: "Weekly Report", href: "/human-resources/reports/weekly" },
-  //     { label: "Monthly Report", href: "/human-resources/reports/monthly" },
-  //   ],
-  //   module: "human-resources"
-  // },
+  {
+    label: "Employee List",
+    href: "/human-resources/employee-list",
+    icon: <UserCircle size={18} />,
+    module: "human-resources",
+  },
+
+  // Training Course
+  {
+    label: "Form Data",
+    href: "/training-course/form-data",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Data",
+    href: "/training-course/form-data",
+    icon: <CalendarCheck size={18} />,
+    module: "training course",
+  },
+  {
+    label: "Interview",
+    href: "/training-course/interview",
+    icon: <Users size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Registration",
+    href: "/training-course/registration",
+    icon: <FileText size={18} />,
+    subMenu: [
+      {
+        label: "All",
+        href: "training-course/form-data/all",
+      },
+      { label: "Foundation", href: "training-course/form-data/foundation" },
+      { label: "Specialization", href: "training-course/form-data/specialization" },
+      { label: "Foundation and Specialization", href: "training-course/form-data/foundation-specialization" },
+      { label: "Executive", href: "training-course/form-data/executive" },
+
+    ],
+    module: "training-course",
+  }, 
+  {
+    label: "Scholarships",
+    href: "/training-course/scholarships",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  {
+    label: "Gform",
+    href: "/training-course/gform",
+    icon: <FileText size={18} />,
+    module: "training-course",
+  },
+  
+  {
+    label: "Scholarships Type",
+    href: "/training-course/scholarships-type",
+    icon: <UsersRound size={18} />,
+    module: "training-course",
+  },
 ];
 
 function UserSection() {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  const profileHref = useMemo(() => {
+    const currentModule = pathname.startsWith("/bizdev") ? "bizdev" :
+      pathname.startsWith("/finance") ? "finance" :
+        pathname.startsWith("/operation") ? "operation" :
+          pathname.startsWith("/employee") ? "employee" :
+            pathname.startsWith("/human-resources") ? "human-resources" : "";
+    return currentModule ? `/user-profile?module=${currentModule}` : "/user-profile";
+  }, [pathname]);
 
   return (
-    <div className="relative border-t pt-4 mt-4">
+    <div className="relative border-t pt-4 mt-4 shrink-0">
       {/* Trigger */}
       <button
         onClick={() => setOpen(!open)}
@@ -460,7 +507,7 @@ function UserSection() {
           {/* Actions */}
           <div className="mt-2 space-y-1">
             <Link
-              href="/user-profile"
+              href={profileHref}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-100 transition"
             >

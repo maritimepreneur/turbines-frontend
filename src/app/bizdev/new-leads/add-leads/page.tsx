@@ -65,12 +65,43 @@ export default function AddLeadsPage() {
     fetchPartners()
   }, [showPartnerDropdown]) // Remove partnerSearch dependency
 
+  // Contact dropdown states
+  const [contactSearch, setContactSearch] = useState("")
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(null)
+  const [showContactDropdown, setShowContactDropdown] = useState(false)
+  const [contactsData, setContactsData] = useState<any[]>([])
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false)
+
+  // Fetch contacts from database
+  useEffect(() => {
+    if (!showContactDropdown || contactsData.length > 0) return
+
+    const fetchContacts = async () => {
+      setIsLoadingContacts(true)
+      try {
+        const response = await axiosInstance.get('/api/contacts/')
+        const contactsArray = response.data.data || response.data || []
+        setContactsData(contactsArray)
+      } catch (error) {
+        console.error('❌ Error fetching contacts:', error)
+      } finally {
+        setIsLoadingContacts(false)
+      }
+    }
+
+    fetchContacts()
+  }, [showContactDropdown])
+
   // ... (kode lain tetap sama)
 
   // Di bagian render dropdown:
   // Gunakan filteredPartners untuk mapping
   const filteredPartners = partnersData.filter((partner: any) =>
     partner.name.toLowerCase().includes(partnerSearch.toLowerCase())
+  )
+
+  const filteredContacts = contactsData.filter((contact: any) =>
+    contact.name.toLowerCase().includes(contactSearch.toLowerCase())
   )
 
   const [formData, setFormData] = useState<FormData>({
@@ -114,16 +145,19 @@ export default function AddLeadsPage() {
       if (!target.closest('.partner-dropdown-container')) {
         setShowPartnerDropdown(false)
       }
+      if (!target.closest('.contact-dropdown-container')) {
+        setShowContactDropdown(false)
+      }
     }
 
-    if (showPartnerDropdown) {
+    if (showPartnerDropdown || showContactDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showPartnerDropdown])
+  }, [showPartnerDropdown, showContactDropdown])
 
   // Handle input change
   const handleChange = (
@@ -168,6 +202,36 @@ export default function AddLeadsPage() {
     // Clear other fields if manually typing
     if (!selectedPartnerId) {
       setSelectedPartnerId(null)
+    }
+  }
+
+  // Handle contact selection from dropdown
+  const handleContactSelect = (contactId: number) => {
+    const selectedContact = contactsData?.find((c: any) => c.id === contactId)
+    if (selectedContact) {
+      setSelectedContactId(contactId)
+      setContactSearch(selectedContact.name)
+      setShowContactDropdown(false)
+
+      setFormData(prev => ({
+        ...prev,
+        contact_name: selectedContact.name || "",
+        contact_email: selectedContact.emails?.[0] || "",
+        contact_phone: selectedContact.phone_numbers?.[0] || "",
+        contact_company: selectedContact.company || "",
+      }))
+    }
+  }
+
+  // Handle contact search input
+  const handleContactSearchChange = (value: string) => {
+    setContactSearch(value)
+    setShowContactDropdown(true)
+    setFormData(prev => ({ ...prev, contact_name: value }))
+
+    // Clear selected id if manually typing
+    if (selectedContactId) {
+      setSelectedContactId(null)
     }
   }
 
@@ -228,17 +292,21 @@ export default function AddLeadsPage() {
       let contactId = null
       let partnerId = null
 
-      // 1. Create Contact if filled
+      // 1. Create Contact if filled and not selected from dropdown
       if (formData.contact_name) {
-        const contactData = {
-          name: formData.contact_name,
-          emails: formData.contact_email ? [formData.contact_email] : [],
-          phone_numbers: formData.contact_phone ? [formData.contact_phone] : [],
-          company: formData.contact_company,
-        }
+        if (!selectedContactId) {
+          const contactData = {
+            name: formData.contact_name,
+            emails: formData.contact_email ? [formData.contact_email] : [],
+            phone_numbers: formData.contact_phone ? [formData.contact_phone] : [],
+            company: formData.contact_company,
+          }
 
-        const contactRes = await axiosInstance.post('/api/contacts/create', contactData)
-        contactId = contactRes.data.data?.id
+          const contactRes = await axiosInstance.post('/api/contacts/create', contactData)
+          contactId = contactRes.data.data?.id
+        } else {
+          contactId = selectedContactId
+        }
       }
 
       // 2. Create Partner if filled
@@ -350,8 +418,8 @@ export default function AddLeadsPage() {
 
         {/* Form Content */}
         <form onSubmit={handleSubmit}>
-          <div className="h-[calc(100vh-240px)] overflow-y-auto">
-            <div className="p-6">
+          <div className="max-h-none sm:max-h-[calc(100vh-240px)] overflow-y-auto">
+            <div className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div>
@@ -406,15 +474,45 @@ export default function AddLeadsPage() {
                   <label className="text-xs font-semibold text-black block mb-1">
                     Contact Name
                   </label>
-                  <input
-                    type="text"
-                    name="contact_name"
-                    value={formData.contact_name}
-                    onChange={handleChange}
-                    placeholder="Person in charge"
-                    className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.contact_name ? "border-red-500" : "border-gray-300"
-                      }`}
-                  />
+                  <div className="relative contact-dropdown-container">
+                    <input
+                      type="text"
+                      name="contact_name"
+                      value={contactSearch || formData.contact_name}
+                      onChange={(e) => handleContactSearchChange(e.target.value)}
+                      onFocus={() => setShowContactDropdown(true)}
+                      placeholder="Person in charge"
+                      className={`w-full h-10 mb-1 px-4 border rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 ${errors.contact_name ? "border-red-500" : "border-gray-300"
+                        }`}
+                      autoComplete="off"
+                    />
+
+                    {showContactDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {isLoadingContacts ? (
+                          <div className="px-4 py-3 text-center text-gray-500">
+                            <div className="inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                            Loading contacts...
+                          </div>
+                        ) : filteredContacts.length > 0 ? (
+                          filteredContacts.map((contact: any) => (
+                            <div
+                              key={contact.id}
+                              onClick={() => handleContactSelect(contact.id)}
+                              className="px-4 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-semibold text-sm text-black">{contact.name}</div>
+                              {contact.company && <div className="text-xs text-gray-500">{contact.company}</div>}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-center text-gray-500 text-sm">
+                            {contactSearch ? 'Contact tidak ditemukan' : 'Tidak ada data contact'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   {errors.contact_name && (
                     <p className="text-xs text-red-500 mb-3">{errors.contact_name}</p>
                   )}

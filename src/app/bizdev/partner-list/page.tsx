@@ -6,6 +6,8 @@ import { useState, useEffect, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
+import { EmptyState } from "@/components/table/EmptyState"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
@@ -19,6 +21,15 @@ type Partner = {
   partner_type: string
   service?: string
   goods?: string
+}
+
+type Contact = {
+  id: number
+  name: string
+  emails?: string[]
+  partner_id?: number
+  position?: string
+  role?: string
 }
 
 interface PartnersResponse {
@@ -35,6 +46,12 @@ interface PartnersResponse {
   }
 }
 
+interface ContactsResponse {
+  message: string
+  code: number
+  data: { list: Contact[]; pagination: any }
+}
+
 export default function PartnerListPage() {
   const router = useRouter()
   const [showFilter, setShowFilter] = useState(false)
@@ -42,6 +59,7 @@ export default function PartnerListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
+  const [contactsByPartnerId, setContactsByPartnerId] = useState<Record<number, Contact[]>>({})
 
   // Modals state
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -78,53 +96,65 @@ export default function PartnerListPage() {
     { label: "Goods", value: "goods" },
   ]
 
+
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // Fetch partners (critical — show error if fails)
+        const partnerRes = await axiosInstance.post<PartnersResponse>('/api/partners/', {
+          params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+        })
+        if (partnerRes.data.code === 200) {
+          setPartnersData(partnerRes.data.data.list)
+          setPagination(partnerRes.data.data.pagination)
+        } else throw new Error(partnerRes.data.message || 'Failed to fetch partners')
+      } catch (err: any) {
+        if (err.response?.status === 401) { setError('Session expired.'); router.push('/login') }
+        else setError(err.response?.data?.message || 'Failed to load partners data.')
+      } finally { setIsLoading(false) }
+
+      // Fetch contacts separately — non-blocking, silently ignore errors
+      try {
+        const contactRes = await axiosInstance.post<ContactsResponse>('/api/contacts/', {
+          params: { page_size: 1000 }
+        })
+        if (contactRes.data.code === 200) {
+          const grouped: Record<number, Contact[]> = {}
+          contactRes.data.data.list.forEach(c => {
+            if (c.partner_id) {
+              if (!grouped[c.partner_id]) grouped[c.partner_id] = []
+              grouped[c.partner_id].push(c)
+            }
+          })
+          setContactsByPartnerId(grouped)
+        }
+      } catch {
+        // Contacts API failed — PIC column will show "—", but partner list still works fine
+      }
+    }
+    fetchAll()
+  }, [])
+
   const fetchPartners = async () => {
     try {
       setIsLoading(true)
       setError(null)
-
-      console.log('📥 Fetching all partners data...')
-
-      const response = await axiosInstance.post<PartnersResponse>(
-        '/api/partners/',
-        {
-          params: {
-            page_number: 1,
-            page_size: 1000, // Fetch all data
-            sort_by: 'id',
-            sort_order: 'DESC',
-          }
-        }
-      )
-
-      console.log('📦 Response:', response.data)
-
+      const response = await axiosInstance.post<PartnersResponse>('/api/partners/', {
+        params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+      })
       if (response.data.code === 200) {
-        console.log('✅ Partners data fetched:', response.data.data.list.length, 'items')
         setPartnersData(response.data.data.list)
         setPagination(response.data.data.pagination)
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch partners')
-      }
+      } else throw new Error(response.data.message || 'Failed to fetch partners')
     } catch (err: any) {
-      console.error('❌ Error fetching partners:', err)
-
-      if (err.response?.status === 401) {
-        setError('Session expired. Please login again.')
-        router.push('/login')
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message)
-      } else {
-        setError('Failed to load partners data. Please try again.')
-      }
-    } finally {
-      setIsLoading(false)
-    }
+      if (err.response?.status === 401) { setError('Session expired.'); router.push('/login') }
+      else setError(err.response?.data?.message || 'Failed to load partners data.')
+    } finally { setIsLoading(false) }
   }
-
-  useEffect(() => {
-    fetchPartners()
-  }, [])
 
   const filteredPartners = useMemo(() => {
     let filtered = [...partnersData]
@@ -250,7 +280,7 @@ export default function PartnerListPage() {
           <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -272,7 +302,7 @@ export default function PartnerListPage() {
           <h1 className="text-2xl font-semibold mt-1 text-black">Partner List</h1>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex flex-col items-center justify-center py-12">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -326,7 +356,7 @@ export default function PartnerListPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-black">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex flex-wrap gap-2">
             <button
@@ -351,11 +381,11 @@ export default function PartnerListPage() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button
               onClick={() => fetchPartners()}
               disabled={isLoading}
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50"
+              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center justify-center gap-2 disabled:opacity-50 flex-1 sm:flex-none"
               title="Refresh data"
             >
               <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,8 +394,8 @@ export default function PartnerListPage() {
               Refresh
             </button>
 
-            <Link href="/bizdev/partner-list/add">
-              <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
+            <Link href="/bizdev/partner-list/add" className="flex-1 sm:flex-none">
+              <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition w-full">
                 + Add
               </button>
             </Link>
@@ -383,97 +413,103 @@ export default function PartnerListPage() {
           fieldOptions={fieldOptions}
         />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-3 whitespace-nowrap">ID</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Company Name</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Initial</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Industry</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Service</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Company Type</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Partner Type</th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filteredPartners.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 text-slate-400">
-                    {search || filters.length > 0
-                      ? (
-                        <div>
-                          <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                          <p className="font-medium">No results found</p>
-                          <p className="text-xs mt-1">Try adjusting your search or filters</p>
+        <div className="mt-4">
+          <ResponsiveTable<Partner>
+            columns={[
+              {
+                header: 'ID',
+                accessor: 'id',
+              },
+              {
+                header: 'Company Name',
+                accessor: 'name',
+                isPrimary: true,
+                cellClassName: 'font-medium',
+              },
+              {
+                header: 'Initial',
+                accessor: 'initials',
+              },
+              {
+                header: 'Industry',
+                accessor: 'industry',
+              },
+              {
+                header: 'Service',
+                render: (item) => item.service || (
+                  <span className="text-slate-400 text-xs">-</span>
+                ),
+              },
+              {
+                header: 'Company Type',
+                accessor: 'company_type',
+              },
+              {
+                header: 'Partner Type',
+                accessor: 'partner_type',
+              },
+              {
+                header: 'PIC',
+                render: (item) => {
+                  const pics = contactsByPartnerId[item.id]
+                  if (!pics || pics.length === 0) return <span className="text-slate-400 text-xs">—</span>
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      {pics.map(pic => (
+                        <div key={pic.id} className="flex items-center gap-2">
+                          <div className="shrink-0 w-6 h-6 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-semibold">
+                            {pic.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-slate-800 truncate">{pic.name}</p>
+                            {pic.position && <p className="text-xs text-slate-400 truncate">{pic.position}</p>}
+                          </div>
                         </div>
-                      )
-                      : (
-                        <div>
-                          <svg className="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                          </svg>
-                          <p className="font-medium">No partners data available</p>
-                          <p className="text-xs mt-1">Click '+ Add' to create a new partner</p>
-                        </div>
-                      )
-                    }
-                  </td>
-                </tr>
-              )}
-
-              {paginatedPartners.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={`hover:bg-slate-50 transition ${index !== filteredPartners.length - 1 ? 'border-b border-slate-200' : ''
-                    }`}
-                >
-                  <td className="py-3 px-3">{item.id}</td>
-                  <td className="py-3 px-3 font-medium">{item.name}</td>
-                  <td className="py-3 px-3">{item.initials}</td>
-                  <td className="py-3 px-3">{item.industry}</td>
-                  <td className="py-3 px-3">
-                    {item.service || (
-                      <span className="text-slate-400 text-xs">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">{item.company_type}</td>
-                  <td className="py-3 px-3">{item.partner_type}</td>
-                  <td className="py-3 px-3">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleEdit(item.id)}
-                        className="text-sky-500 hover:text-sky-700 transition"
-                        title="Edit partner"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(item.id, item.name)}
-                        disabled={isDeleting === item.id}
-                        className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Delete partner"
-                      >
-                        {isDeleting === item.id ? (
-                          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        )}
-                      </button>
+                      ))}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  )
+                },
+              },
+              {
+                header: 'Action',
+                render: (item) => (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
+                      className="text-sky-500 hover:text-sky-700 transition"
+                      title="Edit partner"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.name) }}
+                      disabled={isDeleting === item.id}
+                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete partner"
+                    >
+                      {isDeleting === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginatedPartners}
+            keyAccessor={(item) => item.id}
+            showTopBorder={false}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No partners data available" description="Click '+ Add' to create a new partner" />
+            }
+          />
         </div>
 
 

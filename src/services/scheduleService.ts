@@ -73,30 +73,31 @@ export const scheduleService = {
   },
 
   async createSchedule(payload: CreateSchedulePayload): Promise<Schedule> {
+<<<<<<< HEAD
     const apiPayload: any = {
       title: payload.title,
       description: payload.description,
       start_time: toTimeWithSeconds(payload.start_time),
       end_time: toTimeWithSeconds(payload.end_time),
       date: payload.date,
-    }
-    if (payload.employee_id) apiPayload.employee_id = payload.employee_id
-    if (payload.tagged_ids && payload.tagged_ids.length > 0) apiPayload.tagged_ids = payload.tagged_ids
-    
-    console.log('[createSchedule] Sending payload:', apiPayload)
-    const response = await axiosInstance.post('/api/schedules/create', apiPayload)
-    const raw = response.data?.data ?? response.data
-    return normaliseSchedule(raw)
-  },
-
-  async updateSchedule(id: number, payload: Partial<CreateSchedulePayload>): Promise<Schedule> {
-    const response = await axiosInstance.put(`/api/schedules/${id}`, payload)
-    const raw = response.data?.data ?? response.data
-    return normaliseSchedule(raw)
-  },
-
-  async deleteSchedule(id: number): Promise<void> {
-    await axiosInstance.delete(`/api/schedules/${id}`)
-  },
-}
-
+=======
+    try {
+      // Backend TIDAK punya field `type` — hapus dari payload API
+      const { type, ...rest } = payload
+      const apiPayload = {
+        title: rest.title,
+        description: rest.description,
+        start_time: toTimeWithSeconds(rest.start_time),
+        end_time: toTimeWithSeconds(rest.end_time),
+        date: rest.date,
+        employee_id: Number(rest.employee_id),
+        tagged_ids: (rest.tagged_ids ?? []).map(Number),
+      }
+      console.log('[scheduleService] POST /api/schedules/create', apiPayload)
+      const response = await axiosInstance.post('/api/schedules/create', apiPayload)
+      const created = normaliseSchedule(raw)
+      // Simpan `type` ke localStorage sebagai metadata frontend-only
+      created.type = type
+      const existing = lsGetAll()
+      lsSave([...existing.filter((s) => s.schedule_id !== created.schedule_id), created])
+      return created

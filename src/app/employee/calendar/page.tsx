@@ -4,9 +4,9 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Clock, CheckSquare, Square, X, Star, Loader2 } from 'lucide-react';
 import { fetchGoogleHolidays, getMonthRange, type GoogleHoliday } from '@/services/googleCalendarService';
 import { useSchedules, useCreateSchedule } from '@/hooks/useSchedules';
-import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Schedule, CreateSchedulePayload } from '@/services/scheduleService';
+import axiosInstance from '@/lib/axios';
+import type { Schedule } from '@/services/scheduleService';
 
 // ============================================================
 // Interface TaskItem (lokal, belum ada di DB)
@@ -88,18 +88,89 @@ export default function CalendarPage() {
 
   // ── API hooks ─────────────────────────────────────────────
   const { data: schedules = [], isLoading: schedulesLoading } = useSchedules();
-  const { data: employees = [] } = useEmployees();
   const createSchedule = useCreateSchedule();
   const { user } = useAuth();
 
+  // ── Resolve employee_id ────────────────────────────────────
+  // Gunakan /api/employees/profile (accessible semua user)
+  // Jika 403 / tidak ada → coba /api/employees/ (admin only)
+  const [employeeId, setEmployeeId] = useState<number>(0);
+  const [employeeList, setEmployeeList] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Coba /api/employees/profile terlebih dahulu (untuk regular user)
+    axiosInstance.get('/api/employees/profile')
+      .then((res) => {
+        const profile = res.data?.data ?? res.data;
+        if (profile?.id) {
+          setEmployeeId(profile.id);
+          setIsAdmin(false);
+          console.log('[Calendar] employee_id from profile:', profile.id);
+        }
+      })
+      .catch((profileErr) => {
+        const status = profileErr?.response?.status;
+        // 403/404 → coba list semua employee (admin only)
+        if (status === 403 || status === 404 || status === 500) {
+          axiosInstance.get('/api/employees/')
+            .then((res) => {
+              const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+              setEmployeeList(list);
+              const me = list.find((e: any) => e.user_id === user.id);
+              if (me) {
+                setEmployeeId(me.id);
+                setIsAdmin(false);
+              } else if (list.length > 0) {
+                // Admin: tidak ada di employee list
+                setEmployeeId(list[0].id);
+                setIsAdmin(true);
+                console.log('[Calendar] Admin mode, default employee:', list[0].full_name);
+              }
+            })
+            .catch(() => {
+              // Kedua endpoint gagal — gunakan partner_id dari user jika ada
+              if (user?.partner_id) {
+                setEmployeeId(user.partner_id);
+                console.log('[Calendar] Fallback to partner_id:', user.partner_id);
+              }
+            });
+        }
+      });
+  }, [user?.id]);
+
   // ── New event form state ───────────────────────────────────
-  const [newEvent, setNewEvent] = useState<Omit<CreateSchedulePayload, 'date'>>({
+  const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
     start_time: '09:00',
     end_time: '10:00',
-    tagged_ids: [],
+    type: 'meeting' as Schedule['type'],
   });
+  const [taggedIds, setTaggedIds] = useState<number[]>([]);
+  const [tagSearch, setTagSearch] = useState('');
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+
+  // ── Fetch employee list untuk tagging (semua user) ────────
+  const [allEmployeesForTag, setAllEmployeesForTag] = useState<any[]>([]);
+  useEffect(() => {
+    axiosInstance.get('/api/employees/')
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        setAllEmployeesForTag(list);
+      })
+      .catch(() => {
+        // 403 untuk regular user — tidak apa, fitur tag employee tidak tersedia
+        setAllEmployeesForTag([]);
+      });
+  }, []);
+
+  // Filtered list berdasarkan search
+  const tagSearchResults = allEmployeesForTag.filter((e) =>
+    e.full_name?.toLowerCase().includes(tagSearch.toLowerCase()) &&
+    !taggedIds.includes(e.id)
+  ).slice(0, 6); // max 6 hasil
 
   // ── Fetch Google Calendar holidays ────────────────────────
   useEffect(() => {
@@ -153,16 +224,26 @@ export default function CalendarPage() {
     return map;
   }, [holidays]);
 
+  // ── Filter schedules: tampilkan milik sendiri + yang di-tag ─
+  const visibleSchedules = useMemo(() => {
+    if (isAdmin) return schedules; // Admin lihat semua
+    if (!employeeId) return schedules; // Belum resolve → tampil semua dulu
+    return schedules.filter((s) =>
+      s.employee_id === employeeId ||          // Schedule milik sendiri
+      s.tagged_ids?.includes(employeeId)       // Atau di-tag di schedule orang lain
+    );
+  }, [schedules, employeeId, isAdmin]);
+
   // ── Index schedules by date ───────────────────────────────
   const schedulesByDate = useMemo(() => {
     const map = new Map<string, Schedule[]>();
-    schedules.forEach((s) => {
+    visibleSchedules.forEach((s) => {
       const list = map.get(s.date) || [];
       list.push(s);
       map.set(s.date, list);
     });
     return map;
-  }, [schedules]);
+  }, [visibleSchedules]);
 
   const selectedDateSchedules = useMemo(
     () => schedulesByDate.get(toDateKey(selectedDate)) || [],
@@ -196,19 +277,24 @@ export default function CalendarPage() {
 
   // ── Create event handler ──────────────────────────────────
   const handleCreateEvent = async () => {
-    if (!newEvent.title.trim() || !user?.id) return;
+    if (!newEvent.title.trim()) return;
 
     await createSchedule.mutateAsync({
-      title: newEvent.title.trim(),
+      title:       newEvent.title.trim(),
       description: newEvent.description.trim(),
-      start_time: newEvent.start_time,
-      end_time: newEvent.end_time,
-      date: toDateKey(selectedDate),
-      employee_id: user.id,
-      tagged_ids: newEvent.tagged_ids,
+      start_time:  newEvent.start_time,
+      end_time:    newEvent.end_time,
+      date:        toDateKey(selectedDate),
+      type:        newEvent.type,
+      tagged_ids:  taggedIds,
+      employee_id: employeeId,
     });
 
-    setNewEvent({ title: '', description: '', start_time: '09:00', end_time: '10:00', tagged_ids: [] });
+    // Reset form & tutup modal
+    setNewEvent({ title: '', description: '', start_time: '09:00', end_time: '10:00', type: 'meeting' });
+    setTaggedIds([]);
+    setTagSearch('');
+    setTagDropdownOpen(false);
     setShowNewEventModal(false);
   };
 
@@ -219,16 +305,9 @@ export default function CalendarPage() {
   }, [selectedDate]);
 
   const getBadge = (s: Schedule) => {
-    const typeMap: Record<Schedule['type'], string> = {
-      meeting: 'Meeting',
-      working: 'Work',
-      personal: 'Personal',
-      holiday: 'Holiday',
-    };
-    const label = typeMap[s.type] || 'Work';
-    const color = BADGE_COLORS[label] || BADGE_COLORS['Work'];
+    const colors = SCHEDULE_TYPE_COLORS[s.type] ?? SCHEDULE_TYPE_COLORS['working'];
     return (
-      <span key={s.id} className={`hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md ${color}`}>
+      <span key={s.schedule_id} className={`hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md ${colors.bg} ${colors.text}`}>
         {s.title}
       </span>
     );
@@ -236,7 +315,7 @@ export default function CalendarPage() {
 
   const getDot = (s: Schedule) => {
     const colors = SCHEDULE_TYPE_COLORS[s.type];
-    return <span key={s.id} className={`w-1.5 h-1.5 rounded-full ${colors.dot} sm:hidden`} />;
+    return <span key={s.schedule_id} className={`w-1.5 h-1.5 rounded-full ${colors.dot} sm:hidden`} />;
   };
 
   // ── Sidebar content (shared desktop + mobile sheet) ───────
@@ -279,14 +358,55 @@ export default function CalendarPage() {
           <div className="space-y-3">
             {selectedDateSchedules.map((s) => {
               const colors = SCHEDULE_TYPE_COLORS[s.type] ?? SCHEDULE_TYPE_COLORS['working'];
+              // Cari nama employee dari list (hanya admin yang punya employeeList)
+              const empName = isAdmin
+                ? (employeeList.find((e: any) => e.id === s.employee_id)?.full_name ?? `Employee #${s.employee_id}`)
+                : null;
+              // Cek apakah type dari localStorage (bukan default)
+              const hasLocalType = !s.schedule_id.startsWith('local_')
+                ? typeof window !== 'undefined' && (() => {
+                    try { const ls = JSON.parse(localStorage.getItem('turbines_schedules') || '[]'); return ls.some((l: any) => l.schedule_id === s.schedule_id && l.type); } catch { return false; }
+                  })()
+                : true;
+              // Cek apakah employee di-tag (bukan owner)
+              const isTagged = !isAdmin && employeeId > 0 && s.employee_id !== employeeId && s.tagged_ids?.includes(employeeId);
+              // Nama owner schedule (untuk card yang di-tag)
+              const ownerName = isTagged
+                ? (allEmployeesForTag.find((e) => e.id === s.employee_id)?.full_name ?? `Employee #${s.employee_id}`)
+                : null;
               return (
-                <div key={s.id} className={`rounded-lg border-l-4 ${colors.border} ${colors.bg} p-3`}>
+                <div key={s.schedule_id} className={`rounded-lg border-l-4 ${colors.border} ${colors.bg} p-3`}>
+                  {/* Admin: tampilkan nama employee */}
+                  {isAdmin && empName && (
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-[10px] font-bold bg-slate-700 text-white px-2 py-0.5 rounded-full">
+                        👤 {empName}
+                      </span>
+                    </div>
+                  )}
+                  {/* Employee: tampilkan badge "Tagged" + nama owner */}
+                  {isTagged && (
+                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">
+                        🔖 Tagged
+                      </span>
+                      {ownerName && (
+                        <span className="text-[10px] text-slate-400">by {ownerName}</span>
+                      )}
+                    </div>
+                  )}
                   <p className="font-semibold text-slate-800 text-sm">{s.title}</p>
                   <div className="flex items-center gap-1.5 mt-1">
                     <Clock size={12} className="text-slate-400" />
                     <span className="text-xs text-slate-500">
                       {formatTime12(s.start_time)} - {formatTime12(s.end_time)}
                     </span>
+                    {/* Type badge — hanya tampil jika type sudah di-set (ada di localStorage) */}
+                    {hasLocalType && (
+                      <span className={`ml-auto text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${colors.bg} ${colors.text}`}>
+                        {s.type}
+                      </span>
+                    )}
                   </div>
                   {s.description && (
                     <p className="text-xs text-slate-400 mt-1">{s.description}</p>
@@ -533,6 +653,26 @@ export default function CalendarPage() {
 
             {/* Body */}
             <div className="p-5 space-y-4 max-h-[70vh] sm:max-h-none overflow-y-auto">
+              {/* Admin: pilih employee */}
+              {isAdmin && employeeList.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Assign to Employee <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(Number(e.target.value))}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white"
+                  >
+                    {employeeList.map((emp: any) => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.full_name} ({emp.employee_code})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-amber-500 mt-1">🔑 Admin mode — membuat jadwal untuk employee</p>
+                </div>
+              )}
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -559,61 +699,148 @@ export default function CalendarPage() {
                 />
               </div>
 
-              {/* Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
-                  <input
-                    type="time"
-                    value={newEvent.start_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                  />
+              {/* Time — disembunyikan jika type = holiday */}
+              {newEvent.type !== 'holiday' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Start Time</label>
+                    <input
+                      type="time"
+                      value={newEvent.start_time}
+                      onChange={(e) => setNewEvent({ ...newEvent, start_time: e.target.value })}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
+                    <input
+                      type="time"
+                      value={newEvent.end_time}
+                      onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">End Time</label>
-                  <input
-                    type="time"
-                    value={newEvent.end_time}
-                    onChange={(e) => setNewEvent({ ...newEvent, end_time: e.target.value })}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                  />
-                </div>
-              </div>
+              )}
 
-              {/* Tag Employees */}
+              {/* Label merah saat Day Off dipilih */}
+              {newEvent.type === 'holiday' && (
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5 bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-sm">
+                    <span>🏖️</span>
+                    Day Off
+                  </span>
+                  <span className="text-xs text-slate-400">Berlaku sepanjang hari</span>
+                </div>
+              )}
+
+              {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tag Employees</label>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-lg">
-                  {employees.map((emp) => {
-                    const isSelected = newEvent.tagged_ids.includes(emp.id);
+                <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {(['meeting', 'working', 'personal', 'holiday'] as Schedule['type'][]).map((type) => {
+                    const selected = newEvent.type === type;
+                    const colors   = SCHEDULE_TYPE_COLORS[type];
                     return (
                       <button
-                        key={emp.id}
-                        type="button"
-                        onClick={() => {
-                          setNewEvent({
-                            ...newEvent,
-                            tagged_ids: isSelected
-                              ? newEvent.tagged_ids.filter((id) => id !== emp.id)
-                              : [...newEvent.tagged_ids, emp.id],
-                          });
-                        }}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
-                          isSelected
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                        key={type}
+                        onClick={() => setNewEvent({
+                          ...newEvent,
+                          type,
+                          ...(type === 'holiday'
+                            ? { start_time: '00:00', end_time: '23:59' }
+                            : { start_time: '09:00', end_time: '10:00' }
+                          ),
+                        })}
+                        className={`
+                          flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold border transition
+                          ${selected
+                            ? `${colors.bg} ${colors.border} ${colors.text} border-2`
+                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'}
+                        `}
                       >
-                        {emp.full_name}
+                        <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
+                        <span className="capitalize">{type === 'holiday' ? 'Day Off' : type}</span>
                       </button>
                     );
                   })}
                 </div>
-                {newEvent.tagged_ids.length > 0 && (
-                  <p className="text-xs text-slate-400 mt-1">{newEvent.tagged_ids.length} employee(s) tagged</p>
-                )}
               </div>
+
+              {/* Tag Employee */}
+              {allEmployeesForTag.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Tag Employee
+                    {taggedIds.length > 0 && (
+                      <span className="ml-2 text-xs text-blue-500 font-normal">{taggedIds.length} tagged</span>
+                    )}
+                  </label>
+
+                  {/* Tagged chips */}
+                  {taggedIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {taggedIds.map((id) => {
+                        const emp = allEmployeesForTag.find((e) => e.id === id);
+                        return emp ? (
+                          <span
+                            key={id}
+                            className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full"
+                          >
+                            👤 {emp.full_name}
+                            <button
+                              onClick={() => setTaggedIds((prev) => prev.filter((i) => i !== id))}
+                              className="ml-0.5 hover:text-blue-900 transition"
+                            >
+                              <X size={11} />
+                            </button>
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+
+                  {/* Search input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={tagSearch}
+                      onChange={(e) => { setTagSearch(e.target.value); setTagDropdownOpen(true); }}
+                      onFocus={() => setTagDropdownOpen(true)}
+                      placeholder="Search employee name..."
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                    />
+                    {/* Dropdown hasil search */}
+                    {tagDropdownOpen && tagSearch.length > 0 && (
+                      <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                        {tagSearchResults.length > 0 ? (
+                          tagSearchResults.map((emp) => (
+                            <button
+                              key={emp.id}
+                              onClick={() => {
+                                setTaggedIds((prev) => [...prev, emp.id]);
+                                setTagSearch('');
+                                setTagDropdownOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-blue-50 transition text-left"
+                            >
+                              <span className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 flex-shrink-0">
+                                {emp.full_name?.[0]?.toUpperCase()}
+                              </span>
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{emp.full_name}</p>
+                                <p className="text-xs text-slate-400">{emp.employee_code}</p>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <p className="text-sm text-slate-400 text-center py-3">No employee found</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}

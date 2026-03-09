@@ -61,9 +61,9 @@ export function Pagination({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className={`flex flex-col ${isCompact ? 'items-center gap-3' : 'sm:flex-row justify-between items-center gap-4'} mt-6 pt-4 border-t border-slate-200`}>
+    <div className={`flex flex-col ${isCompact ? 'items-center gap-3' : 'sm:flex-row justify-between items-center gap-3 sm:gap-4'} mt-4 sm:mt-6 pt-4 border-t border-slate-200`}>
       {/* Items per page selector */}
-      <div className="flex items-center gap-3 text-sm">
+      <div className="flex items-center gap-2 sm:gap-3 text-sm">
         <span className="text-slate-600">Show</span>
         <select
           value={itemsPerPage}
@@ -106,7 +106,7 @@ export function Pagination({
         >
           <div className="flex items-center gap-1">
             <ChevronLeft size={16} />
-            <span>Prev</span>
+            <span className="hidden sm:inline">Prev</span>
           </div>
         </button>
 
@@ -151,7 +151,7 @@ export function Pagination({
           className="px-3 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sky-50 hover:border-sky-400 transition text-sm font-medium text-slate-700"
         >
           <div className="flex items-center gap-1">
-            <span>Next</span>
+            <span className="hidden sm:inline">Next</span>
             <ChevronRight size={16} />
           </div>
         </button>

@@ -1,207 +1,141 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faArrowLeftLong,
-  faCheck,
-  faFilter,
-} from "@fortawesome/free-solid-svg-icons";
+"use client"
 
-export default function GeneralInfoPage() {
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import axiosInstance from "@/lib/axios"
+import GeneralInfo from "@/components/pipelines/GeneralInfo"
+import Quotation from "@/components/pipelines/Quotation"
+import PurchaseOrder from "@/components/pipelines/PurchaseOrder"
+import Invoice from "@/components/pipelines/Invoice"
+
+interface Lead {
+  id: number
+  name: string
+  period: string
+  description: string
+  contact_id: number | null
+  partner_id: number | null
+  current_stages: string
+  contact_name: string | null
+  company: string | null
+  partner_name: string
+}
+
+function GeneralInfoContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const leadIdStr = searchParams.get('id')
+  const leadId = leadIdStr ? parseInt(leadIdStr, 10) : null
+
+  const [lead, setLead] = useState<Lead | null>(null)
+  const [activeTab, setActiveTab] = useState('General Info')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!leadId) {
+      router.push('/bizdev/new-leads')
+      return
+    }
+
+    const fetchLead = async () => {
+      try {
+        setIsLoading(true)
+        const res = await axiosInstance.get(`/api/leads/${leadId}`)
+        setLead(res.data.data)
+      } catch (err: any) {
+        console.error("Failed to fetch lead", err)
+        setError(err.response?.data?.message || "Failed to load lead details")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchLead()
+  }, [leadId, router])
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'General Info': return <GeneralInfo lead={lead} />
+      case 'Quotation': return <Quotation lead={lead} />
+      case 'Purchase Order': return <PurchaseOrder lead={lead} />
+      case 'Invoice': return <Invoice lead={lead} />
+      default: return null
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-sm text-slate-400">Bizdev / New Leads / <span className="text-slate-600">Loading...</span></p>
+          <h1 className="text-2xl font-semibold mt-1 text-black">Detail</h1>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6 text-center py-12">
+          <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 mt-4">Loading detail...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !lead) {
+    return (
+      <div>
+        <div className="mb-6">
+          <p className="text-sm text-slate-400">Bizdev / New Leads</p>
+          <h1 className="text-2xl font-semibold mt-1 text-black">Detail Error</h1>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6 text-center py-12">
+          <div className="text-red-500 font-medium mb-4">{error || "Lead not found"}</div>
+          <button onClick={() => router.push('/bizdev/new-leads')} className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition">
+            Back to New Leads
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="mb-6">
         <p className="text-sm text-slate-400">
-          Bizdev / <span className="text-slate-600">ID/XX/XX/XX</span>
+          Bizdev / New Leads / <span className="text-slate-600">#{lead.id} {lead.name}</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Form</h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">Detail</h1>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b border-gray-200 mb-4">
-        <nav className="flex space-x-8 px-6 pt-4">
-          <button className="pb-2 px-1 border-b-2 border-blue-500 text-black font-medium text-sm">
-            General Info
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Quotation
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Purchase Order
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Invoice
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Support Documents
-          </button>
-          <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm">
-            Execution
-          </button>
-        </nav>
-      </div>
+      <div className="bg-white rounded-xl shadow-sm text-black p-6">
+        <div className="flex gap-4 sm:gap-6 border-b mb-6 overflow-x-auto">
+          {['General Info', 'Quotation', 'Purchase Order', 'Invoice'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-3 text-sm font-medium transition whitespace-nowrap ${activeTab === tab ? 'border-b-2 text-sky-500 border-sky-500' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-      <div className="bg-white rounded-xl shadow-sm text-black">
-        {/* Form Content */}
-        <div className="h-[calc(100vh-240px)] overflow-y-auto">
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Company ID
-                </label>
-                <input
-                  type="text"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Contact Type
-                </label>
-                <select className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200">
-                  <option value="">Select Contact Type</option>
-                  <option value="phone">Phone</option>
-                  <option value="whatsapp">WhatsApp</option>
-                </select>
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Payment Type
-                </label>
-                <input
-                  type="text"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Billed Amount
-                </label>
-                <input
-                  type="number"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-
-                <label className="text-xs font-semibold text-black block mb-1">
-                  Additional Info
-                </label>
-                <input
-                  type="text"
-                  className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-                />
-              </div>
-            </div>
-
-            <h2 className="text-lg font-bold mb-4">Detail Project</h2>
-
-            <div>
-              <label className="text-xs font-semibold text-black block mb-1">
-                Project ID
-              </label>
-              <input
-                type="text"
-                className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-              />
-
-              <label className="text-xs font-semibold text-black block mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-              />
-
-              <label className="text-xs font-semibold text-black block mb-1">
-                Project Type
-              </label>
-              <select className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200">
-                <option value="">Select Project Type</option>
-                <option value="phone">Tipe 1</option>
-                <option value="whatsapp">Tipe 2</option>
-              </select>
-
-              <label className="text-xs font-semibold text-black block mb-1">
-                Billed Amount
-              </label>
-              <input
-                type="text"
-                className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200"
-              />
-
-              <label className="text-xs font-semibold text-black block mb-1">
-                Notes
-              </label>
-              <textarea
-                rows={4}
-                placeholder="Enter your notes here..."
-                className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-blue-500 focus:ring-3 focus:ring-blue-200 resize-vertical"
-              />
-            </div>
-
-            <div className="border-t pt-4 lg:pt-6 py-4">
-              <h2 className="text-base lg:text-lg font-bold mb-3 lg:mb-4 text-gray-800">Attachments</h2>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 lg:p-8 text-center hover:border-blue-400 transition-colors cursor-pointer">
-                <p className="text-gray-500 text-sm">
-                  Drag and drop files here or click to browse
-                </p>
-                <p className="text-gray-400 text-xs mt-2">
-                  Supported formats: PDF, DOC, DOCX, XLS, XLSX (Max 10MB)
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">
-                Cancel
-              </button>
-              <button className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
-                Edit
-              </button>
-              <button className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600">
-                Download
-              </button>
-            </div>
-          </div>
+        <div className="min-h-[75vh]">
+          {renderContent()}
         </div>
       </div>
     </div>
-  );
+  )
+}
+
+export default function GeneralInfoPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-6 text-center py-12">
+        <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-500 mt-4">Loading application...</p>
+      </div>
+    }>
+      <GeneralInfoContent />
+    </Suspense>
+  )
 }

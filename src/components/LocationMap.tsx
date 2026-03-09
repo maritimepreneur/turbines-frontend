@@ -19,6 +19,7 @@ interface LocationMapProps {
   onLocationChange?: (lat: number, lng: number, address: string) => void;
   className?: string;
   height?: string;
+  initialPosition?: { lat: number; lng: number; address?: string };
 }
 
 interface LocationData {
@@ -27,10 +28,11 @@ interface LocationData {
   address: string;
 }
 
-export default function LocationMap({ 
-  onLocationChange, 
+export default function LocationMap({
+  onLocationChange,
   className = "",
-  height = "250px" 
+  height = "250px",
+  initialPosition
 }: LocationMapProps) {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,22 +51,40 @@ export default function LocationMap({
       }
 
       const data = await response.json();
-      
+
       // ArcGIS provides very specific addresses in 'address.Match_addr' or 'address.LongLabel'
       if (data && data.address) {
         return data.address.LongLabel || data.address.Match_addr || data.address.Address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       }
-      
+
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      
+
     } catch (err) {
       console.error("Reverse geocoding error:", err);
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
   }, []);
 
-  // Get user's current location
+  // If initialPosition is provided, use it directly instead of geolocation
   useEffect(() => {
+    if (initialPosition) {
+      const loadInitialPosition = async () => {
+        const address = initialPosition.address || await reverseGeocode(initialPosition.lat, initialPosition.lng);
+        const locationData = {
+          lat: initialPosition.lat,
+          lng: initialPosition.lng,
+          address,
+        };
+        setLocation(locationData);
+        setLoading(false);
+        if (onLocationChange) {
+          onLocationChange(initialPosition.lat, initialPosition.lng, address);
+        }
+      };
+      loadInitialPosition();
+      return;
+    }
+
     if (!navigator.geolocation) {
       setError("Geolocation tidak didukung oleh browser Anda");
       setLoading(false);
@@ -74,7 +94,7 @@ export default function LocationMap({
     const successHandler = async (position: GeolocationPosition) => {
       const { latitude, longitude } = position.coords;
       const address = await reverseGeocode(latitude, longitude);
-      
+
       const locationData = {
         lat: latitude,
         lng: longitude,
@@ -83,16 +103,16 @@ export default function LocationMap({
 
       setLocation(locationData);
       setLoading(false);
-      
+
       if (onLocationChange) {
         onLocationChange(latitude, longitude, address);
       }
     };
-    
+
 
     const errorHandler = (error: GeolocationPositionError) => {
       let errorMessage = "Gagal mendapatkan lokasi";
-      
+
       switch (error.code) {
         case error.PERMISSION_DENIED:
           errorMessage = "Izin lokasi ditolak. Mohon aktifkan lokasi di browser.";
@@ -104,7 +124,7 @@ export default function LocationMap({
           errorMessage = "Permintaan lokasi timeout.";
           break;
       }
-      
+
       setError(errorMessage);
       setLoading(false);
     };
@@ -114,7 +134,7 @@ export default function LocationMap({
       timeout: 10000,
       maximumAge: 0,
     });
-  }, [reverseGeocode, onLocationChange]);
+  }, [reverseGeocode, onLocationChange, initialPosition]);
 
   if (loading) {
     return (
@@ -137,7 +157,7 @@ export default function LocationMap({
   const position: LatLngExpression = [location.lat, location.lng];
 
   return (
-    <div className={`relative rounded-lg overflow-hidden border-2 border-blue-200 ${className}`}>
+    <div className={`relative rounded-lg overflow-hidden border-2 border-blue-200 ${className}`} style={{ zIndex: 0, isolation: 'isolate' }}>
       <div style={{ height }}>
         <MapContainer
           center={position}

@@ -1,77 +1,125 @@
 "use client"
 import Link from "next/link";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeftLong, faCheck, faFilter, faFilePdf } from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react"
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react"
+import axiosInstance from '@/lib/axios';
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
+import { ResponsiveTable } from "@/components/table/ResponsiveTable"
+import { EmptyState } from "@/components/table/EmptyState"
 import { useTableFilters } from "@/hooks/useTableFilters"
+import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
+import { NotificationModal } from "@/components/modals/NotificationModal"
 
-type Lead = {
-  number: string;
+type Invoice = {
   id: string;
-  clientname: string;
-  creationdate: string;
-  invoiceperiod: string;
-  grandtotal: string;
-  status: string;
+  number: string;
+  period: string;
+  due_date: string;
+  total_amount: string;
+  grand_total: string;
+  partner_name: string;
+  contact_name: string;
+  po_number: string;
 };
 
-const leadsData: Lead[] = [
-  {
-    number: "POXXXX",
-    id: "ID001",
-    clientname: "Client A",
-    creationdate: "2023-01-01",
-    invoiceperiod: "January 2023",
-    grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
-  },
-  {
-    number: "POXXXX",
-    id: "ID001",
-    clientname: "Client A",
-    creationdate: "2023-01-01",
-    invoiceperiod: "January 2023",
-    grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
-  },
-  {
-    number: "POXXXX",
-    id: "ID001",
-    clientname: "Client A",
-    creationdate: "2023-01-01",
-    invoiceperiod: "January 2023",
-    grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
-  },
-  {
-    number: "POXXXX",
-    id: "ID001",
-    clientname: "Client A",
-    creationdate: "2023-01-01",
-    invoiceperiod: "January 2023",
-    grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
-  },
-  {
-    number: "POXXXX",
-    id: "ID001",
-    clientname: "Client A",
-    creationdate: "2023-01-01",
-    invoiceperiod: "January 2023",
-    grandtotal: "Rp. 1.xxx.xxx",
-    status: "Pre Invoice",
-  },
-];
-
-
-const ITEMS_PER_PAGE = 5
-
-export default function NewLeadsPage() {
+export default function InvoicePage() {
+  const router = useRouter();
   const [showFilter, setShowFilter] = useState(false)
-  const [activeTab, setActiveTab] = useState("Pre Invoice")
+  const [invoicesData, setInvoicesData] = useState<Invoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [invoiceToDelete, setInvoiceToDelete] = useState<{ id: string; number: string } | null>(null)
+  const [notification, setNotification] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "success",
+  })
+
+  const handleEdit = (id: string) => {
+    router.push(`/finance/invoice/invoice-form?id=${id}`)
+  }
+
+  const handleDeleteClick = (id: string, number: string) => {
+    setInvoiceToDelete({ id, number })
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!invoiceToDelete) return
+    try {
+      setIsDeleting(invoiceToDelete.id)
+      await axiosInstance.delete(`/api/invoices/${invoiceToDelete.id}/`)
+      setInvoicesData(prev => prev.filter(i => i.id !== invoiceToDelete.id))
+      setNotification({
+        isOpen: true,
+        title: "Berhasil",
+        message: `Invoice #${invoiceToDelete.number} berhasil dihapus.`,
+        type: "success",
+      })
+    } catch (err: any) {
+      setNotification({
+        isOpen: true,
+        title: "Gagal",
+        message: err?.response?.data?.message || "Gagal menghapus invoice.",
+        type: "error",
+      })
+    } finally {
+      setIsDeleting(null)
+      setShowDeleteModal(false)
+      setInvoiceToDelete(null)
+    }
+  }
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const response = await axiosInstance.get('/api/invoices/');
+
+        // Defensive: support both response.data.data (paginated) and response.data (array)
+        const raw = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+
+        const mappedData: Invoice[] = raw
+          .map((item: any) => ({
+            id: item.id?.toString() || "-",
+            number: item.number?.toString() || "-",
+            period: item.period || "-",
+            due_date: item.due_date || "-",
+            total_amount: item.total_amount?.toString() || "0",
+            grand_total: item.grand_total?.toString() || "0",
+            partner_name: item.partner_name || item.partner?.name || "-",
+            contact_name: item.contact_name || item.contact?.name || "-",
+            po_number: item.po_number || item.purchase_order?.po_number || "-",
+          }));
+
+        setInvoicesData(mappedData);
+      } catch (error) {
+        console.error("Error fetching invoices:", error);
+        setInvoicesData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+
+    const handleFocus = () => fetchInvoices();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   const {
     filters,
@@ -89,60 +137,70 @@ export default function NewLeadsPage() {
     setSearch,
     setCurrentPage,
     setItemsPerPage,
-  } = useTableFilters(leadsData, 5)
+  } = useTableFilters(invoicesData, 5)
 
   const fieldOptions = [
-    { label: "Period", value: "invoiceperiod" },
-    { label: "Name", value: "name" },
-    { label: "Status", value: "status" },
+    { label: "Period", value: "period" },
+    { label: "Partner", value: "partner_name" },
+    { label: "PO Number", value: "po_number" },
   ]
 
   return (
     <div>
-      {/* Header */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Invoice"
+        message={`Apakah kamu yakin ingin menghapus Invoice #${invoiceToDelete?.number}? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="reject"
+      />
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        title={notification.title}
+        message={notification.message}
+        type={notification.type}
+      />
+
       <div className="mb-6">
         <p className="text-sm text-slate-400">
-          Finance / <span className="text-slate-600">Quotation</span>
+          Finance / <span className="text-slate-600">Invoice</span>
         </p>
-        <h1 className="text-2xl font-semibold mt-1 text-black">Quotation</h1>
+        <h1 className="text-2xl font-semibold mt-1 text-black">Invoice</h1>
       </div>
 
-      {/* Navigation Tabs */}
       <div className="border-b border-gray-400 mb-4">
         <nav className="flex space-x-8 px-6 pt-4">
-          {["Pre Invoice", "Invoice", "Canceled"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              {tab}
+          <Link href="/finance/pre-invoice">
+            <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm transition">
+              Pre Invoice
             </button>
-          ))}
+          </Link>
+          <Link href="/finance/invoice">
+            <button className="pb-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm transition">
+              Invoice
+            </button>
+          </Link>
+          <Link href="/finance/canceled">
+            <button className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm transition">
+              Canceled
+            </button>
+          </Link>
         </nav>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-3">
           <button
             onClick={() => setShowFilter(!showFilter)}
             className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
             Filter
             {filters.length > 0 && (
@@ -152,21 +210,16 @@ export default function NewLeadsPage() {
             )}
           </button>
 
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search name or company..."
-          />
+          <SearchBar value={search} onChange={setSearch} placeholder="Search number, partner, or PO..." />
         </div>
 
-        <Link href="/finance/purchase/purchase-form">
+        <Link href="/finance/invoice/invoice-form">
           <button className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition">
             + Add
           </button>
         </Link>
       </div>
 
-      {/* Filter Panel */}
       <FilterPanel
         show={showFilter}
         filters={filters}
@@ -178,64 +231,112 @@ export default function NewLeadsPage() {
         fieldOptions={fieldOptions}
       />
 
-      {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-        {/* Table */}
-        <table className="w-full text-sm border-t border-slate-200">
-          <thead className="bg-slate-50">
-            <tr className="border-b">
-              <th className="text-left py-3 px-3">Invoice Number</th>
-              <th className="text-left py-3 px-3">Company ID</th>
-              <th className="text-left py-3 px-3">Client Name</th>
-              <th className="text-left py-3 px-3">Creation Date</th>
-              <th className="text-left py-3 px-3">Invoice Period</th>
-              <th className="text-left py-3 px-3">Grand Total</th>
-              <th className="text-left py-3 px-3">Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedData.length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-center py-6 text-slate-400">
-                  No data found
-                </td>
-              </tr>
-            )}
-
-            {paginatedData.map((item) => (
-              <tr
-                key={item.number}
-                className="border-b hover:bg-slate-50 transition"
-              >
-                <td className="py-3 px-3">
-                  <Link
-                    href={`/finance/quotation/quotation-form?number=${item.number}`}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    {item.number}
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-black">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-slate-600">Loading data...</p>
+            </div>
+          </div>
+        ) : (
+          <ResponsiveTable<Invoice>
+            columns={[
+              {
+                header: 'Number',
+                accessor: 'number',
+                isPrimary: true,
+                render: (item) => (
+                  <Link href={`/finance/invoice/invoice-form?id=${item.id}`} className="text-blue-500 hover:text-blue-700 hover:underline">
+                    #{item.number}
                   </Link>
-                </td>
-                <td className="py-3 px-3 font-medium">{item.id}</td>
-                <td className="py-3 px-3">{item.clientname}</td>
-                <td className="py-3 px-3">{item.creationdate}</td>
-                <td className="py-3 px-3">{item.invoiceperiod}</td>
-                <td className="py-3 px-3">{item.grandtotal}</td>
-                <td className="py-3 px-3">{item.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                ),
+              },
+              {
+                header: 'Period',
+                accessor: 'period',
+              },
+              {
+                header: 'Due Date',
+                accessor: 'due_date',
+              },
+              {
+                header: 'Total Amount',
+                render: (item) => {
+                  const val = parseFloat(item.total_amount);
+                  return isNaN(val) ? '-' : `Rp ${val.toLocaleString()}`;
+                },
+              },
+              {
+                header: 'Grand Total',
+                render: (item) => {
+                  const val = parseFloat(item.grand_total);
+                  return isNaN(val) ? '-' : `Rp ${val.toLocaleString()}`;
+                },
+              },
+              {
+                header: 'Partner',
+                accessor: 'partner_name',
+              },
+              {
+                header: 'Contact',
+                accessor: 'contact_name',
+              },
+              {
+                header: 'PO Number',
+                accessor: 'po_number',
+              },
+              {
+                header: 'Action',
+                render: (item) => (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
+                      className="text-sky-500 hover:text-sky-700 transition"
+                      title="Edit invoice"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.number) }}
+                      disabled={isDeleting === item.id}
+                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Hapus invoice"
+                    >
+                      {isDeleting === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginatedData}
+            keyAccessor={(item) => item.id}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No invoices found" description="Click '+ Add' to create a new invoice" />
+            }
+          />
+        )}
 
-        {/* Pagination */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filteredData.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-          onItemsPerPageChange={setItemsPerPage}
-        />
+        {!loading && totalPages > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredData.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
     </div>
   );

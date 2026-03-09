@@ -6,6 +6,8 @@ import { useState, useEffect, useMemo } from "react";
 import { SearchBar } from "@/components/table/SearchBar";
 import { FilterPanel } from "@/components/table/FilterPanel";
 import { Pagination } from "@/components/table/Pagination";
+import { ResponsiveTable } from "@/components/table/ResponsiveTable";
+import { EmptyState } from "@/components/table/EmptyState";
 import axiosInstance from "@/lib/axios";
 
 type AttendanceRecord = {
@@ -22,6 +24,7 @@ type AttendanceRecord = {
   checked: boolean;
   employee_id: number;
   employee_name: string;
+  employee_code: string;
 };
 
 interface AttendanceResponse {
@@ -40,6 +43,7 @@ interface AttendanceResponse {
 
 interface EmployeeSummary {
   employee_id: string;
+  raw_employee_id: number;
   employee_name: string;
   present_days: number;
   late_days: number;
@@ -65,6 +69,8 @@ export default function SummaryPage() {
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Mapping employee_id → employee_code dari /api/employees/
+  const [employeeCodeMap, setEmployeeCodeMap] = useState<Record<number, string>>({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -95,12 +101,10 @@ export default function SummaryPage() {
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
         {
-          params: {
-            page: 1,
-            page_size: 1000,
-            sort_by: 'id',
-            sort_order: 'DESC',
-          },
+          page: 1,
+          page_size: 1000,
+          sort_by: 'id',
+          sort_order: 'DESC',
         }
       );
 
@@ -135,6 +139,21 @@ export default function SummaryPage() {
 
   useEffect(() => {
     fetchAttendances();
+    // Fetch employee list untuk mapping employee_id → employee_code
+    axiosInstance.get('/api/employees/')
+      .then((res) => {
+        const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        const map: Record<number, string> = {};
+        list.forEach((emp) => {
+          if (emp.id && emp.employee_code) {
+            map[emp.id] = emp.employee_code;
+          }
+        });
+        setEmployeeCodeMap(map);
+      })
+      .catch(() => {
+        // Jika gagal, biarkan kosong — fallback ke format EMP-XXXX
+      });
   }, []);
 
   // Calculate summary from attendance data
@@ -145,7 +164,8 @@ export default function SummaryPage() {
       const key = record.employee_id;
       if (!employeeMap.has(key)) {
         employeeMap.set(key, {
-          employee_id: `EMP${String(record.employee_id).padStart(3, "0")}`,
+          employee_id: employeeCodeMap[record.employee_id] || `EMP-${String(record.employee_id).padStart(4, "0")}`,
+          raw_employee_id: record.employee_id,
           employee_name: record.employee_name,
           present_days: 0,
           late_days: 0,
@@ -179,16 +199,17 @@ export default function SummaryPage() {
     });
 
     return Array.from(employeeMap.values());
-  }, [attendanceData]);
+  }, [attendanceData, employeeCodeMap]);
 
   const filteredSummary = useMemo(() => {
     let filtered = [...summaryData];
 
     if (search) {
+      const q = search.toLowerCase();
       filtered = filtered.filter(
         (summary) =>
-          summary.employee_name.toLowerCase().includes(search.toLowerCase()) ||
-          summary.employee_id.toLowerCase().includes(search.toLowerCase())
+          summary.employee_name?.toLowerCase().includes(q) ||
+          summary.employee_id?.toLowerCase().includes(q)
       );
     }
 
@@ -197,8 +218,10 @@ export default function SummaryPage() {
         filtered = filtered.filter((summary) => {
           const fieldValue = summary[filter.field as keyof EmployeeSummary];
           return (
-            fieldValue &&
-            String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
+            fieldValue !== undefined &&
+            String(fieldValue)
+              .toLowerCase()
+              .includes(filter.value.toLowerCase())
           );
         });
       }
@@ -428,110 +451,60 @@ export default function SummaryPage() {
           fieldOptions={fieldOptions}
         />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Employee ID
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Employee Name
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Present Days
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Late Days
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Absent Days
-                </th>
-                <th className="text-left py-3 px-3 whitespace-nowrap">
-                  Attendance Rate
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {paginatedSummary.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-400">
-                    {search || filters.length > 0 ? (
-                      <div>
-                        <svg
-                          className="w-12 h-12 mx-auto mb-3 text-slate-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                          />
-                        </svg>
-                        <p className="font-medium">No results found</p>
-                        <p className="text-xs mt-1">
-                          Try adjusting your search or filters
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <svg
-                          className="w-12 h-12 mx-auto mb-3 text-slate-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                          />
-                        </svg>
-                        <p className="font-medium">No summary data available</p>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )}
-
-              {paginatedSummary.map((summary, index) => (
-                <tr
-                  key={summary.employee_id}
-                  className={`hover:bg-slate-50 transition ${index !== paginatedSummary.length - 1
-                    ? "border-b border-slate-200"
-                    : ""
-                    }`}
+        <ResponsiveTable<EmployeeSummary>
+          columns={[
+            {
+              header: 'Employee Code',
+              accessor: 'employee_id',
+            },
+            {
+              header: 'Employee Name',
+              isPrimary: true,
+              render: (summary) => (
+                <Link
+                  href={`/human-resources/attendance/summary/${summary.raw_employee_id}`}
+                  className="font-medium hover:text-sky-600 transition cursor-pointer hover:underline"
                 >
-                  <td className="py-3 px-3">{summary.employee_id}</td>
-                  <td className="py-3 px-3 font-medium">
-                    {summary.employee_name}
-                  </td>
-                  <td className="py-3 px-3 font-medium">
-                    {summary.present_days}
-                  </td>
-                  <td className="py-3 px-3 font-medium">{summary.late_days}</td>
-                  <td className="py-3 px-3 font-medium">
-                    {summary.absent_days}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceRateColor(
-                        summary.attendance_rate
-                      )}`}
-                    >
-                      {summary.attendance_rate}%
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  {summary.employee_name}
+                </Link>
+              ),
+            },
+            {
+              header: 'Present Days',
+              render: (summary) => (
+                <span className="font-medium">{summary.present_days}</span>
+              ),
+            },
+            {
+              header: 'Late Days',
+              render: (summary) => (
+                <span className="font-medium">{summary.late_days}</span>
+              ),
+            },
+            {
+              header: 'Absent Days',
+              render: (summary) => (
+                <span className="font-medium">{summary.absent_days}</span>
+              ),
+            },
+            {
+              header: 'Attendance Rate',
+              render: (summary) => (
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceRateColor(summary.attendance_rate)}`}>
+                  {summary.attendance_rate}%
+                </span>
+              ),
+            },
+          ]}
+          data={paginatedSummary}
+          keyAccessor={(summary) => summary.employee_id}
+          showTopBorder={false}
+          emptyState={
+            search || filters.length > 0
+              ? <EmptyState type="search" />
+              : <EmptyState title="No summary data available" />
+          }
+        />
 
 
         {/* Pagination */}
