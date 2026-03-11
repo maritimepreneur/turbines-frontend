@@ -23,18 +23,24 @@ export default function RoleCard({
         w-full 
         sm:w-44 
         md:w-48
-        rounded-xl 
-        bg-white 
+        rounded-[14px]
+        bg-white/50
+        backdrop-blur-xl
         overflow-hidden 
         shadow-md 
         transition-all 
-        duration-200 
-        hover:shadow-lg 
-        hover:-translate-y-1
+        duration-300 
+        ease-in-out
+        hover:shadow-xl 
+        hover:-translate-y-1.5
+        hover:scale-105
+        hover:bg-white/80
         focus:outline-none
         focus:ring-2
         focus:ring-offset-2
         focus:ring-sky-400
+        border
+        border-white/30
       "
     >
       {/* Header */}
@@ -66,15 +72,15 @@ export default function RoleCard({
 
       {/* Title */}
       <div
-        className={`
+        className="
           py-3 
           sm:py-4 
           text-center 
-          font-medium 
-          ${textColor}
-          text-sm
-          sm:text-base
-        `}
+          font-semibold
+          text-gray-800
+          text-base
+          sm:text-lg
+        "
       >
         {title}
       </div>
