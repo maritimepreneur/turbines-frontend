@@ -106,7 +106,7 @@ export default function PartnerListPage() {
 
         // Fetch partners (critical — show error if fails)
         const partnerRes = await axiosInstance.post<PartnersResponse>('/api/partners/', {
-          params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+          page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC'
         })
         if (partnerRes.data.code === 200) {
           setPartnersData(partnerRes.data.data.list)
@@ -120,7 +120,7 @@ export default function PartnerListPage() {
       // Fetch contacts separately — non-blocking, silently ignore errors
       try {
         const contactRes = await axiosInstance.post<ContactsResponse>('/api/contacts/', {
-          params: { page_size: 1000 }
+          page_size: 1000
         })
         if (contactRes.data.code === 200) {
           const grouped: Record<number, Contact[]> = {}
@@ -144,7 +144,7 @@ export default function PartnerListPage() {
       setIsLoading(true)
       setError(null)
       const response = await axiosInstance.post<PartnersResponse>('/api/partners/', {
-        params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+        page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC'
       })
       if (response.data.code === 200) {
         setPartnersData(response.data.data.list)
@@ -181,12 +181,15 @@ export default function PartnerListPage() {
 
   // Client-side pagination
   const paginatedPartners = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredPartners
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return filteredPartners.slice(startIndex, endIndex)
   }, [filteredPartners, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredPartners.length / itemsPerPage)
+  const totalPages = filteredPartners.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredPartners.length / (itemsPerPage >= 99999 ? filteredPartners.length : itemsPerPage)))
 
   const handleEdit = (partnerId: number) => {
     router.push(`/bizdev/partner-list/edit?id=${partnerId}`)
@@ -514,16 +517,14 @@ export default function PartnerListPage() {
 
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredPartners.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredPartners.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
     </div>
   )

@@ -213,12 +213,15 @@ export default function RecentActivityPage() {
 
   // Client-side pagination
   const paginatedAttendances = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredAttendances;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredAttendances.slice(startIndex, endIndex);
   }, [filteredAttendances, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredAttendances.length / itemsPerPage);
+  const totalPages = filteredAttendances.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredAttendances.length / (itemsPerPage >= 99999 ? filteredAttendances.length : itemsPerPage)));
 
   const handleApprove = async (id: number, employeeName: string) => {
     confirmModal.open({
@@ -617,16 +620,14 @@ export default function RecentActivityPage() {
         />
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredAttendances.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredAttendances.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
 
       {/* Modals */}

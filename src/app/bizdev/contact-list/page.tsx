@@ -87,7 +87,7 @@ export default function ContactListPage() {
     try {
       setIsLoading(true); setError(null)
       const response = await axiosInstance.post<ContactsResponse>('/api/contacts/', {
-        params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+        page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC'
       })
       if (response.data.code === 200) {
         setContactsData(response.data.data.list)
@@ -110,7 +110,7 @@ export default function ContactListPage() {
   const fetchPartners = async () => {
     try {
       const res = await axiosInstance.post<PartnersResponse>('/api/partners/', {
-        params: { page_number: 1, page_size: 1000 }
+        page_number: 1, page_size: 1000
       })
       if (res.data.code === 200) {
         const map: Record<number, Partner> = {}
@@ -148,11 +148,14 @@ export default function ContactListPage() {
   }, [contactsData, search, filters, partnersMap])
 
   const paginatedContacts = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredContacts
     const startIndex = (currentPage - 1) * itemsPerPage
     return filteredContacts.slice(startIndex, startIndex + itemsPerPage)
   }, [filteredContacts, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredContacts.length / itemsPerPage)
+  const totalPages = filteredContacts.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredContacts.length / (itemsPerPage >= 99999 ? filteredContacts.length : itemsPerPage)))
 
   const handleConfirmDelete = async () => {
     if (!contactToDelete) return
@@ -344,9 +347,7 @@ export default function ContactListPage() {
           />
         </div>
 
-        {totalPages > 0 && (
-          <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filteredContacts.length} itemsPerPage={itemsPerPage} onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1) }} />
-        )}
+        <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filteredContacts.length} itemsPerPage={itemsPerPage} onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1) }} />
       </div>
     </div>
   )

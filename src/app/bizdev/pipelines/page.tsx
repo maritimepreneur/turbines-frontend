@@ -87,7 +87,7 @@ export default function PipelinesPage() {
         '/api/leads/',
         {
           page_number: 1,
-          page_size: 100,
+          page_size: 1000,
           sort_by: 'id',
           sort_order: 'DESC',
         }
@@ -254,12 +254,15 @@ export default function PipelinesPage() {
   }, [leads, searchQuery, activeStage, reverseStageMapping])
 
   const paginatedData = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredLeads
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return filteredLeads.slice(startIndex, endIndex)
   }, [filteredLeads, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
+  const totalPages = filteredLeads.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredLeads.length / (itemsPerPage >= 99999 ? filteredLeads.length : itemsPerPage)))
 
   const renderRightDetail = () => {
     if (!selectedLead) return (
@@ -511,20 +514,18 @@ export default function PipelinesPage() {
 
 
             {/* Pagination */}
-            {totalPages > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredLeads.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={handlePageChange}
-                onItemsPerPageChange={(newValue) => {
-                  setItemsPerPage(newValue)
-                  setCurrentPage(1)
-                }}
-                isCompact
-              />
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredLeads.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={(newValue) => {
+                setItemsPerPage(newValue)
+                setCurrentPage(1)
+              }}
+              isCompact
+            />
           </div>
 
           <div className="lg:col-span-8 space-y-4">

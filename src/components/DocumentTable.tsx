@@ -455,16 +455,14 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
 
 
             {/* Pagination */}
-            {displayTotalPages > 0 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={displayTotalPages}
-                    totalItems={displayTotalItems}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={handlePageChange}
-                    onItemsPerPageChange={handleItemsPerPageChange}
-                />
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={displayTotalPages}
+                totalItems={displayTotalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+            />
         </div>
     )
 }
