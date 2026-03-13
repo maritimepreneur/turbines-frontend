@@ -71,8 +71,11 @@ export function useTableFilters<T extends Record<string, any>>(
   }, [data, filters, search])
 
   // Pagination
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  // totalPages minimal 1 jika ada data agar Pagination tidak hide selector-nya
+  const totalPages = filteredData.length === 0 ? 0 : Math.max(1, Math.ceil(filteredData.length / itemsPerPage))
   const paginatedData = useMemo(() => {
+    // Jika itemsPerPage sangat besar (misal 99999 = All), kembalikan semua data
+    if (itemsPerPage >= 99999) return filteredData
     return filteredData.slice(
       (currentPage - 1) * itemsPerPage,
       currentPage * itemsPerPage

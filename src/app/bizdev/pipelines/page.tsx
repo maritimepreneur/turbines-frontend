@@ -53,6 +53,12 @@ export default function PipelinesPage() {
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    page_size: 5,
+    total_pages: 1,
+    total_items: 0
+  })
 
   const stageMapping: Record<string, string> = {
     'NEW': 'New lead',
@@ -83,30 +89,32 @@ export default function PipelinesPage() {
 
       console.log('📥 Fetching pipelines data...')
 
+      const apiStage = reverseStageMapping[activeStage]
+      const payload: any = {
+        page_number: currentPage,
+        page_size: itemsPerPage,
+        sort_by: 'id',
+        sort_order: 'DESC',
+        stages: apiStage ? [apiStage] : undefined
+      }
+
+      if (searchQuery) {
+        payload.search = searchQuery
+      }
+
       const response = await axiosInstance.post<LeadsResponse>(
         '/api/leads/',
-        {
-          page_number: 1,
-          page_size: 100,
-          sort_by: 'id',
-          sort_order: 'DESC',
-        }
+        payload
       )
 
       if (response.data.code === 200) {
         console.log('✅ Pipelines data fetched:', response.data.data.list.length)
         const leadsData = response.data.data.list
         setLeads(leadsData)
+        setPagination(response.data.data.pagination)
 
         if (!selectedLead && leadsData.length > 0) {
-          const apiStage = reverseStageMapping[activeStage]
-          const stageLeads = leadsData.filter(l => l.current_stages === apiStage)
-          if (stageLeads.length > 0) {
-            setSelectedLead(stageLeads[0])
-          } else {
-            setSelectedLead(leadsData[0])
-            setActiveStage(stageMapping[leadsData[0].current_stages] || 'New lead')
-          }
+          setSelectedLead(leadsData[0])
         }
       } else {
         throw new Error(response.data.message || 'Failed to fetch pipelines')
@@ -236,30 +244,15 @@ export default function PipelinesPage() {
   }
 
   useEffect(() => {
-    fetchLeads()
-  }, [])
+    const delayDebounceFn = setTimeout(() => {
+      fetchLeads()
+    }, 500)
 
-  const filteredLeads = useMemo(() => {
-    const apiStage = reverseStageMapping[activeStage]
+    return () => clearTimeout(delayDebounceFn)
+  }, [currentPage, itemsPerPage, searchQuery, activeStage])
 
-    return leads.filter((lead) => {
-      const matchesSearch =
-        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (lead.company && lead.company.toLowerCase().includes(searchQuery.toLowerCase()))
-
-      const matchesStage = lead.current_stages === apiStage
-
-      return matchesSearch && matchesStage
-    })
-  }, [leads, searchQuery, activeStage, reverseStageMapping])
-
-  const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return filteredLeads.slice(startIndex, endIndex)
-  }, [filteredLeads, currentPage, itemsPerPage])
-
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
+  const paginatedData = leads;
+  const totalPages = pagination?.total_pages || 1;
 
   const renderRightDetail = () => {
     if (!selectedLead) return (
@@ -386,8 +379,7 @@ export default function PipelinesPage() {
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {stages.map((stage) => {
-            const apiStage = reverseStageMapping[stage]
-            const count = leads.filter(l => l.current_stages === apiStage).length
+            const count = activeStage === stage ? pagination.total_items : '-';
 
             return (
               <button
@@ -511,20 +503,18 @@ export default function PipelinesPage() {
 
 
             {/* Pagination */}
-            {totalPages > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredLeads.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={handlePageChange}
-                onItemsPerPageChange={(newValue) => {
-                  setItemsPerPage(newValue)
-                  setCurrentPage(1)
-                }}
-                isCompact
-              />
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={pagination.total_items || 0}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={(newValue) => {
+                setItemsPerPage(newValue)
+                setCurrentPage(1)
+              }}
+              isCompact
+            />
           </div>
 
           <div className="lg:col-span-8 space-y-4">
