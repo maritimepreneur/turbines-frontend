@@ -3,9 +3,20 @@
 import { useState, useEffect } from "react";
 import axiosInstance from "@/lib/axios";
 import {
-    Mail, Phone, ShieldCheck, MapPin, User,
-    Smartphone, MessageSquare, Anchor, Waves, Ship,
-    Briefcase, LayoutGrid,
+  Mail,
+  Phone,
+  MapPin,
+  User,
+  Smartphone,
+  MessageSquare,
+  Calendar,
+  CreditCard,
+  FileText,
+  Heart,
+  Globe,
+  Home,
+  Briefcase,
+  Edit,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,189 +44,272 @@ export default function UserProfilePage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
         );
     }
 
-    const displayAddress = profileData?.residence_address || profileData?.current_address || profileData?.address || '-';
-
     return (
-        <div className="min-h-full bg-slate-50/50">
-            {/* HEADER */}
-            <div className="mb-8 flex items-center justify-between">
-                <div>
-                    <div className="flex items-center gap-2 text-slate-400 mb-1">
-                        <Anchor size={14} className="text-cyan-600" />
-                        <p className="text-xs font-bold tracking-widest uppercase">Maritime Services</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+          {/* Header Section */}
+          <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-yellow-600 to-blue-700 p-4 sm:p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 md:gap-6 w-full sm:w-auto">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-lg md:rounded-xl border-2 md:border-4 border-white shadow-xl bg-white overflow-hidden flex-shrink-0">
+                    {profileData?.img_url ? (
+                      <img
+                        src={profileData.img_url}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
+                        <User
+                          size={32}
+                          className="sm:w-10 sm:h-10 md:w-12 md:h-12"
+                          strokeWidth={1.5}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate">
+                      {profileData?.full_name || "Full Name"}
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
+                      <span className="inline-flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 bg-white/20 backdrop-blur-sm text-white rounded-lg text-xs sm:text-sm font-medium">
+                        <Briefcase size={12} className="sm:w-3.5 sm:h-3.5" />
+                        {profileData?.employee_code || "EMP-000"}
+                      </span>
+                      {profileData?.nickname && (
+                        <span className="text-white/90 text-xs sm:text-sm">
+                          ({profileData.nickname})
+                        </span>
+                      )}
                     </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Profile</h1>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center">
-                        <Ship size={20} className="text-cyan-600" />
+                <Link
+                  href="/employee/profile"
+                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm w-full sm:w-auto justify-center"
+                >
+                  <Edit size={16} className="sm:w-4 sm:h-4" />
+                  Edit Profile
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+            {/* Left Column - Personal & Contact */}
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
+              {/* Personal Information */}
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-5 md:p-6">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <User className="text-white" size={16} />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Personal Information
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <InfoItem
+                    icon={<Calendar className="text-blue-500" size={18} />}
+                    label="Birth Date"
+                    value={profileData?.birth_date}
+                  />
+                  <InfoItem
+                    icon={<MapPin className="text-blue-500" size={18} />}
+                    label="Birth Place"
+                    value={profileData?.birth_place}
+                  />
+                  <InfoItem
+                    icon={<Heart className="text-rose-500" size={18} />}
+                    label="Blood Type"
+                    value={profileData?.blood_type}
+                  />
+                  <InfoItem
+                    icon={<Heart className="text-purple-500" size={18} />}
+                    label="Religion"
+                    value={profileData?.religion}
+                  />
+                  <InfoItem
+                    icon={<Globe className="text-emerald-500" size={18} />}
+                    label="Nationality"
+                    value={profileData?.nationality}
+                  />
+                  <InfoItem
+                    icon={<User className="text-blue-500" size={18} />}
+                    label="Marital Status"
+                    value={profileData?.marital_status}
+                  />
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-5 md:p-6">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                    <Phone className="text-white" size={16} />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Contact Information
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <InfoItem
+                    icon={<Mail className="text-blue-500" size={18} />}
+                    label="Email"
+                    value={profileData?.email}
+                  />
+                  <InfoItem
+                    icon={
+                      <MessageSquare className="text-emerald-500" size={18} />
+                    }
+                    label="WhatsApp"
+                    value={profileData?.whatsapp}
+                  />
+                  <InfoItem
+                    icon={<Smartphone className="text-blue-500" size={18} />}
+                    label="Mobile Phone"
+                    value={profileData?.handphone}
+                  />
+                  <InfoItem
+                    icon={<Phone className="text-gray-500" size={18} />}
+                    label="Office Phone"
+                    value={profileData?.phone}
+                  />
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-5 md:p-6">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+                    <Home className="text-white" size={16} />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Address
+                  </h2>
+                </div>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin size={16} className="text-blue-600" />
+                      <label className="text-xs font-semibold text-blue-900 uppercase">
+                        Residence Address
+                      </label>
                     </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {profileData?.residence_address || "-"}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 border border-purple-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin size={16} className="text-purple-600" />
+                      <label className="text-xs font-semibold text-purple-900 uppercase">
+                        Permanent Address
+                      </label>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {profileData?.permanent_address || "-"}
+                    </p>
+                  </div>
                 </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                {/* LEFT COLUMN: IDENTITY CARD */}
-                <div className="lg:col-span-4">
-                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-cyan-900/5 border border-cyan-100/50 overflow-hidden sticky top-24">
-                        {/* Sea Blue Gradient Header */}
-                        <div className="h-44 bg-gradient-to-br from-cyan-500 via-blue-600 to-teal-500 relative">
-                            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/waves.png')]"></div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                            <div className="absolute top-4 right-6 opacity-20">
-                                <Anchor size={80} className="text-white rotate-12" />
-                            </div>
-                        </div>
-
-                        <div className="px-8 pb-10 text-center -mt-20 relative">
-                            {/* Avatar */}
-                            <div className="group relative inline-block">
-                                <div className="w-40 h-40 mx-auto rounded-[2.5rem] border-[8px] border-white shadow-2xl bg-cyan-50 overflow-hidden mb-6 transform transition-transform group-hover:scale-105 group-hover:rotate-2">
-                                    {profileData?.img_url ? (
-                                        <img src={profileData.img_url} alt="Profile" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-cyan-200 bg-cyan-50/30">
-                                            <User size={80} strokeWidth={1.5} />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-white rounded-2xl shadow-lg border border-cyan-100 flex items-center justify-center text-cyan-600">
-                                    <Waves size={24} />
-                                </div>
-                            </div>
-
-                            {/* Name */}
-                            <h2 className="text-2xl font-black text-slate-800 leading-tight tracking-tight">
-                                {profileData?.full_name || 'Full Name'}
-                            </h2>
-
-                            {/* Employee Code + Divisi + Role — sejajar */}
-                            <div className="mt-4 flex flex-col items-center gap-2">
-                                {/* EMP Code */}
-                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-50 border border-cyan-100 rounded-2xl group hover:bg-cyan-600 transition-colors">
-                                    <Anchor size={12} className="text-cyan-600 group-hover:text-white transition-colors" />
-                                    <span className="text-cyan-700 font-black text-[10px] uppercase tracking-[0.2em] group-hover:text-white transition-colors">
-                                        {profileData?.employee_code || 'EMP-000'}
-                                    </span>
-                                </div>
-
-                                {/* Divisi & Role sejajar di bawah EMP code */}
-                                <div className="flex items-center gap-2 flex-wrap justify-center">
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-xl">
-                                        <LayoutGrid size={11} className="text-indigo-500" />
-                                        <span className="text-indigo-600 font-bold text-[11px]">
-                                            {profileData?.division || '-'}
-                                        </span>
-                                    </div>
-                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 border border-purple-100 rounded-xl">
-                                        <Briefcase size={11} className="text-purple-500" />
-                                        <span className="text-purple-600 font-bold text-[11px]">
-                                            {profileData?.role || '-'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            {/* Right Column - Documents */}
+            <div className="space-y-4 md:space-y-6">
+              {/* Documents */}
+              <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-5 md:p-6">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <FileText className="text-white" size={16} />
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Documents
+                  </h2>
                 </div>
-
-                {/* RIGHT COLUMN */}
-                <div className="lg:col-span-8 space-y-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-1.5 h-10 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-full"></div>
-                        <div className="flex flex-col">
-                            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Personal Identity</h3>
-                            <p className="text-slate-500 font-medium text-sm">Maintained by Turbines Maritime Systems.</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6">
-
-                        {/* Contact Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <InfoBox
-                                label="Fleet Email"
-                                value={profileData?.email}
-                                icon={<Mail className="text-cyan-500" size={18} />}
-                            />
-                            <InfoBox
-                                label="Navigation Bridge (WA)"
-                                value={profileData?.whatsapp}
-                                icon={<MessageSquare className="text-blue-500" size={18} />}
-                            />
-                            <InfoBox
-                                label="Vessel Phone"
-                                value={profileData?.handphone}
-                                icon={<Smartphone className="text-teal-500" size={18} />}
-                            />
-                            <InfoBox
-                                label="On-Board Ext"
-                                value={profileData?.phone}
-                                icon={<Phone className="text-slate-500" size={18} />}
-                            />
-                        </div>
-
-                        {/* Address Section */}
-                        <div className="bg-white p-6 rounded-[2rem] border border-cyan-50 shadow-sm relative overflow-hidden group">
-                            <div className="absolute -right-4 -bottom-4 opacity-5 text-cyan-600 group-hover:scale-110 transition-transform">
-                                <Anchor size={120} />
-                            </div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <MapPin size={16} className="text-cyan-600" />
-                                <label className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                                    Home Port / Residence Address
-                                </label>
-                            </div>
-                            <div className="bg-cyan-50/30 p-4 rounded-2xl border border-cyan-50 min-h-[70px] backdrop-blur-sm">
-                                <p className="text-slate-600 text-sm leading-relaxed font-semibold">{displayAddress}</p>
-                            </div>
-                        </div>
-
-                        {/* Maritime Notice */}
-                        <div className="bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[2rem] p-8 text-white flex items-center gap-8 shadow-xl shadow-blue-200">
-                            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-[1.5rem] flex items-center justify-center shrink-0 border border-white/30">
-                                <ShieldCheck size={44} className="text-white" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Anchor size={16} className="text-white/80" />
-                                    <h4 className="font-black text-lg tracking-tight">Security Clearance Active</h4>
-                                </div>
-                                <p className="text-white/90 text-sm mt-1 leading-relaxed font-medium">
-                                    Your contact and port data is protected under maritime security protocols.
-                                    Update requests must go through{' '}
-                                    <Link href="/employee/profile" className="text-white font-black hover:underline underline-offset-4 decoration-2">
-                                        Employee Central
-                                    </Link>.
-                                </p>
-                            </div>
-                            <div className="hidden md:block">
-                                <Waves size={64} className="text-white/20 animate-pulse" />
-                            </div>
-                        </div>
-
-                    </div>
+                <div className="space-y-3 sm:space-y-4">
+                  <DocCard
+                    icon={<CreditCard className="text-blue-500" size={20} />}
+                    label="KTP"
+                    value={profileData?.ktp}
+                    color="blue"
+                  />
+                  <DocCard
+                    icon={<FileText className="text-emerald-500" size={20} />}
+                    label="NPWP"
+                    value={profileData?.npwp}
+                    color="emerald"
+                  />
+                  <DocCard
+                    icon={<CreditCard className="text-orange-500" size={20} />}
+                    label="Driving License"
+                    value={profileData?.driving_license}
+                    color="orange"
+                  />
                 </div>
+              </div>
+
+              {/* Signature */}
+              {profileData?.signature_img_url && (
+                <div className="bg-white rounded-xl md:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-5 md:p-6">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                      <FileText className="text-white" size={16} />
+                    </div>
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                      Signature
+                    </h2>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3 sm:p-4 border border-gray-200 flex items-center justify-center">
+                    <img
+                      src={profileData.signature_img_url}
+                      alt="Signature"
+                      className="max-h-16 sm:max-h-20 md:max-h-24"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+}
+
+function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) {
+    return (
+        <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100">
+            <div className="flex-shrink-0 mt-0.5">{icon}</div>
+            <div className="flex-1 min-w-0">
+                <label className="text-xs font-medium text-gray-500 uppercase block mb-1">{label}</label>
+                <span className="text-sm text-gray-900 block break-words">{value || '-'}</span>
             </div>
         </div>
     );
 }
 
-function InfoBox({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
+function DocCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value?: string; color: string }) {
+    const colorClasses = {
+        blue: 'bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200',
+        emerald: 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200',
+        orange: 'bg-gradient-to-br from-orange-50 to-orange-100/50 border-orange-200'
+    };
+    
     return (
-        <div className="bg-white p-6 rounded-[1.8rem] border border-slate-100 shadow-sm group hover:border-cyan-200 hover:shadow-md transition-all">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 block group-hover:text-cyan-500 transition-colors">
-                {label}
-            </label>
-            <div className="flex items-center gap-4 bg-slate-50/50 p-3.5 rounded-2xl border border-slate-50 group-hover:bg-cyan-50/30 transition-all">
-                <div className="shrink-0 group-hover:scale-110 transition-transform">{icon}</div>
-                <span className="text-slate-700 font-bold text-sm truncate">{value || '-'}</span>
+        <div className={`${colorClasses[color as keyof typeof colorClasses]} rounded-lg sm:rounded-xl p-3 sm:p-4 border`}>
+            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                {icon}
+                <label className="text-xs font-semibold text-gray-700 uppercase">{label}</label>
             </div>
+            <p className="text-xs sm:text-sm text-gray-900 font-mono break-all">{value || '-'}</p>
         </div>
     );
 }

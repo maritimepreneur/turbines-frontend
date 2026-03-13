@@ -3,6 +3,8 @@ export interface Document {
     number: number;
     name: string;
     document_type: string;
+    url?: string;
+    description?: string;
     project_id: number | null;
     quotation_id: number | null;
     created_at?: string;
