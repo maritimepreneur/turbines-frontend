@@ -110,7 +110,7 @@ export default function RecentActivityPage() {
         "/api/attendances/",
         {
           page: 1,
-          page_size: 1000,
+          page_size: 150,
           sort_by: 'id',
         }
       );
