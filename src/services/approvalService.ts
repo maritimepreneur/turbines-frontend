@@ -1,34 +1,76 @@
-import axiosInstance from "@/lib/axios"
-import { ApprovalPostRequest, ApprovalUpdateRequest } from "@/types/approval"
+import axiosInstance from '@/lib/axios';
 
-// GET LIST
-export const getApprovals = async (page = 1) => {
-  const response = await axiosInstance.get(`/api/approvals/?page=${page}`)
-  return response.data
-}
+export type ApprovalStatus = 'Pending' | 'Approved' | 'Rejected';
 
-// CREATE
-export const createApproval = async (payload: ApprovalPostRequest) => {
-  return await axiosInstance.post(
-    "/api/approvals/create",
-    payload
-  )
-}
+export type Approval = {
+  id: number;
+  approval_id: string;
+  code: string;
+  type: string;
+  date: string;
+  status: ApprovalStatus;
+  quotation_id: number | null;
+  po_id: number | null;
+  invoice_id: number | null;
+  expense_id: number | null;
+  lead_id: number | null;
+};
 
-// UPDATE STATUS
-export const updateApprovalStatus = async (
-  id: number,
-  data: ApprovalUpdateRequest
-) => {
-  return await axiosInstance.put(
-    `/api/approvals/update/${id}`,
-    data
-  )
-}
+export type PaginatedApprovals = {
+  code: number;
+  message: string;
+  data: {
+    list: Approval[];
+    pagination: {
+      current_page: number;
+      page_size: number;
+      total_pages: number;
+      total_items: number;
+    };
+  };
+};
 
-// DELETE
-export const deleteApproval = async (id: number) => {
-  return await axiosInstance.delete(
-    `/api/approvals/${id}`
-  )
-}
+export type SingleApproval = {
+  code: number;
+  message: string;
+  data: Approval;
+};
+
+export type GetApprovalsParams = {
+  page?: number;
+  limit?: number;
+  type?: string;
+  status?: string;
+};
+
+export type CreateApprovalPayload = {
+  entity_type: string;
+  quotation_id?: number | null;
+  po_id?: number | null;
+  invoice_id?: number | null;
+  expense_id?: number | null;
+  lead_id?: number | null;
+};
+
+export type UpdateApprovalPayload = {
+  status: 'Approved' | 'Rejected';
+};
+
+const approvalsService = {
+  getAll: (params?: GetApprovalsParams) =>
+    axiosInstance.get<PaginatedApprovals>('/api/approvals/', { params }),
+
+  getById: (id: string) =>
+    axiosInstance.get<SingleApproval>(`/api/approvals/${id}`),
+
+  create: (payload: CreateApprovalPayload) =>
+    axiosInstance.post<Approval>('/api/approvals/create', payload),
+
+  updateStatus: (id: string, payload: UpdateApprovalPayload) =>
+    axiosInstance.put<Approval>(`/api/approvals/update/${id}`, payload),
+
+  delete: (id: string) =>
+    axiosInstance.delete(`/api/approvals/${id}`),
+};
+
+export default approvalsService;

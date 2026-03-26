@@ -1,128 +1,138 @@
-"use client";
+export default function ScholarshipsTypePage() {
+  const scholarshipTypes = [
+    {
+      id: "TYPE-001",
+      name: "Government",
+      description:
+        "Scholarship funded by government institutions for eligible participants based on academic achievement and financial need.",
+      category: "Public",
+      status: "Active",
+      totalRecipients: 100,
+      coverageAmount: "Rp 50.000.000",
+    },
+    {
+      id: "TYPE-002",
+      name: "Private",
+      description:
+        "Scholarship provided by private companies or corporations to support talented individuals in their field.",
+      category: "Corporate",
+      status: "Active",
+      totalRecipients: 50,
+      coverageAmount: "Rp 30.000.000",
+    },
+    {
+      id: "TYPE-003",
+      name: "Internal",
+      description:
+        "Scholarship offered by the institution itself to support students or employees within the organization.",
+      category: "Internal",
+      status: "Active",
+      totalRecipients: 30,
+      coverageAmount: "Rp 20.000.000",
+    },
+    {
+      id: "TYPE-004",
+      name: "Partnership",
+      description:
+        "Scholarship resulting from collaboration between two or more organizations to support educational programs.",
+      category: "Collaboration",
+      status: "Active",
+      totalRecipients: 40,
+      coverageAmount: "Rp 25.000.000",
+    },
+    {
+      id: "TYPE-005",
+      name: "Foundation",
+      description:
+        "Scholarship granted by non-profit foundations dedicated to advancing education and skills development.",
+      category: "Non-Profit",
+      status: "Inactive",
+      totalRecipients: 25,
+      coverageAmount: "Rp 15.000.000",
+    },
+  ];
 
-import Link from "next/link";
-import { useState } from "react";
-import { SearchBar } from "@/components/table/SearchBar";
-import { Pagination } from "@/components/table/Pagination";
-import { ResponsiveTable } from "@/components/table/ResponsiveTable";
-import { EmptyState } from "@/components/table/EmptyState";
-import { useTableFilters } from "@/hooks/useTableFilters";
-import { useScholarshipList } from "@/hooks/useScholarshipList";
+  const statusColor: Record<string, string> = {
+    Active: "bg-green-100 text-green-700",
+    Inactive: "bg-gray-100 text-gray-500",
+    Pending: "bg-yellow-100 text-yellow-700",
+  };
 
-export default function ScholarshipTypePage() {
-  const [showFilter, setShowFilter] = useState(false);
-
-  const {
-    scholarshipData,
-    loading,
-    fetchScholarships,
-  } = useScholarshipList();
-
-  const {
-    search,
-    currentPage,
-    itemsPerPage,
-    paginatedData,
-    filteredData,
-    totalPages,
-    setSearch,
-    setCurrentPage,
-    setItemsPerPage,
-  } = useTableFilters(scholarshipData, 5);
+  const categoryColor: Record<string, string> = {
+    Public: "bg-blue-100 text-blue-700",
+    Corporate: "bg-purple-100 text-purple-700",
+    Internal: "bg-teal-100 text-teal-700",
+    Collaboration: "bg-orange-100 text-orange-700",
+    "Non-Profit": "bg-pink-100 text-pink-700",
+  };
 
   return (
     <div>
       {/* Header */}
       <div className="mb-6">
         <p className="text-sm text-slate-400">
-          Training Course / <span className="text-slate-600">Scholarship Type</span>
+          Training Course /{" "}
+          <span className="text-slate-600">Scholarships Type</span>
         </p>
-
         <h1 className="text-2xl font-semibold mt-1 text-black">
-          Scholarship Type
+          Scholarships Type
         </h1>
       </div>
 
-      {/* Total */}
-      <div className="flex justify-end mb-4">
-        <div className="text-sm text-gray-600">
-          Total:
-          <span className="font-semibold text-gray-800 ml-1">
-            {filteredData.length}
-          </span>
-        </div>
-      </div>
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {scholarshipTypes.map((item) => (
+          <div
+            key={item.id}
+            className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-shadow duration-200"
+          >
+            {/* Card Header */}
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs text-slate-400 mb-1">{item.id}</p>
+                <h2 className="text-sm font-bold text-black leading-tight">
+                  {item.name}
+                </h2>
+              </div>
+              <span
+                className={`text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${statusColor[item.status]}`}
+              >
+                {item.status}
+              </span>
+            </div>
 
-      {/* Card */}
-      <div className="bg-white rounded-xl shadow-sm p-6 text-black">
+            {/* Description */}
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed line-clamp-3">
+              {item.description}
+            </p>
 
-        {/* Toolbar */}
-        <div className="flex justify-between mb-4">
+            {/* Category Badge */}
+            <div className="mb-4">
+              <span
+                className={`text-xs font-semibold px-2 py-1 rounded-full ${categoryColor[item.category] ?? "bg-gray-100 text-gray-600"
+                  }`}
+              >
+                {item.category}
+              </span>
+            </div>
 
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Search scholarship..."
-          />
-
-          <div className="flex gap-3">
-
-            <button
-              onClick={fetchScholarships}
-              className="bg-gray-100 px-4 py-2 rounded-lg"
-            >
-              Refresh
-            </button>
-
-            {/* LINK KE FORM */}
-            <Link
-              href="/training-course/scholarship-type/scholarshipType-form"
-              className="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600"
-            >
-              + Add
-            </Link>
-
+            {/* Info Row */}
+            <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+              <div>
+                <p className="text-xs text-slate-400">Coverage Amount</p>
+                <p className="text-sm font-semibold text-black">
+                  {item.coverageAmount}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-400">Recipients</p>
+                <p className="text-sm font-semibold text-black">
+                  {item.totalRecipients} people
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Table */}
-        {loading ? (
-          <div className="text-center py-10">
-            Loading data...
-          </div>
-        ) : (
-          <ResponsiveTable<any>
-            columns={[
-              { header: "Name", accessor: "name" },
-              { header: "Type", accessor: "type" },
-              { header: "Category", accessor: "category" },
-              { header: "Original Price", accessor: "original_price" },
-              { header: "Discount", accessor: "discount" },
-              { header: "Price", accessor: "price" },
-              { header: "Status", accessor: "status" },
-            ]}
-            data={paginatedData}
-            keyAccessor={(item) => item.scholarship_id}
-            emptyState={
-              <EmptyState
-                title="No scholarship found"
-                description="Click '+ Add' to create scholarship"
-              />
-            }
-          />
-        )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredData.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
-          />
-        )}
+        ))}
       </div>
     </div>
   );

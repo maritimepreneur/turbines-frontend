@@ -1,496 +1,236 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenToSquare, faTrashCan } from "@fortawesome/free-solid-svg-icons";
-import { ConfirmationModal } from "@/components/modals/ConfirmationModal";
-import { NotificationModal } from "@/components/modals/NotificationModal";
-import { SearchBar } from "@/components/table/SearchBar";
-import { FilterPanel } from "@/components/table/FilterPanel";
-import { Pagination } from "@/components/table/Pagination";
-import { useTableFilters } from "@/hooks/useTableFilters";
-import {
-  Approval,
-  ApprovalType,
-  ApprovalStatus,
-  ApprovalPostRequest,
-  ApprovalUpdateRequest,
-} from "@/types/approval";
-import {
-  getApprovals,
-  createApproval,
-  updateApprovalStatus,
-  deleteApproval,
-} from "@/services/approvalService";
+import { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck, faTimes, faEye, faFilter, faSpinner, faPlus } from '@fortawesome/free-solid-svg-icons';
+import approvalsService, { Approval, ApprovalStatus } from '@/services/approvalService';
 
-// ─── Mapping entity type → field ID yang relevan ──────────────────────────────
-
-const entityFieldMap: Record<ApprovalType, { label: string; key: keyof ApprovalPostRequest }> = {
-  Quotation: { label: "Quotation ID", key: "quotation_id" },
-  "Purchase Order": { label: "PO ID", key: "po_id" },
-  Invoice: { label: "Invoice ID", key: "invoice_id" },
-  Expense: { label: "Expense ID", key: "expense_id" },
+const statusStyle: Record<ApprovalStatus, string> = {
+  Pending: 'bg-yellow-100 text-yellow-700',
+  Approved: 'bg-green-100 text-green-700',
+  Rejected: 'bg-red-100 text-red-700',
 };
 
-// ─── Form Modal (Add / Edit) ──────────────────────────────────────────────────
+export default function ApprovalsPage() {
+  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
 
-interface ApprovalFormModalProps {
-  isOpen: boolean;
-  mode: "add" | "edit";
-  initial?: Approval;
-  onClose: () => void;
-  onSaved: () => void;
-  onError: (msg: string) => void;
-}
-
-function ApprovalFormModal({
-  isOpen,
-  mode,
-  initial,
-  onClose,
-  onSaved,
-  onError,
-}: ApprovalFormModalProps) {
-  const [entityType, setEntityType] = useState<ApprovalType>(initial?.type ?? "Quotation");
-  const [entityId, setEntityId] = useState("");
-  const [status, setStatus] = useState<ApprovalStatus>(initial?.status ?? "New Request");
-  const [loading, setLoading] = useState(false);
-
-  // Ambil nilai ID awal saat edit
-  const getInitialId = (type: ApprovalType, data?: Approval) => {
-    if (!data) return "";
-    const map: Record<ApprovalType, number | null> = {
-      Quotation: data.quotation_id,
-      "Purchase Order": data.po_id,
-      Invoice: data.invoice_id,
-      Expense: data.expense_id,
-    };
-    return map[type]?.toString() ?? "";
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      const type = initial?.type ?? "Quotation";
-      setEntityType(type);
-      setEntityId(getInitialId(type, initial));
-      setStatus(initial?.status ?? "New Request");
-    }
-  }, [isOpen, initial]);
-
-  // Reset ID saat entity type berubah (hanya mode add)
-  const handleEntityTypeChange = (type: ApprovalType) => {
-    setEntityType(type);
-    if (mode === "add") setEntityId("");
-    else setEntityId(getInitialId(type, initial));
-  };
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async () => {
-    if (!entityId) return;
+  const fetchApprovals = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const fieldKey = entityFieldMap[entityType].key;
-      const payload: ApprovalPostRequest = {
-        entity_type: entityType,
-        [fieldKey]: Number(entityId),
-      };
-
-      if (mode === "add") {
-        await createApproval(payload);
-      } else if (initial) {
-        const updatePayload: ApprovalUpdateRequest = { ...payload, status };
-        await updateApprovalStatus(initial.approval_id, updatePayload);
-      }
-
-      onSaved();
-      onClose();
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.detail ||
-        "Gagal menyimpan data approval";
-      onError(msg);
+      const { data } = await approvalsService.getAll({
+        page,
+        limit,
+        ...(filterType && { type: filterType }),
+        ...(filterStatus && { status: filterStatus }),
+      });
+      setApprovals(data.data.list);
+      setTotal(data.data.pagination.total_items);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
-  const inputClass =
-    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400";
-  const labelClass = "block text-xs font-medium text-gray-500 mb-1";
-  const currentField = entityFieldMap[entityType];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          {mode === "add" ? "Tambah Approval" : "Edit Approval"}
-        </h2>
-
-        <div className="space-y-4">
-          {/* Entity Type */}
-          <div>
-            <label className={labelClass}>Entity Type *</label>
-            <select
-              className={inputClass}
-              value={entityType}
-              onChange={(e) => handleEntityTypeChange(e.target.value as ApprovalType)}
-            >
-              {(["Quotation", "Purchase Order", "Invoice", "Expense"] as ApprovalType[]).map(
-                (t) => <option key={t} value={t}>{t}</option>
-              )}
-            </select>
-          </div>
-
-          {/* ID field — dinamis sesuai entity type */}
-          <div>
-            <label className={labelClass}>{currentField.label} *</label>
-            <input
-              type="number"
-              className={inputClass}
-              placeholder={`Masukkan ${currentField.label}`}
-              value={entityId}
-              onChange={(e) => setEntityId(e.target.value)}
-            />
-          </div>
-
-          {/* Status — hanya saat edit */}
-          {mode === "edit" && (
-            <div>
-              <label className={labelClass}>Status</label>
-              <select
-                className={inputClass}
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ApprovalStatus)}
-              >
-                {(["New Request", "Approved", "Rejected"] as ApprovalStatus[]).map(
-                  (s) => <option key={s} value={s}>{s}</option>
-                )}
-              </select>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
-          >
-            Batal
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !entityId}
-            className="px-4 py-2 rounded-lg text-sm text-white bg-sky-500 hover:bg-sky-600 transition disabled:opacity-60"
-          >
-            {loading ? "Menyimpan..." : "Simpan"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
-export default function ApprovalsPage() {
-  const [showFilter, setShowFilter] = useState(false);
-  const [activeTab, setActiveTab] = useState<ApprovalStatus>("New Request");
-  const [approvals, setApprovals] = useState<Approval[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editTarget, setEditTarget] = useState<Approval | null>(null);
-  const [confirmModal, setConfirmModal] = useState({ open: false, id: 0 });
-  const [notifModal, setNotifModal] = useState({
-    open: false,
-    title: "",
-    message: "",
-    type: "success" as "success" | "error" | "info",
-  });
-
-  // ── Fetch ───────────────────────────────────────────────────────────────────
-
-  const fetchApprovals = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await getApprovals();
-      const data =
-        response?.data?.list ||
-        response?.data ||
-        response ||
-        [];
-      setApprovals(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.detail ||
-        "Gagal memuat data Approval";
-      setNotifModal({ open: true, title: "Gagal", message: msg, type: "error" });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchApprovals();
-  }, [fetchApprovals]);
+  }, [page, filterType, filterStatus]);
 
-  // ── Tab filter ──────────────────────────────────────────────────────────────
-
-  const tabFilteredData = approvals.filter(
-    (item) => (item.status ?? "New Request") === activeTab
-  );
-
-  // ── useTableFilters ─────────────────────────────────────────────────────────
-
-  const {
-    filters,
-    search,
-    currentPage,
-    paginatedData,
-    filteredData,
-    totalPages,
-    addFilter,
-    removeFilter,
-    updateFilterField,
-    updateFilterValue,
-    resetFilters,
-    setSearch,
-    setCurrentPage,
-  } = useTableFilters(tabFilteredData, 5);
-
-  const fieldOptions = [
-    { label: "Type", value: "type" },
-    { label: "Code", value: "code" },
-    { label: "Quotation ID", value: "quotation_id" },
-    { label: "PO ID", value: "po_id" },
-    { label: "Invoice ID", value: "invoice_id" },
-    { label: "Expense ID", value: "expense_id" },
-  ];
-
-  // ── Delete ──────────────────────────────────────────────────────────────────
-
-  const handleDeleteConfirm = async () => {
-    setDeleting(true);
+  const handleUpdateStatus = async (approval_id: string, status: 'Approved' | 'Rejected') => {
     try {
-      await deleteApproval(confirmModal.id);
-      setNotifModal({
-        open: true,
-        title: "Berhasil",
-        message: "Approval berhasil dihapus",
-        type: "success",
-      });
-      await fetchApprovals();
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.detail ||
-        err?.response?.data?.error ||
-        "Gagal menghapus Approval";
-      setNotifModal({ open: true, title: "Gagal", message: msg, type: "error" });
-    } finally {
-      setDeleting(false);
-      setConfirmModal({ open: false, id: 0 });
+      await approvalsService.updateStatus(approval_id, { status });
+      fetchApprovals();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Action failed');
     }
   };
 
-  // ── Status badge color ──────────────────────────────────────────────────────
-
-  const statusColor: Record<ApprovalStatus, string> = {
-    "New Request": "bg-blue-100 text-blue-700",
-    Approved: "bg-green-100 text-green-700",
-    Rejected: "bg-red-100 text-red-700",
-  };
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <p className="text-sm text-slate-400">
-          Bizdev / <span className="text-slate-600">Approvals</span>
-        </p>
-        <h1 className="text-2xl font-semibold mt-1 text-slate-900">Approvals</h1>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="border-b border-gray-400 mb-4">
-        <nav className="flex space-x-8 px-6 pt-4">
-          {(["New Request", "Approved", "Rejected"] as ApprovalStatus[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-2 px-1 border-b-2 font-medium text-sm transition ${activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowFilter(!showFilter)}
-            className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-sky-600 transition"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            Filter
-            {filters.length > 0 && (
-              <span className="bg-white text-sky-500 rounded-full px-2 py-0.5 text-xs font-semibold">
-                {filters.length}
-              </span>
-            )}
-          </button>
-          <SearchBar
-            value={search}
-            onChange={setSearch}
-            placeholder="Cari type atau code..."
-          />
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-slate-400">
+            Bizdev / <span className="text-slate-600">Approvals</span>
+          </p>
+          <h1 className="text-2xl font-semibold mt-1 text-black">Approvals</h1>
         </div>
-
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-sky-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-sky-600 transition"
+        <a
+          href="/bizdev/approvals/form-approval"
+          className="flex items-center gap-2 px-4 py-2 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
-          + Add
-        </button>
+          <FontAwesomeIcon icon={faPlus} />
+          New Approval
+        </a>
       </div>
 
-      {/* Filter Panel */}
-      <FilterPanel
-        show={showFilter}
-        filters={filters}
-        onAddFilter={addFilter}
-        onRemoveFilter={removeFilter}
-        onUpdateField={updateFilterField}
-        onUpdateValue={updateFilterValue}
-        onResetAll={resetFilters}
-        fieldOptions={fieldOptions}
-      />
+      <div className="bg-white rounded-xl shadow-sm text-black overflow-hidden">
+        <div className="p-4 sm:p-6">
 
-      {/* Table */}
-      <ResponsiveTable
-        columns={[
-          { header: 'Approval Type', accessor: 'approval_type', isPrimary: true },
-          { header: 'ID', accessor: 'id', cellClassName: 'font-medium' },
-          { header: 'Code', accessor: 'code' },
-          { header: 'Quotation ID', accessor: 'quotation_id' },
-          { header: 'PO ID', accessor: 'po_id' },
-          { header: 'Invoice ID', accessor: 'invoice_id' },
-          { header: 'Expense ID', accessor: 'expense_id' },
-          { header: 'Leads ID', accessor: 'leads_id' },
-          {
-            header: 'Action',
-            render: () => (
-              <div className="flex gap-4">
-                <button className="text-sky-500 hover:text-sky-700">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button className="text-red-500 hover:text-red-700">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+          {/* Filter Bar */}
+          <div className="flex items-center gap-2 mb-5">
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-slate-500 bg-gray-50">
+              <FontAwesomeIcon icon={faFilter} className="text-gray-400" />
+              Filter
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+              className="h-8 px-3 text-xs border border-gray-200 rounded-lg text-black bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="">All Type</option>
+              <option value="Quotation">Quotation</option>
+              <option value="Purchase Order">Purchase Order</option>
+              <option value="Invoice">Invoice</option>
+              <option value="Expense">Expense</option>
+              <option value="Lead">Lead</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+              className="h-8 px-3 text-xs border border-gray-200 rounded-lg text-black bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex justify-center items-center py-20 text-slate-400">
+              <FontAwesomeIcon icon={faSpinner} spin className="mr-2 text-blue-400" />
+              <span className="text-sm">Loading...</span>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="flex justify-center py-20">
+              <p className="text-sm text-red-500">{error}</p>
+            </div>
+          )}
+
+          {/* Table */}
+          {!loading && !error && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="pb-3 text-xs font-semibold text-slate-400 pr-6">Approval ID</th>
+                      <th className="pb-3 text-xs font-semibold text-slate-400 pr-6">Code</th>
+                      <th className="pb-3 text-xs font-semibold text-slate-400 pr-6">Type</th>
+                      <th className="pb-3 text-xs font-semibold text-slate-400 pr-6">Date</th>
+                      <th className="pb-3 text-xs font-semibold text-slate-400 pr-6">Status</th>
+                      <th className="pb-3 text-xs font-semibold text-slate-400">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {approvals.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-20 text-center text-sm text-slate-400">
+                          No approvals found.
+                        </td>
+                      </tr>
+                    ) : (
+                      approvals.map((item) => (
+                        <tr
+                          key={item.approval_id}
+                          className="border-b border-gray-50 hover:bg-slate-50 transition-colors"
+                        >
+                          <td className="py-3.5 pr-6 text-xs font-medium text-blue-600">{item.approval_id}</td>
+                          <td className="py-3.5 pr-6 text-xs text-slate-600">{item.code}</td>
+                          <td className="py-3.5 pr-6 text-xs text-slate-600">{item.type}</td>
+                          <td className="py-3.5 pr-6 text-xs text-slate-500">{item.date}</td>
+                          <td className="py-3.5 pr-6">
+                            <span className={`px-2.5 py-0.5 text-xs rounded-full font-medium ${statusStyle[item.status]}`}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex gap-1.5">
+                              <a
+                                href={`/bizdev/approvals/${item.approval_id}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-slate-100 text-slate-600 rounded-md hover:bg-slate-200 transition-colors"
+                              >
+                                <FontAwesomeIcon icon={faEye} />
+                                Detail
+                              </a>
+                              {item.status === 'Pending' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateStatus(item.approval_id, 'Approved')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors"
+                                  >
+                                    <FontAwesomeIcon icon={faCheck} />
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdateStatus(item.approval_id, 'Rejected')}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors"
+                                  >
+                                    <FontAwesomeIcon icon={faTimes} />
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-            ),
-          },
-        ]}
-        data={paginatedData}
-        keyAccessor={(item: any) => item.id}
-        emptyState={search ? <EmptyState type="search" /> : <EmptyState title="No data found" />}
-      />
 
-      {/* Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={filteredData.length}
-        itemsPerPage={itemsPerPage}
-        onPageChange={setCurrentPage}
-        onItemsPerPageChange={setItemsPerPage}
-      />
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-slate-400">
+                    Showing{' '}
+                    <span className="font-medium text-slate-600">{(page - 1) * limit + 1}</span>
+                    {' '}–{' '}
+                    <span className="font-medium text-slate-600">{Math.min(page * limit, total)}</span>
+                    {' '}of{' '}
+                    <span className="font-medium text-slate-600">{total}</span> results
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                      disabled={page === 1}
+                      className="px-3 py-1 text-xs border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                    >
+                      Prev
+                    </button>
+                    <span className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md">
+                      {page}
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                      disabled={page === totalPages}
+                      className="px-3 py-1 text-xs border border-gray-200 rounded-md hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
-
-      {/* Form Modal — Add */ }
-  <ApprovalFormModal
-    isOpen={showAddModal}
-    mode="add"
-    onClose={() => setShowAddModal(false)}
-    onSaved={() => {
-      fetchApprovals();
-      setNotifModal({
-        open: true,
-        title: "Berhasil",
-        message: "Approval berhasil ditambahkan",
-        type: "success",
-      });
-    }}
-    onError={(msg) =>
-      setNotifModal({ open: true, title: "Gagal", message: msg, type: "error" })
-    }
-  />
-
-  {/* Form Modal — Edit */ }
-  <ApprovalFormModal
-    isOpen={!!editTarget}
-    mode="edit"
-    initial={editTarget ?? undefined}
-    onClose={() => setEditTarget(null)}
-    onSaved={() => {
-      fetchApprovals();
-      setEditTarget(null);
-      setNotifModal({
-        open: true,
-        title: "Berhasil",
-        message: "Approval berhasil diperbarui",
-        type: "success",
-      });
-    }}
-    onError={(msg) =>
-      setNotifModal({ open: true, title: "Gagal", message: msg, type: "error" })
-    }
-  />
-
-  {/* Confirmation Modal */ }
-  <ConfirmationModal
-    isOpen={confirmModal.open}
-    title="Hapus Approval"
-    message="Apakah Anda yakin ingin menghapus Approval ini? Tindakan ini tidak dapat dibatalkan."
-    confirmText={deleting ? "Menghapus..." : "Hapus"}
-    cancelText="Batal"
-    type="reject"
-    onConfirm={handleDeleteConfirm}
-    onClose={() => setConfirmModal({ open: false, id: 0 })}
-  />
-
-  {/* Notification Modal */ }
-  <NotificationModal
-    isOpen={notifModal.open}
-    title={notifModal.title}
-    message={notifModal.message}
-    type={notifModal.type}
-    onClose={() =>
-      setNotifModal({ open: false, title: "", message: "", type: "success" })
-    }
-  />
-    </div >
   );
 }
