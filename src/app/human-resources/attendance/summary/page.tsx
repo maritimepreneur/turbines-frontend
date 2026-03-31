@@ -102,7 +102,7 @@ export default function SummaryPage() {
         "/api/attendances/",
         {
           page: 1,
-          page_size: 99,
+          page_size: 150,
           sort_by: 'id',
           sort_order: 'DESC',
         }
