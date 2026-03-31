@@ -11,6 +11,8 @@ import { Pagination } from "@/components/table/Pagination";
 import { ResponsiveTable } from "@/components/table/ResponsiveTable";
 import { EmptyState } from "@/components/table/EmptyState";
 
+import { SearchBar } from "@/components/table/SearchBar";
+
 type AbsentEmployee = {
   id: number;
   employee_name: string;
@@ -43,6 +45,8 @@ export default function AbsentPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchAbsentEmployees();
@@ -84,17 +88,29 @@ export default function AbsentPage() {
     fetchAbsentEmployees();
   };
 
+  const filteredEmployees = useMemo(() => {
+    let result = absentEmployees;
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(emp => 
+        emp.employee_name?.toLowerCase().includes(s) || 
+        emp.employee_code?.toLowerCase().includes(s)
+      );
+    }
+    return result;
+  }, [absentEmployees, search]);
+
   // Client-side pagination
   const paginatedEmployees = useMemo(() => {
-    if (itemsPerPage >= 99999) return absentEmployees;
+    if (itemsPerPage >= 99) return filteredEmployees;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return absentEmployees.slice(startIndex, endIndex);
-  }, [absentEmployees, currentPage, itemsPerPage]);
+    return filteredEmployees.slice(startIndex, endIndex);
+  }, [filteredEmployees, currentPage, itemsPerPage]);
 
-  const totalPages = absentEmployees.length === 0
+  const totalPages = filteredEmployees.length === 0
     ? 0
-    : Math.max(1, Math.ceil(absentEmployees.length / (itemsPerPage >= 99999 ? absentEmployees.length : itemsPerPage)));
+    : Math.max(1, Math.ceil(filteredEmployees.length / (itemsPerPage >= 99 ? filteredEmployees.length : itemsPerPage)));
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
@@ -186,7 +202,10 @@ export default function AbsentPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && absentEmployees.length === 0 && (
+      {!isLoading && !error && filteredEmployees.length === 0 && search && (
+        <EmptyState type="search" />
+      )}
+      {!isLoading && !error && absentEmployees.length === 0 && !search && (
         <div className="bg-white rounded-xl shadow-sm p-16 text-black">
           <div className="flex flex-col items-center text-center">
             <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -215,9 +234,9 @@ export default function AbsentPage() {
       )}
 
       {/* Employee Table */}
-      {!isLoading && !error && absentEmployees.length > 0 && (
+      {!isLoading && !error && (filteredEmployees.length > 0 || search) && absentEmployees.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-6 text-black">
-          <div className="mb-4 pb-4 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-4 border-b">
             <p className="text-sm text-slate-600">
               Total absent:{" "}
               <span className="font-semibold text-red-600 text-lg">
@@ -225,57 +244,66 @@ export default function AbsentPage() {
               </span>{" "}
               {absentEmployees.length === 1 ? "employee" : "employees"}
             </p>
+
+            <SearchBar
+               value={search}
+               onChange={(val) => { setSearch(val); setCurrentPage(1); }}
+               placeholder="Search employee name or code..."
+            />
           </div>
 
-          <ResponsiveTable<AbsentEmployee>
-            columns={[
-              {
-                header: 'No',
-                render: (_item, index) => (
-                  <span className="text-slate-600">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </span>
-                ),
-                showOnMobile: false,
-              },
-              {
-                header: 'Employee Name',
-                accessor: 'employee_name',
-                isPrimary: true,
-                cellClassName: 'font-medium text-slate-800',
-              },
-              {
-                header: 'Employee Code',
-                accessor: 'employee_code',
-                cellClassName: 'text-slate-600',
-              },
-              {
-                header: 'Nickname',
-                render: (employee) => (
-                  <span className="text-slate-600">@{employee.nickname}</span>
-                ),
-              },
-              {
-                header: 'Phone',
-                accessor: 'phone',
-                cellClassName: 'text-slate-600',
-              },
-            ]}
-            data={paginatedEmployees}
-            keyAccessor={(employee) => employee.id}
-            emptyState={<EmptyState title="No absent employees" />}
-          />
-
+          <div className="mt-4">
+            <ResponsiveTable<AbsentEmployee>
+              columns={[
+                {
+                  header: 'No',
+                  render: (_item, index) => (
+                    <span className="text-slate-600">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </span>
+                  ),
+                  showOnMobile: false,
+                },
+                {
+                  header: 'Employee Name',
+                  accessor: 'employee_name',
+                  isPrimary: true,
+                  cellClassName: 'font-medium text-slate-800',
+                },
+                {
+                  header: 'Employee Code',
+                  accessor: 'employee_code',
+                  cellClassName: 'text-slate-600',
+                },
+                {
+                  header: 'Nickname',
+                  render: (employee) => (
+                    <span className="text-slate-600">@{employee.nickname}</span>
+                  ),
+                },
+                {
+                  header: 'Phone',
+                  accessor: 'phone',
+                  cellClassName: 'text-slate-600',
+                },
+              ]}
+              data={paginatedEmployees}
+              keyAccessor={(employee) => employee.id}
+              emptyState={<EmptyState title="No absent employees" />}
+            />
+          </div>
 
           {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={absentEmployees.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
+          {filteredEmployees.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredEmployees.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </div>
       )}
     </div>

@@ -109,9 +109,10 @@ export default function RecentActivityPage() {
       const response = await axiosInstance.post<AttendanceResponse>(
         "/api/attendances/",
         {
-          page: 1,
-          page_size: 1000,
+          page_number: 1,
+          page_size: 99,
           sort_by: 'id',
+          sort_order: 'DESC'
         }
       );
 
@@ -213,7 +214,7 @@ export default function RecentActivityPage() {
 
   // Client-side pagination
   const paginatedAttendances = useMemo(() => {
-    if (itemsPerPage >= 99999) return filteredAttendances;
+    if (itemsPerPage >= 100) return filteredAttendances;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredAttendances.slice(startIndex, endIndex);
@@ -221,7 +222,7 @@ export default function RecentActivityPage() {
 
   const totalPages = filteredAttendances.length === 0
     ? 0
-    : Math.max(1, Math.ceil(filteredAttendances.length / (itemsPerPage >= 99999 ? filteredAttendances.length : itemsPerPage)));
+    : Math.max(1, Math.ceil(filteredAttendances.length / (itemsPerPage >= 100 ? filteredAttendances.length : itemsPerPage)));
 
   const handleApprove = async (id: number, employeeName: string) => {
     confirmModal.open({
@@ -320,15 +321,18 @@ export default function RecentActivityPage() {
     setFilters(
       filters.map((f) => (f.id === id ? { ...f, field, value: "" } : f))
     );
+    setCurrentPage(1);
   };
 
   const updateFilterValue = (id: string, value: string) => {
     setFilters(filters.map((f) => (f.id === id ? { ...f, value } : f)));
+    setCurrentPage(1);
   };
 
   const resetFilters = () => {
     setFilters([]);
     setSearch("");
+    setCurrentPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -470,7 +474,7 @@ export default function RecentActivityPage() {
 
             <SearchBar
               value={search}
-              onChange={setSearch}
+              onChange={(val) => { setSearch(val); setCurrentPage(1); }}
               placeholder="Search employee name or ID..."
             />
           </div>
@@ -509,115 +513,117 @@ export default function RecentActivityPage() {
           fieldOptions={fieldOptions}
         />
 
-        <ResponsiveTable<AttendanceRecord>
-          columns={[
-            {
-              header: 'Employee Code',
-              render: (item) => (
-                <span className={item.checked ? 'text-gray-500' : ''}>
-                  {employeeCodeMap[item.employee_id] || `EMP-${String(item.employee_id).padStart(4, '0')}`}
-                </span>
-              ),
-            },
-            {
-              header: 'Employee Name',
-              isPrimary: true,
-              render: (item) => (
-                <Link
-                  href={`/human-resources/attendance/recent-activity/${item.id}?name=${encodeURIComponent(item.employee_name || "Employee #" + item.employee_id)}`}
-                  className={`font-medium hover:text-sky-600 transition cursor-pointer hover:underline ${item.checked ? 'text-gray-500' : ''}`}
-                >
-                  {item.employee_name || `Employee #${item.employee_id}`}
-                </Link>
-              ),
-            },
-            {
-              header: 'Date',
-              render: (item) => (
-                <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : ''}`}>
-                  {formatDate(item.date)}
-                </span>
-              ),
-            },
-            {
-              header: 'Clock In',
-              render: (item) => (
-                <div className="flex flex-col">
-                  <span className={item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}>
-                    {formatTime(item.clock_in.timestamp)}
+        <div className="mt-4">
+          <ResponsiveTable<AttendanceRecord>
+            columns={[
+              {
+                header: 'Employee Code',
+                render: (item) => (
+                  <span className={item.checked ? 'text-gray-500' : ''}>
+                    {employeeCodeMap[item.employee_id] || `EMP-${String(item.employee_id).padStart(4, '0')}`}
                   </span>
-                  {(() => {
-                    if (!item.clock_in.timestamp) return null;
-                    let dateStr = item.clock_in.timestamp;
-                    if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
-                      dateStr += 'Z';
-                    }
-                    const date = new Date(dateStr);
-                    const jakartaOptions = { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false } as const;
-                    const jakartaHour = parseInt(date.toLocaleTimeString('en-US', jakartaOptions));
-                    const jakartaMinute = parseInt(date.toLocaleTimeString('en-US', { timeZone: 'Asia/Jakarta', minute: 'numeric' }));
-                    // On Time: ≤ 09:15, Late: > 09:15
-                    const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
-                    const statusText = isLate ? 'Late' : 'On Time';
-                    const statusColor = isLate ? 'text-red-500' : 'text-emerald-500';
-                    return (
-                      <span className={`text-xs ${item.checked ? 'text-gray-400' : statusColor} font-medium`}>
-                        {statusText}
-                      </span>
-                    );
-                  })()}
-                </div>
-              ),
-            },
-            {
-              header: 'Clock Out',
-              render: (item) => (
-                <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}`}>
-                  {formatTime(item.clock_out.timestamp)}
-                  <span className="ml-1 text-xs text-gray-500">({item.clock_out.status})</span>
-                </span>
-              ),
-            },
-            {
-              header: 'Status',
-              render: (item) => item.checked ? (
-                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Approved</span>
-              ) : (
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Pending</span>
-              ),
-            },
-            {
-              header: 'Action',
-              render: (item) => item.checked ? (
-                <span className="text-slate-400 text-xs">-</span>
-              ) : (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleApprove(item.id, item.employee_name) }}
-                  disabled={isProcessing === item.id}
-                  className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Approve"
-                >
-                  {isProcessing === item.id ? (
-                    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              ),
-            },
-          ]}
-          data={paginatedAttendances}
-          keyAccessor={(item) => item.id}
-          showTopBorder={false}
-          rowClassName={(item) => item.checked ? 'bg-gray-50' : ''}
-          emptyState={
-            search || filters.length > 0
-              ? <EmptyState type="search" />
-              : <EmptyState title="No attendance data available" />
-          }
-        />
+                ),
+              },
+              {
+                header: 'Employee Name',
+                isPrimary: true,
+                render: (item) => (
+                  <Link
+                    href={`/human-resources/attendance/recent-activity/${item.id}?name=${encodeURIComponent(item.employee_name || "Employee #" + item.employee_id)}`}
+                    className={`font-medium hover:text-sky-600 transition cursor-pointer hover:underline ${item.checked ? 'text-gray-500' : ''}`}
+                  >
+                    {item.employee_name || `Employee #${item.employee_id}`}
+                  </Link>
+                ),
+              },
+              {
+                header: 'Date',
+                render: (item) => (
+                  <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : ''}`}>
+                    {formatDate(item.date)}
+                  </span>
+                ),
+              },
+              {
+                header: 'Clock In',
+                render: (item) => (
+                  <div className="flex flex-col">
+                    <span className={item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}>
+                      {formatTime(item.clock_in.timestamp)}
+                    </span>
+                    {(() => {
+                      if (!item.clock_in.timestamp) return null;
+                      let dateStr = item.clock_in.timestamp;
+                      if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
+                        dateStr += 'Z';
+                      }
+                      const date = new Date(dateStr);
+                      const jakartaOptions = { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false } as const;
+                      const jakartaHour = parseInt(date.toLocaleTimeString('en-US', jakartaOptions));
+                      const jakartaMinute = parseInt(date.toLocaleTimeString('en-US', { timeZone: 'Asia/Jakarta', minute: 'numeric' }));
+                      // On Time: ≤ 09:15, Late: > 09:15
+                      const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
+                      const statusText = isLate ? 'Late' : 'On Time';
+                      const statusColor = isLate ? 'text-red-500' : 'text-emerald-500';
+                      return (
+                        <span className={`text-xs ${item.checked ? 'text-gray-400' : statusColor} font-medium`}>
+                          {statusText}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                ),
+              },
+              {
+                header: 'Clock Out',
+                render: (item) => (
+                  <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}`}>
+                    {formatTime(item.clock_out.timestamp)}
+                    <span className="ml-1 text-xs text-gray-500">({item.clock_out.status})</span>
+                  </span>
+                ),
+              },
+              {
+                header: 'Status',
+                render: (item) => item.checked ? (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Approved</span>
+                ) : (
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Pending</span>
+                ),
+              },
+              {
+                header: 'Action',
+                render: (item) => item.checked ? (
+                  <span className="text-slate-400 text-xs">-</span>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleApprove(item.id, item.employee_name) }}
+                    disabled={isProcessing === item.id}
+                    className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Approve"
+                  >
+                    {isProcessing === item.id ? (
+                      <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ),
+              },
+            ]}
+            data={paginatedAttendances}
+            keyAccessor={(item) => item.id}
+            showTopBorder={false}
+            rowClassName={(item) => item.checked ? 'bg-gray-50' : ''}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No attendance data available" />
+            }
+          />
+        </div>
 
         {/* Pagination */}
         <Pagination

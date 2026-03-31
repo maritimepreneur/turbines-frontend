@@ -12,6 +12,7 @@ import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 import * as XLSX from 'xlsx-js-style'
+import { UN_MEMBER_STATES } from "@/lib/countries"
 
 type Partner = {
   id: number
@@ -31,6 +32,7 @@ type Contact = {
   partner_id?: number
   position?: string
   role?: string
+  country?: string
   created_at?: string
   // joined from partner
   partner?: Partner
@@ -82,6 +84,7 @@ export default function ContactListPage() {
     { label: "Email", value: "emails" },
     { label: "Position", value: "position" },
     { label: "Role", value: "role" },
+    { label: "Country", value: "country" },
   ]
 
   const fetchContacts = async () => {
@@ -134,6 +137,7 @@ export default function ContactListPage() {
         c.emails?.some(e => e.toLowerCase().includes(search.toLowerCase())) ||
         c.position?.toLowerCase().includes(search.toLowerCase()) ||
         c.role?.toLowerCase().includes(search.toLowerCase()) ||
+        c.country?.toLowerCase().includes(search.toLowerCase()) ||
         (c.partner_id && partnersMap[c.partner_id]?.name.toLowerCase().includes(search.toLowerCase()))
       )
     }
@@ -191,6 +195,7 @@ export default function ContactListPage() {
         Affiliation: partner?.name || '-',
         'Type of Affiliation': partner?.company_type || '-',
         Position: contact.position || '-',
+        Country: contact.country || '-',
         Category: partner?.partner_type || '-',
         Role: contact.role || '-',
       }
@@ -208,6 +213,7 @@ export default function ContactListPage() {
       { wch: 30 },  // Affiliation
       { wch: 20 },  // Type of Affiliation
       { wch: 40 },  // Position
+      { wch: 20 },  // Country
       { wch: 15 },  // Category
       { wch: 20 },  // Role
     ]
@@ -220,7 +226,7 @@ export default function ContactListPage() {
       alignment: { horizontal: "center", vertical: "center" }
     }
     
-    const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1', 'K1']
+    const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1', 'K1', 'L1']
     headerCells.forEach(cell => {
       if (worksheet[cell]) {
         worksheet[cell].s = headerStyle
@@ -340,7 +346,7 @@ export default function ContactListPage() {
           </div>
         </div>
 
-        <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} />
+        <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} valueOptions={{ country: UN_MEMBER_STATES.map(c => ({ label: c, value: c })) }} />
 
         <div className="mt-4">
           <ResponsiveTable<Contact>
@@ -389,6 +395,12 @@ export default function ContactListPage() {
                 header: 'Position',
                 render: (item) => item.position
                   ? <span className="text-sm text-slate-700">{item.position}</span>
+                  : <span className="text-slate-400 text-xs">-</span>,
+              },
+              {
+                header: 'Country',
+                render: (item) => item.country
+                  ? <span className="text-sm font-medium text-slate-800">{item.country}</span>
                   : <span className="text-slate-400 text-xs">-</span>,
               },
               {

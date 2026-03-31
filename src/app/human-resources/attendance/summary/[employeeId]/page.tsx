@@ -532,7 +532,7 @@ export default function EmployeeHistoryPage() {
                     <div className="flex flex-wrap gap-2">
                         <SearchBar
                             value={search}
-                            onChange={setSearch}
+                            onChange={(val) => { setSearch(val); setCurrentPage(1); }}
                             placeholder="Search by date..."
                         />
                     </div>

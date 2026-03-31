@@ -4,10 +4,12 @@ import { useState, useEffect, FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
+import { SearchableSelect } from "@/components/forms/SearchableSelect"
 import axiosInstance from "@/lib/axios"
+import { UN_MEMBER_STATES } from "@/lib/countries"
 
 type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string; goods?: string }
-type Contact = { id: number; name: string; company?: string; emails?: string[]; phone_numbers?: string[]; partner_id?: number; position?: string; role?: string }
+type Contact = { id: number; name: string; company?: string; emails?: string[]; phone_numbers?: string[]; partner_id?: number; position?: string; role?: string; country?: string }
 interface ContactResponse { message: string; code: number; data: Contact }
 interface PartnersResponse { message: string; code: number; data: { list: Partner[]; pagination: any } }
 
@@ -29,6 +31,7 @@ export default function EditContactPage() {
     const [partnerId, setPartnerId] = useState<string>("")
     const [position, setPosition] = useState("")
     const [role, setRole] = useState("")
+    const [country, setCountry] = useState("")
 
     const [showCancelModal, setShowCancelModal] = useState(false)
     const [notification, setNotification] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "info" }>({ isOpen: false, title: "", message: "", type: "success" })
@@ -56,6 +59,7 @@ export default function EditContactPage() {
                 setPhoneNumbers(c.phone_numbers && c.phone_numbers.length > 0 ? c.phone_numbers : [""])
                 setPosition(c.position || "")
                 setRole(c.role || "")
+                setCountry(c.country || "")
                 if (c.partner_id) {
                     setPartnerId(String(c.partner_id))
                     const found = partnerRes.data.data.list.find(p => p.id === c.partner_id)
@@ -103,6 +107,7 @@ export default function EditContactPage() {
                 ...(partnerId ? { partner_id: parseInt(partnerId) } : { partner_id: null }),
                 ...(position.trim() ? { position: position.trim() } : {}),
                 ...(role.trim() ? { role: role.trim() } : {}),
+                ...(country.trim() ? { country: country.trim() } : {}),
             }
 
             const res = await axiosInstance.put(`/api/contacts/${id}`, fullPayload)
@@ -224,8 +229,8 @@ export default function EditContactPage() {
                             <button type="button" onClick={addPhone} className="mt-2 flex items-center gap-2 px-4 py-2 text-sm text-sky-600 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded-lg transition font-medium">{plusIcon} Add Another Phone</button>
                         </div>
 
-                        {/* Position & Role */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Position, Role, Country */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="text-xs font-semibold text-black block mb-1">Position</label>
                                 <input type="text" value={position} onChange={e => setPosition(e.target.value)} placeholder="e.g. Manager" className={inputCls} />
@@ -233,6 +238,16 @@ export default function EditContactPage() {
                             <div>
                                 <label className="text-xs font-semibold text-black block mb-1">Role</label>
                                 <input type="text" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Decision Maker" className={inputCls} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-semibold text-black block mb-1">Country</label>
+                                <SearchableSelect
+                                    value={country}
+                                    onChange={setCountry}
+                                    options={UN_MEMBER_STATES.map(c => ({ label: c, value: c }))}
+                                    placeholder="— Select country —"
+                                    className={inputCls}
+                                />
                             </div>
                         </div>
                     </div>

@@ -97,7 +97,10 @@ export function Pagination({
           {/* First page button */}
           <button
             disabled={currentPage === 1}
-            onClick={() => onPageChange(1)}
+            onClick={() => {
+              onPageChange(1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="p-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sky-50 hover:border-sky-400 transition"
             title="First page"
           >
@@ -107,7 +110,10 @@ export function Pagination({
           {/* Previous page button */}
           <button
             disabled={currentPage === 1}
-            onClick={() => onPageChange(currentPage - 1)}
+            onClick={() => {
+              onPageChange(currentPage - 1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="px-3 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sky-50 hover:border-sky-400 transition text-sm font-medium text-slate-700"
           >
             <div className="flex items-center gap-1">
@@ -133,7 +139,10 @@ export function Pagination({
               return (
                 <button
                   key={page}
-                  onClick={() => onPageChange(page as number)}
+                  onClick={() => {
+                    onPageChange(page as number);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   className={`min-w-[40px] px-3 py-2 border rounded-lg transition text-sm font-medium ${currentPage === page
                       ? 'bg-sky-500 text-white border-sky-500 shadow-sm'
                       : 'border-slate-300 text-slate-700 hover:bg-sky-50 hover:border-sky-400'
@@ -153,7 +162,10 @@ export function Pagination({
           {/* Next page button */}
           <button
             disabled={currentPage === safeTotalPages}
-            onClick={() => onPageChange(currentPage + 1)}
+            onClick={() => {
+              onPageChange(currentPage + 1);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="px-3 py-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sky-50 hover:border-sky-400 transition text-sm font-medium text-slate-700"
           >
             <div className="flex items-center gap-1">
@@ -165,7 +177,10 @@ export function Pagination({
           {/* Last page button */}
           <button
             disabled={currentPage === safeTotalPages}
-            onClick={() => onPageChange(safeTotalPages)}
+            onClick={() => {
+              onPageChange(safeTotalPages);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="p-2 border border-slate-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sky-50 hover:border-sky-400 transition"
             title="Last page"
           >

@@ -1,3 +1,5 @@
+import { SearchableSelect } from "@/components/forms/SearchableSelect"
+
 export interface FilterItem {
   id: string
   field: string
@@ -13,6 +15,7 @@ interface FilterPanelProps {
   onResetAll: () => void
   fieldOptions: { label: string; value: string }[]
   valueOptions?: Record<string, { label: string; value: string }[]>
+  datalistOptions?: Record<string, string[]>
   show: boolean
 }
 
@@ -25,6 +28,7 @@ export function FilterPanel({
   onResetAll,
   fieldOptions,
   valueOptions,
+  datalistOptions,
   show,
 }: FilterPanelProps) {
   if (!show) return null
@@ -82,24 +86,33 @@ export function FilterPanel({
               </span>
 
               {valueOptions?.[filter.field] ? (
-                <select
-                  value={filter.value}
-                  onChange={(e) => onUpdateValue(filter.id, e.target.value)}
-                  className="w-full sm:w-auto sm:flex-1 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                >
-                  <option value="">Select value...</option>
-                  {valueOptions[filter.field].map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
+                <div className="w-full sm:w-auto sm:flex-1">
+                  <SearchableSelect
+                    value={filter.value}
+                    onChange={(val) => onUpdateValue(filter.id, val)}
+                    options={valueOptions[filter.field]}
+                    placeholder="Select value..."
+                    className="w-full border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
               ) : (
-                <input
-                  type="text"
-                  value={filter.value}
-                  onChange={(e) => onUpdateValue(filter.id, e.target.value)}
-                  placeholder="Enter value..."
-                  className="border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 w-full sm:flex-1 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
+                <div className="w-full sm:flex-1 relative">
+                  <input
+                    type="text"
+                    value={filter.value}
+                    onChange={(e) => onUpdateValue(filter.id, e.target.value)}
+                    placeholder="Enter value..."
+                    list={datalistOptions?.[filter.field] ? `datalist-${filter.id}` : undefined}
+                    className="border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 w-full focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                  {datalistOptions?.[filter.field] && (
+                    <datalist id={`datalist-${filter.id}`}>
+                      {datalistOptions[filter.field].map((opt) => (
+                        <option key={opt} value={opt} />
+                      ))}
+                    </datalist>
+                  )}
+                </div>
               )}
 
               <button

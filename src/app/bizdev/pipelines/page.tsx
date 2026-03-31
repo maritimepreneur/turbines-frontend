@@ -89,17 +89,11 @@ export default function PipelinesPage() {
 
       console.log('📥 Fetching pipelines data...')
 
-      const apiStage = reverseStageMapping[activeStage]
       const payload: any = {
-        page_number: currentPage,
-        page_size: itemsPerPage,
+        page_number: 1,
+        page_size: 1000,
         sort_by: 'id',
         sort_order: 'DESC',
-        stages: apiStage ? [apiStage] : undefined
-      }
-
-      if (searchQuery) {
-        payload.search = searchQuery
       }
 
       const response = await axiosInstance.post<LeadsResponse>(
@@ -244,15 +238,34 @@ export default function PipelinesPage() {
   }
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchLeads()
-    }, 500)
+    fetchLeads()
+  }, [])
 
-    return () => clearTimeout(delayDebounceFn)
-  }, [currentPage, itemsPerPage, searchQuery, activeStage])
+  const filteredData = useMemo(() => {
+    let result = leads;
 
-  const paginatedData = leads;
-  const totalPages = pagination?.total_pages || 1;
+    if (activeStage) {
+        const apiStage = reverseStageMapping[activeStage]
+        if (apiStage) {
+            result = result.filter(lead => lead.current_stages === apiStage)
+        }
+    }
+
+    if (searchQuery) {
+        result = result.filter(lead => 
+            lead.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            lead.company?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    }
+    return result;
+  }, [leads, activeStage, searchQuery])
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData, currentPage, itemsPerPage])
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
   const renderRightDetail = () => {
     if (!selectedLead) return (
@@ -379,7 +392,7 @@ export default function PipelinesPage() {
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {stages.map((stage) => {
-            const count = activeStage === stage ? pagination.total_items : '-';
+            const count = leads.filter(l => l.current_stages === reverseStageMapping[stage]).length;
 
             return (
               <button
@@ -506,7 +519,7 @@ export default function PipelinesPage() {
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={pagination.total_items || 0}
+              totalItems={filteredData.length}
               itemsPerPage={itemsPerPage}
               onPageChange={handlePageChange}
               onItemsPerPageChange={(newValue) => {
