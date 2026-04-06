@@ -93,7 +93,7 @@ export function GFormModal({ isOpen, onClose, onSave, gform }: GFormModalProps) 
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
                 placeholder="Enter form name"
               />
             </div>
@@ -107,7 +107,7 @@ export function GFormModal({ isOpen, onClose, onSave, gform }: GFormModalProps) 
                 required
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
                 placeholder="https://forms.google.com/..."
               />
             </div>
@@ -121,7 +121,7 @@ export function GFormModal({ isOpen, onClose, onSave, gform }: GFormModalProps) 
                 required
                 value={formData.batch}
                 onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
                 placeholder="e.g., Batch 1"
               />
             </div>
@@ -135,7 +135,7 @@ export function GFormModal({ isOpen, onClose, onSave, gform }: GFormModalProps) 
                 required
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
               />
             </div>
 
@@ -147,7 +147,7 @@ export function GFormModal({ isOpen, onClose, onSave, gform }: GFormModalProps) 
                 required
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900"
               >
                 <option value="Foundation">Foundation</option>
                 <option value="Specialization">Specialization</option>

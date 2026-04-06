@@ -84,6 +84,12 @@ export default function GFormsPage() {
       setGForms([...gforms, { ...gform, id: Date.now() }])
     }
     setShowModal(false)
+    setEditingGForm(null)
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setEditingGForm(null)
   }
 
   const fieldOptions = [
@@ -242,7 +248,7 @@ export default function GFormsPage() {
       {/* Modal */}
       <GFormModal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={handleCloseModal}
         onSave={handleSave}
         gform={editingGForm}
       />
