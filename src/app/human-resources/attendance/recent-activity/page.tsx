@@ -51,8 +51,6 @@ interface AttendanceResponse {
   };
 }
 
-
-
 const TABS = [
   {
     label: "Recent Activity",
@@ -71,7 +69,9 @@ export default function RecentActivityPage() {
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<number | null>(null);
   // Mapping employee_id → employee_code dari /api/employees/
-  const [employeeCodeMap, setEmployeeCodeMap] = useState<Record<number, string>>({});
+  const [employeeCodeMap, setEmployeeCodeMap] = useState<
+    Record<number, string>
+  >({});
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -110,9 +110,9 @@ export default function RecentActivityPage() {
         "/api/attendances/",
         {
           page: 1,
-          page_size: 1000,
-          sort_by: 'id',
-        }
+          page_size: 150,
+          sort_by: "id",
+        },
       );
 
       if (response.data.code === 200) {
@@ -138,9 +138,12 @@ export default function RecentActivityPage() {
   useEffect(() => {
     fetchAttendances();
     // Fetch employee list untuk mapping employee_id → employee_code
-    axiosInstance.get('/api/employees/')
+    axiosInstance
+      .get("/api/employees/")
       .then((res) => {
-        const list: any[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        const list: any[] = Array.isArray(res.data)
+          ? res.data
+          : (res.data?.data ?? []);
         const map: Record<number, string> = {};
         list.forEach((emp) => {
           if (emp.id && emp.employee_code) {
@@ -182,10 +185,13 @@ export default function RecentActivityPage() {
       filtered = filtered.filter(
         (record) =>
           record.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-          (employeeCodeMap[record.employee_id] || `EMP-${String(record.employee_id).padStart(4, "0")}`)
+          (
+            employeeCodeMap[record.employee_id] ||
+            `EMP-${String(record.employee_id).padStart(4, "0")}`
+          )
             .toLowerCase()
             .includes(search.toLowerCase()) ||
-          record.date?.toLowerCase().includes(search.toLowerCase())
+          record.date?.toLowerCase().includes(search.toLowerCase()),
       );
     }
 
@@ -193,7 +199,7 @@ export default function RecentActivityPage() {
       if (filter.value) {
         filtered = filtered.filter((record) => {
           // Dukung nested field seperti clock_in.status
-          const fieldParts = filter.field.split('.');
+          const fieldParts = filter.field.split(".");
           let fieldValue: any = record;
           for (const part of fieldParts) {
             fieldValue = fieldValue?.[part];
@@ -213,12 +219,15 @@ export default function RecentActivityPage() {
 
   // Client-side pagination
   const paginatedAttendances = useMemo(() => {
+    if (itemsPerPage >= 100) return filteredAttendances;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredAttendances.slice(startIndex, endIndex);
   }, [filteredAttendances, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredAttendances.length / itemsPerPage);
+  const totalPages = filteredAttendances.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredAttendances.length / (itemsPerPage >= 100 ? filteredAttendances.length : itemsPerPage)));
 
   const handleApprove = async (id: number, employeeName: string) => {
     confirmModal.open({
@@ -236,12 +245,14 @@ export default function RecentActivityPage() {
     try {
       setIsProcessing(id);
 
-      const response = await axiosInstance.patch(`/api/attendances/${id}/check`);
+      const response = await axiosInstance.patch(
+        `/api/attendances/${id}/check`,
+      );
 
       if (response.data.code === 200) {
         // Update local state with response data
-        setAttendanceData(prevData =>
-          prevData.map(item => {
+        setAttendanceData((prevData) =>
+          prevData.map((item) => {
             if (item.id === id) {
               if (response.data.data) {
                 return { ...item, ...response.data.data };
@@ -251,18 +262,25 @@ export default function RecentActivityPage() {
               }
             }
             return item;
-          })
+          }),
         );
 
         // Show success notification
-        notify.showSuccess("Attendance Approved", "Attendance has been approved successfully!");
+        notify.showSuccess(
+          "Attendance Approved",
+          "Attendance has been approved successfully!",
+        );
       } else {
-        throw new Error(response.data.message || "Failed to approve attendance");
+        throw new Error(
+          response.data.message || "Failed to approve attendance",
+        );
       }
     } catch (err) {
       // Type-safe error handling
       const error = err as AxiosError<{ message?: string }>;
-      const message = error.response?.data?.message || "Failed to approve attendance. Please try again.";
+      const message =
+        error.response?.data?.message ||
+        "Failed to approve attendance. Please try again.";
       notify.showError("Approval Failed", message);
     } finally {
       setIsProcessing(null);
@@ -275,18 +293,25 @@ export default function RecentActivityPage() {
     // Check if timestamp is likely missing timezone information (common with some SQL drivers)
     // If it looks like an ISO string but has no Z or offset, append Z to treat it as UTC
     let dateStr = timestamp;
-    if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
-      dateStr += 'Z';
+    if (
+      typeof dateStr === "string" &&
+      dateStr.includes("T") &&
+      !dateStr.endsWith("Z") &&
+      !/[+-]\d{2}:?\d{2}/.test(dateStr)
+    ) {
+      dateStr += "Z";
     }
 
     const date = new Date(dateStr);
-    return date.toLocaleTimeString("id-ID", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Jakarta",
-    }).replace(/\./g, ':');
+    return date
+      .toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Jakarta",
+      })
+      .replace(/\./g, ":");
   };
 
   const formatDate = (dateString: string) => {
@@ -315,17 +340,20 @@ export default function RecentActivityPage() {
 
   const updateFilterField = (id: string, field: string) => {
     setFilters(
-      filters.map((f) => (f.id === id ? { ...f, field, value: "" } : f))
+      filters.map((f) => (f.id === id ? { ...f, field, value: "" } : f)),
     );
+    setCurrentPage(1);
   };
 
   const updateFilterValue = (id: string, value: string) => {
     setFilters(filters.map((f) => (f.id === id ? { ...f, value } : f)));
+    setCurrentPage(1);
   };
 
   const resetFilters = () => {
     setFilters([]);
     setSearch("");
+    setCurrentPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -427,10 +455,11 @@ export default function RecentActivityPage() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`pb-3 px-1 text-sm font-medium transition ${pathname === tab.href
-              ? "text-sky-600 border-b-2 border-sky-600"
-              : "text-gray-500 hover:text-gray-700"
-              }`}
+            className={`pb-3 px-1 text-sm font-medium transition ${
+              pathname === tab.href
+                ? "text-sky-600 border-b-2 border-sky-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
           >
             {tab.label}
           </Link>
@@ -467,7 +496,7 @@ export default function RecentActivityPage() {
 
             <SearchBar
               value={search}
-              onChange={setSearch}
+              onChange={(val) => { setSearch(val); setCurrentPage(1); }}
               placeholder="Search employee name or ID..."
             />
           </div>
@@ -506,127 +535,127 @@ export default function RecentActivityPage() {
           fieldOptions={fieldOptions}
         />
 
-        <ResponsiveTable<AttendanceRecord>
-          columns={[
-            {
-              header: 'Employee Code',
-              render: (item) => (
-                <span className={item.checked ? 'text-gray-500' : ''}>
-                  {employeeCodeMap[item.employee_id] || `EMP-${String(item.employee_id).padStart(4, '0')}`}
-                </span>
-              ),
-            },
-            {
-              header: 'Employee Name',
-              isPrimary: true,
-              render: (item) => (
-                <Link
-                  href={`/human-resources/attendance/recent-activity/${item.id}?name=${encodeURIComponent(item.employee_name || "Employee #" + item.employee_id)}`}
-                  className={`font-medium hover:text-sky-600 transition cursor-pointer hover:underline ${item.checked ? 'text-gray-500' : ''}`}
-                >
-                  {item.employee_name || `Employee #${item.employee_id}`}
-                </Link>
-              ),
-            },
-            {
-              header: 'Date',
-              render: (item) => (
-                <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : ''}`}>
-                  {formatDate(item.date)}
-                </span>
-              ),
-            },
-            {
-              header: 'Clock In',
-              render: (item) => (
-                <div className="flex flex-col">
-                  <span className={item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}>
-                    {formatTime(item.clock_in.timestamp)}
+        <div className="mt-4">
+          <ResponsiveTable<AttendanceRecord>
+            columns={[
+              {
+                header: 'Employee Code',
+                render: (item) => (
+                  <span className={item.checked ? 'text-gray-500' : ''}>
+                    {employeeCodeMap[item.employee_id] || `EMP-${String(item.employee_id).padStart(4, '0')}`}
                   </span>
-                  {(() => {
-                    if (!item.clock_in.timestamp) return null;
-                    let dateStr = item.clock_in.timestamp;
-                    if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
-                      dateStr += 'Z';
-                    }
-                    const date = new Date(dateStr);
-                    const jakartaOptions = { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false } as const;
-                    const jakartaHour = parseInt(date.toLocaleTimeString('en-US', jakartaOptions));
-                    const jakartaMinute = parseInt(date.toLocaleTimeString('en-US', { timeZone: 'Asia/Jakarta', minute: 'numeric' }));
-                    // On Time: ≤ 09:15, Late: > 09:15
-                    const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
-                    const statusText = isLate ? 'Late' : 'On Time';
-                    const statusColor = isLate ? 'text-red-500' : 'text-emerald-500';
-                    return (
-                      <span className={`text-xs ${item.checked ? 'text-gray-400' : statusColor} font-medium`}>
-                        {statusText}
-                      </span>
-                    );
-                  })()}
-                </div>
-              ),
-            },
-            {
-              header: 'Clock Out',
-              render: (item) => (
-                <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}`}>
-                  {formatTime(item.clock_out.timestamp)}
-                  <span className="ml-1 text-xs text-gray-500">({item.clock_out.status})</span>
-                </span>
-              ),
-            },
-            {
-              header: 'Status',
-              render: (item) => item.checked ? (
-                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Approved</span>
-              ) : (
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Pending</span>
-              ),
-            },
-            {
-              header: 'Action',
-              render: (item) => item.checked ? (
-                <span className="text-slate-400 text-xs">-</span>
-              ) : (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleApprove(item.id, item.employee_name) }}
-                  disabled={isProcessing === item.id}
-                  className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Approve"
-                >
-                  {isProcessing === item.id ? (
-                    <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </button>
-              ),
-            },
-          ]}
-          data={paginatedAttendances}
-          keyAccessor={(item) => item.id}
-          showTopBorder={false}
-          rowClassName={(item) => item.checked ? 'bg-gray-50' : ''}
-          emptyState={
-            search || filters.length > 0
-              ? <EmptyState type="search" />
-              : <EmptyState title="No attendance data available" />
-          }
-        />
+                ),
+              },
+              {
+                header: 'Employee Name',
+                isPrimary: true,
+                render: (item) => (
+                  <Link
+                    href={`/human-resources/attendance/recent-activity/${item.id}?name=${encodeURIComponent(item.employee_name || "Employee #" + item.employee_id)}`}
+                    className={`font-medium hover:text-sky-600 transition cursor-pointer hover:underline ${item.checked ? 'text-gray-500' : ''}`}
+                  >
+                    {item.employee_name || `Employee #${item.employee_id}`}
+                  </Link>
+                ),
+              },
+              {
+                header: 'Date',
+                render: (item) => (
+                  <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : ''}`}>
+                    {formatDate(item.date)}
+                  </span>
+                ),
+              },
+              {
+                header: 'Clock In',
+                render: (item) => (
+                  <div className="flex flex-col">
+                    <span className={item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}>
+                      {formatTime(item.clock_in.timestamp)}
+                    </span>
+                    {(() => {
+                      if (!item.clock_in.timestamp) return null;
+                      let dateStr = item.clock_in.timestamp;
+                      if (typeof dateStr === 'string' && dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+-]\d{2}:?\d{2}/.test(dateStr)) {
+                        dateStr += 'Z';
+                      }
+                      const date = new Date(dateStr);
+                      const jakartaOptions = { timeZone: 'Asia/Jakarta', hour: 'numeric', hour12: false } as const;
+                      const jakartaHour = parseInt(date.toLocaleTimeString('en-US', jakartaOptions));
+                      const jakartaMinute = parseInt(date.toLocaleTimeString('en-US', { timeZone: 'Asia/Jakarta', minute: 'numeric' }));
+                      // On Time: ≤ 09:15, Late: > 09:15
+                      const isLate = jakartaHour > 9 || (jakartaHour === 9 && jakartaMinute > 15);
+                      const statusText = isLate ? 'Late' : 'On Time';
+                      const statusColor = isLate ? 'text-red-500' : 'text-emerald-500';
+                      return (
+                        <span className={`text-xs ${item.checked ? 'text-gray-400' : statusColor} font-medium`}>
+                          {statusText}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                ),
+              },
+              {
+                header: 'Clock Out',
+                render: (item) => (
+                  <span className={`whitespace-nowrap ${item.checked ? 'text-gray-500' : 'text-sky-600 font-medium'}`}>
+                    {formatTime(item.clock_out.timestamp)}
+                    <span className="ml-1 text-xs text-gray-500">({item.clock_out.status})</span>
+                  </span>
+                ),
+              },
+              {
+                header: 'Status',
+                render: (item) => item.checked ? (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Approved</span>
+                ) : (
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">Pending</span>
+                ),
+              },
+              {
+                header: 'Action',
+                render: (item) => item.checked ? (
+                  <span className="text-slate-400 text-xs">-</span>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleApprove(item.id, item.employee_name) }}
+                    disabled={isProcessing === item.id}
+                    className="text-green-500 hover:text-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Approve"
+                  >
+                    {isProcessing === item.id ? (
+                      <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ),
+              },
+            ]}
+            data={paginatedAttendances}
+            keyAccessor={(item) => item.id}
+            showTopBorder={false}
+            rowClassName={(item) => item.checked ? 'bg-gray-50' : ''}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No attendance data available" />
+            }
+          />
+        </div>
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredAttendances.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredAttendances.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
 
       {/* Modals */}
@@ -635,7 +664,7 @@ export default function RecentActivityPage() {
         onClose={confirmModal.close}
         onConfirm={executeAction}
         title="Approve Attendance"
-        message={`Are you sure you want to approve attendance for "${confirmModal.data?.employeeName || 'this employee'}"?`}
+        message={`Are you sure you want to approve attendance for "${confirmModal.data?.employeeName || "this employee"}"?`}
         confirmText="Approve"
         type="approve"
       />
@@ -647,6 +676,6 @@ export default function RecentActivityPage() {
         message={notify.notification?.message || ""}
         type={notify.notification?.type || "success"}
       />
-    </div >
+    </div>
   );
-} 
+}

@@ -57,7 +57,7 @@ export default function EditPartnerPage() {
 
         const [partnerRes, contactsRes] = await Promise.all([
           axiosInstance.get<PartnerResponse>(`/api/partners/${id}`),
-          axiosInstance.post<ContactsResponse>('/api/contacts/', { params: { page_size: 1000 } })
+          axiosInstance.post<ContactsResponse>('/api/contacts/', { page_size: 1000 })
         ])
 
         if (partnerRes.data.code === 200) {
@@ -131,7 +131,7 @@ export default function EditPartnerPage() {
       })
       await Promise.all(promises)
       // Refresh contacts
-      const res = await axiosInstance.post<ContactsResponse>('/api/contacts/', { params: { page_size: 1000 } })
+      const res = await axiosInstance.post<ContactsResponse>('/api/contacts/', { page_size: 1000 })
       if (res.data.code === 200) {
         setAllContacts(res.data.data.list)
         setLinkedContactIds(new Set(res.data.data.list.filter(c => c.partner_id === id).map(c => c.id)))

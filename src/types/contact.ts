@@ -9,6 +9,7 @@ export interface Contact {
     };
     emails?: string[];
     phone?: string;
+    country?: string;
     created_at?: string;
     updated_at?: string;
 }

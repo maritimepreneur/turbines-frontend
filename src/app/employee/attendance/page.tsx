@@ -137,12 +137,15 @@ export default function NewLeadsPage() {
 
   // Client-side pagination
   const paginatedLeads = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredLeads
     const startIndex = (currentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return filteredLeads.slice(startIndex, endIndex)
   }, [filteredLeads, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
+  const totalPages = filteredLeads.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredLeads.length / (itemsPerPage >= 99999 ? filteredLeads.length : itemsPerPage)))
 
   const handleIdClick = (leadId: number) => {
     router.push(`/bizdev/new-leads/general-info?id=${leadId}`);
@@ -469,16 +472,14 @@ export default function NewLeadsPage() {
         </div>
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredLeads.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredLeads.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
     </div>
   )

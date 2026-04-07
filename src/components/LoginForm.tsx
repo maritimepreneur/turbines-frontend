@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff } from "lucide-react";
+import LoadingSpinner from './LoadingSpinner';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -20,26 +21,34 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isClosingLoading, setIsClosingLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    setIsClosingLoading(false);
 
     try {
       await login(formData.identifier, formData.password, formData.rememberMe);
 
-      // Redirect ke dashboard setelah login berhasil
-      router.push('/dashboard');
+      // Trigger fade out animation
+      setIsClosingLoading(true);
+      
+      // Wait for animation to complete before redirect
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 300);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat login');
-    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <>
+      {isLoading && <LoadingSpinner isClosing={isClosingLoading} />}
+      <form onSubmit={handleSubmit}>
       {/* Logo */}
       <div className="mb-6 flex justify-center">
         <Image
@@ -130,5 +139,6 @@ export default function LoginForm() {
         </Link>
       </p>
     </form>
+    </>
   );
 }

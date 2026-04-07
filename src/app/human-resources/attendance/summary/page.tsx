@@ -102,7 +102,7 @@ export default function SummaryPage() {
         "/api/attendances/",
         {
           page: 1,
-          page_size: 1000,
+          page_size: 150,
           sort_by: 'id',
           sort_order: 'DESC',
         }
@@ -232,12 +232,15 @@ export default function SummaryPage() {
 
   // Client-side pagination
   const paginatedSummary = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredSummary; // All
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredSummary.slice(startIndex, endIndex);
   }, [filteredSummary, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredSummary.length / itemsPerPage);
+  const totalPages = filteredSummary.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredSummary.length / (itemsPerPage >= 99999 ? filteredSummary.length : itemsPerPage)));
 
   const addFilter = () => {
     const newFilter = {
@@ -256,15 +259,18 @@ export default function SummaryPage() {
     setFilters(
       filters.map((f) => (f.id === id ? { ...f, field, value: "" } : f))
     );
+    setCurrentPage(1);
   };
 
   const updateFilterValue = (id: string, value: string) => {
     setFilters(filters.map((f) => (f.id === id ? { ...f, value } : f)));
+    setCurrentPage(1);
   };
 
   const resetFilters = () => {
     setFilters([]);
     setSearch("");
+    setCurrentPage(1);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -412,7 +418,7 @@ export default function SummaryPage() {
 
             <SearchBar
               value={search}
-              onChange={setSearch}
+              onChange={(val) => { setSearch(val); setCurrentPage(1); }}
               placeholder="Search employee name or ID..."
             />
           </div>
@@ -451,73 +457,72 @@ export default function SummaryPage() {
           fieldOptions={fieldOptions}
         />
 
-        <ResponsiveTable<EmployeeSummary>
-          columns={[
-            {
-              header: 'Employee Code',
-              accessor: 'employee_id',
-            },
-            {
-              header: 'Employee Name',
-              isPrimary: true,
-              render: (summary) => (
-                <Link
-                  href={`/human-resources/attendance/summary/${summary.raw_employee_id}`}
-                  className="font-medium hover:text-sky-600 transition cursor-pointer hover:underline"
-                >
-                  {summary.employee_name}
-                </Link>
-              ),
-            },
-            {
-              header: 'Present Days',
-              render: (summary) => (
-                <span className="font-medium">{summary.present_days}</span>
-              ),
-            },
-            {
-              header: 'Late Days',
-              render: (summary) => (
-                <span className="font-medium">{summary.late_days}</span>
-              ),
-            },
-            {
-              header: 'Absent Days',
-              render: (summary) => (
-                <span className="font-medium">{summary.absent_days}</span>
-              ),
-            },
-            {
-              header: 'Attendance Rate',
-              render: (summary) => (
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceRateColor(summary.attendance_rate)}`}>
-                  {summary.attendance_rate}%
-                </span>
-              ),
-            },
-          ]}
-          data={paginatedSummary}
-          keyAccessor={(summary) => summary.employee_id}
-          showTopBorder={false}
-          emptyState={
-            search || filters.length > 0
-              ? <EmptyState type="search" />
-              : <EmptyState title="No summary data available" />
-          }
-        />
-
+        <div className="mt-4">
+          <ResponsiveTable<EmployeeSummary>
+            columns={[
+              {
+                header: 'Employee Code',
+                accessor: 'employee_id',
+              },
+              {
+                header: 'Employee Name',
+                isPrimary: true,
+                render: (summary) => (
+                  <Link
+                    href={`/human-resources/attendance/summary/${summary.raw_employee_id}`}
+                    className="font-medium hover:text-sky-600 transition cursor-pointer hover:underline"
+                  >
+                    {summary.employee_name}
+                  </Link>
+                ),
+              },
+              {
+                header: 'Present Days',
+                render: (summary) => (
+                  <span className="font-medium">{summary.present_days}</span>
+                ),
+              },
+              {
+                header: 'Late Days',
+                render: (summary) => (
+                  <span className="font-medium">{summary.late_days}</span>
+                ),
+              },
+              {
+                header: 'Absent Days',
+                render: (summary) => (
+                  <span className="font-medium">{summary.absent_days}</span>
+                ),
+              },
+              {
+                header: 'Attendance Rate',
+                render: (summary) => (
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceRateColor(summary.attendance_rate)}`}>
+                    {summary.attendance_rate}%
+                  </span>
+                ),
+              },
+            ]}
+            data={paginatedSummary}
+            keyAccessor={(summary) => summary.employee_id}
+            showTopBorder={false}
+            emptyState={
+               search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No summary data available" />
+            }
+          />
+        </div>
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredSummary.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredSummary.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
     </div>
   );

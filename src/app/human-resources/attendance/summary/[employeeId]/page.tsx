@@ -162,12 +162,15 @@ export default function EmployeeHistoryPage() {
 
     // Client-side pagination
     const paginatedHistory = useMemo(() => {
+        if (itemsPerPage >= 99999) return filteredHistory; // All
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         return filteredHistory.slice(startIndex, endIndex);
     }, [filteredHistory, currentPage, itemsPerPage]);
 
-    const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+    const totalPages = filteredHistory.length === 0
+        ? 0
+        : Math.max(1, Math.ceil(filteredHistory.length / (itemsPerPage >= 99999 ? filteredHistory.length : itemsPerPage)));
 
     const formatTime = (timestamp: string) => {
         if (!timestamp) return "-";
@@ -529,7 +532,7 @@ export default function EmployeeHistoryPage() {
                     <div className="flex flex-wrap gap-2">
                         <SearchBar
                             value={search}
-                            onChange={setSearch}
+                            onChange={(val) => { setSearch(val); setCurrentPage(1); }}
                             placeholder="Search by date..."
                         />
                     </div>
@@ -631,16 +634,14 @@ export default function EmployeeHistoryPage() {
                 </div>
 
                 {/* Pagination */}
-                {totalPages > 0 && (
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        totalItems={filteredHistory.length}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={handlePageChange}
-                        onItemsPerPageChange={handleItemsPerPageChange}
-                    />
-                )}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalItems={filteredHistory.length}
+                    itemsPerPage={itemsPerPage}
+                    onPageChange={handlePageChange}
+                    onItemsPerPageChange={handleItemsPerPageChange}
+                />
             </div>
         </div >
     );

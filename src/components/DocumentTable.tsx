@@ -163,8 +163,6 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
         setFilters([])
     }
 
-    const hasActiveFilters = filters.some(f => f.value)
-
     const fetchDocuments = async () => {
         try {
             setIsLoading(true)
@@ -173,11 +171,10 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
             const response = await axiosInstance.post<DocumentsResponse>(
                 '/api/documents/',
                 {
-                    page_number: hasActiveFilters ? 1 : currentPage,
-                    page_size: hasActiveFilters ? 9999 : itemsPerPage,
+                    page_number: 1,
+                    page_size: 1000,
                     sort_by: 'id',
                     sort_order: 'DESC',
-                    ...(search && { search }),
                     ...(moduleId && { module: moduleId })
                 }
             )
@@ -202,20 +199,26 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
         }
     }
 
-    // Re-fetch when filters become active/inactive (to switch between paginated and full data)
+    // Re-fetch when module changes
     useEffect(() => {
-        const delay = search ? 400 : 0
-        const timer = setTimeout(() => {
-            fetchDocuments()
-        }, delay)
-        return () => clearTimeout(timer)
+        fetchDocuments()
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage, itemsPerPage, search, moduleId, hasActiveFilters])
+    }, [moduleId])
 
     // Client-side filtering on fetched data
     const filteredData = useMemo(() => {
-        if (!hasActiveFilters) return data
         let result = data
+        
+        if (search) {
+            const s = search.toLowerCase();
+            result = result.filter(doc =>
+                doc.name?.toLowerCase().includes(s) ||
+                doc.number?.toString().toLowerCase().includes(s) ||
+                doc.description?.toLowerCase().includes(s) ||
+                doc.url?.toLowerCase().includes(s)
+            )
+        }
+        
         filters.forEach(f => {
             if (f.value) {
                 if (f.field === 'document_type') {
@@ -230,17 +233,16 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
             }
         })
         return result
-    }, [data, filters, hasActiveFilters])
+    }, [data, filters, search])
 
     // Client-side pagination when filters are active
     const displayData = useMemo(() => {
-        if (!hasActiveFilters) return filteredData
         const start = (currentPage - 1) * itemsPerPage
         return filteredData.slice(start, start + itemsPerPage)
-    }, [filteredData, hasActiveFilters, currentPage, itemsPerPage])
+    }, [filteredData, currentPage, itemsPerPage])
 
-    const displayTotalItems = hasActiveFilters ? filteredData.length : totalItems
-    const displayTotalPages = hasActiveFilters ? Math.max(1, Math.ceil(filteredData.length / itemsPerPage)) : totalPages
+    const displayTotalItems = filteredData.length
+    const displayTotalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage))
 
 
     const handlePageChange = (page: number) => {
@@ -455,16 +457,14 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
 
 
             {/* Pagination */}
-            {displayTotalPages > 0 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={displayTotalPages}
-                    totalItems={displayTotalItems}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={handlePageChange}
-                    onItemsPerPageChange={handleItemsPerPageChange}
-                />
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={displayTotalPages}
+                totalItems={displayTotalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+            />
         </div>
     )
 }

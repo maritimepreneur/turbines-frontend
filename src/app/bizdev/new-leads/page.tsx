@@ -71,14 +71,16 @@ export default function NewLeadsPage() {
       setIsLoading(true)
       setError(null)
 
+      const payload: any = {
+        page_number: 1,
+        page_size: 1000,
+        sort_by: 'id',
+        sort_order: 'DESC',
+      }
+
       const response = await axiosInstance.post<LeadsResponse>(
         '/api/leads/',
-        {
-          page_number: 1,
-          page_size: 1000, // Fetch all data
-          sort_by: 'id',
-          sort_order: 'DESC',
-        }
+        payload
       )
 
       console.log('📦 Response:', response.data)
@@ -110,38 +112,36 @@ export default function NewLeadsPage() {
     fetchLeads()
   }, [])
 
-  const filteredLeads = useMemo(() => {
-    let filtered = [...leadsData]
+  const filteredData = useMemo(() => {
+    let result = leadsData;
 
     if (search) {
-      filtered = filtered.filter(lead =>
-        lead.name.toLowerCase().includes(search.toLowerCase()) ||
-        (lead.company && lead.company.toLowerCase().includes(search.toLowerCase())) ||
-        (lead.contact_name && lead.contact_name.toLowerCase().includes(search.toLowerCase()))
-      )
+        result = result.filter(lead => 
+            lead.name?.toLowerCase().includes(search.toLowerCase()) ||
+            lead.company?.toLowerCase().includes(search.toLowerCase()) ||
+            lead.partner_name?.toLowerCase().includes(search.toLowerCase()) ||
+            lead.contact_name?.toLowerCase().includes(search.toLowerCase())
+        )
     }
 
     filters.forEach(filter => {
-      if (filter.value) {
-        filtered = filtered.filter(lead => {
-          const fieldValue = lead[filter.field as keyof Lead]
-          return fieldValue &&
-            String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
-        })
-      }
-    })
+        if (filter.value) {
+            result = result.filter(lead => {
+                const fieldValue = lead[filter.field as keyof Lead];
+                return fieldValue && String(fieldValue).toLowerCase().includes(filter.value.toLowerCase());
+            });
+        }
+    });
 
-    return filtered
+    return result;
   }, [leadsData, search, filters])
 
-  // Client-side pagination
   const paginatedLeads = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return filteredLeads.slice(startIndex, endIndex)
-  }, [filteredLeads, currentPage, itemsPerPage])
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(start, start + itemsPerPage);
+  }, [filteredData, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
   const handleIdClick = (leadId: number) => {
     router.push(`/bizdev/new-leads/general-info?id=${leadId}`);
@@ -265,11 +265,13 @@ export default function NewLeadsPage() {
     setFilters(filters.map(f =>
       f.id === id ? { ...f, value } : f
     ))
+    setCurrentPage(1)
   }
 
   const resetFilters = () => {
     setFilters([])
     setSearch('')
+    setCurrentPage(1)
   }
 
   const handlePageChange = (newPage: number) => {
@@ -388,7 +390,10 @@ export default function NewLeadsPage() {
 
             <SearchBar
               value={search}
-              onChange={setSearch}
+              onChange={(val) => {
+                setSearch(val)
+                setCurrentPage(1)
+              }}
               placeholder="Search name, company, or contact..."
             />
           </div>
@@ -425,104 +430,104 @@ export default function NewLeadsPage() {
           fieldOptions={fieldOptions}
         />
 
-        <ResponsiveTable<Lead>
-          columns={[
-            {
-              header: 'ID',
-              render: (item) => (
-                <button
-                  onClick={() => handleIdClick(item.id)}
-                  className="text-sky-500 hover:text-sky-700 font-medium hover:underline transition"
-                >
-                  #{item.id}
-                </button>
-              ),
-            },
-            {
-              header: 'Name',
-              accessor: 'name',
-              isPrimary: true,
-              cellClassName: 'font-medium',
-            },
-            {
-              header: 'Contact',
-              render: (item) => item.contact_name || (
-                <span className="text-slate-400 text-xs italic">No contact</span>
-              ),
-            },
-            {
-              header: 'Company',
-              render: (item) => item.company || (
-                <span className="text-slate-400 text-xs">-</span>
-              ),
-            },
-            {
-              header: 'Period',
-              render: (item) => formatDate(item.period),
-              cellClassName: 'whitespace-nowrap',
-            },
-            {
-              header: 'Stage',
-              render: (item) => getStageBadge(item.current_stages),
-            },
-            {
-              header: 'Partner',
-              accessor: 'partner_name',
-              cellClassName: 'text-xs',
-            },
-            {
-              header: 'Action',
-              render: (item) => (
-                <div className="flex gap-3">
+        <div className="mt-4">
+          <ResponsiveTable<Lead>
+            columns={[
+              {
+                header: 'ID',
+                render: (item) => (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
-                    className="text-sky-500 hover:text-sky-700 transition"
-                    title="Edit lead"
+                    onClick={() => handleIdClick(item.id)}
+                    className="text-sky-500 hover:text-sky-700 font-medium hover:underline transition"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
+                    #{item.id}
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.name) }}
-                    disabled={isDeleting === item.id}
-                    className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Delete lead"
-                  >
-                    {isDeleting === item.id ? (
-                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
+                ),
+              },
+              {
+                header: 'Name',
+                accessor: 'name',
+                isPrimary: true,
+                cellClassName: 'font-medium',
+              },
+              {
+                header: 'Contact',
+                render: (item) => item.contact_name || (
+                  <span className="text-slate-400 text-xs italic">No contact</span>
+                ),
+              },
+              {
+                header: 'Company',
+                render: (item) => item.company || (
+                  <span className="text-slate-400 text-xs">-</span>
+                ),
+              },
+              {
+                header: 'Period',
+                render: (item) => formatDate(item.period),
+                cellClassName: 'whitespace-nowrap',
+              },
+              {
+                header: 'Stage',
+                render: (item) => getStageBadge(item.current_stages),
+              },
+              {
+                header: 'Partner',
+                accessor: 'partner_name',
+                cellClassName: 'text-xs',
+              },
+              {
+                header: 'Action',
+                render: (item) => (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEdit(item.id) }}
+                      className="text-sky-500 hover:text-sky-700 transition"
+                      title="Edit lead"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
-                    )}
-                  </button>
-                </div>
-              ),
-            },
-          ]}
-          data={paginatedLeads}
-          keyAccessor={(item) => item.id}
-          showTopBorder={false}
-          emptyState={
-            search || filters.length > 0
-              ? <EmptyState type="search" />
-              : <EmptyState title="No leads data available" description="Click '+ Add' to create a new lead" />
-          }
-        />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(item.id, item.name) }}
+                      disabled={isDeleting === item.id}
+                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete lead"
+                    >
+                      {isDeleting === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginatedLeads}
+            keyAccessor={(item) => item.id}
+            showTopBorder={false}
+            emptyState={
+              search || filters.length > 0
+                ? <EmptyState type="search" />
+                : <EmptyState title="No leads data available" description="Click '+ Add' to create a new lead" />
+            }
+          />
+        </div>
 
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredLeads.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredData.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
     </div>
   )

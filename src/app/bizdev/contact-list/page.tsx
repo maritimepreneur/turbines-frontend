@@ -11,6 +11,8 @@ import { EmptyState } from "@/components/table/EmptyState"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
+import * as XLSX from 'xlsx-js-style'
+import { UN_MEMBER_STATES } from "@/lib/countries"
 
 type Partner = {
   id: number
@@ -30,6 +32,7 @@ type Contact = {
   partner_id?: number
   position?: string
   role?: string
+  country?: string
   created_at?: string
   // joined from partner
   partner?: Partner
@@ -81,13 +84,14 @@ export default function ContactListPage() {
     { label: "Email", value: "emails" },
     { label: "Position", value: "position" },
     { label: "Role", value: "role" },
+    { label: "Country", value: "country" },
   ]
 
   const fetchContacts = async () => {
     try {
       setIsLoading(true); setError(null)
       const response = await axiosInstance.post<ContactsResponse>('/api/contacts/', {
-        params: { page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC' }
+        page_number: 1, page_size: 1000, sort_by: 'id', sort_order: 'DESC'
       })
       if (response.data.code === 200) {
         setContactsData(response.data.data.list)
@@ -110,7 +114,7 @@ export default function ContactListPage() {
   const fetchPartners = async () => {
     try {
       const res = await axiosInstance.post<PartnersResponse>('/api/partners/', {
-        params: { page_number: 1, page_size: 1000 }
+        page_number: 1, page_size: 1000
       })
       if (res.data.code === 200) {
         const map: Record<number, Partner> = {}
@@ -133,6 +137,7 @@ export default function ContactListPage() {
         c.emails?.some(e => e.toLowerCase().includes(search.toLowerCase())) ||
         c.position?.toLowerCase().includes(search.toLowerCase()) ||
         c.role?.toLowerCase().includes(search.toLowerCase()) ||
+        c.country?.toLowerCase().includes(search.toLowerCase()) ||
         (c.partner_id && partnersMap[c.partner_id]?.name.toLowerCase().includes(search.toLowerCase()))
       )
     }
@@ -148,11 +153,14 @@ export default function ContactListPage() {
   }, [contactsData, search, filters, partnersMap])
 
   const paginatedContacts = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredContacts
     const startIndex = (currentPage - 1) * itemsPerPage
     return filteredContacts.slice(startIndex, startIndex + itemsPerPage)
   }, [filteredContacts, currentPage, itemsPerPage])
 
-  const totalPages = Math.ceil(filteredContacts.length / itemsPerPage)
+  const totalPages = filteredContacts.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredContacts.length / (itemsPerPage >= 99999 ? filteredContacts.length : itemsPerPage)))
 
   const handleConfirmDelete = async () => {
     if (!contactToDelete) return
@@ -173,6 +181,88 @@ export default function ContactListPage() {
   const updateFilterField = (id: string, field: string) => setFilters(filters.map(f => f.id === id ? { ...f, field, value: '' } : f))
   const updateFilterValue = (id: string, value: string) => setFilters(filters.map(f => f.id === id ? { ...f, value } : f))
   const resetFilters = () => { setFilters([]); setSearch('') }
+
+  const handleDownloadExcel = () => {
+    const dataToExport = filteredContacts.map(contact => {
+      const partner = contact.partner_id ? partnersMap[contact.partner_id] : null
+      return {
+        ID: contact.id,
+        Name: contact.name,
+        'Email 1': contact.emails?.[0] || '-',
+        'Email 2': contact.emails?.[1] || '-',
+        'Phone 1': contact.phone_numbers?.[0] || '-',
+        'Phone 2': contact.phone_numbers?.[1] || '-',
+        Affiliation: partner?.name || '-',
+        'Type of Affiliation': partner?.company_type || '-',
+        Position: contact.position || '-',
+        Country: contact.country || '-',
+        Category: partner?.partner_type || '-',
+        Role: contact.role || '-',
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    
+    const columnWidths = [
+      { wch: 5 },   // ID
+      { wch: 25 },  // Name
+      { wch: 30 },  // Email 1
+      { wch: 30 },  // Email 2
+      { wch: 18 },  // Phone 1
+      { wch: 18 },  // Phone 2
+      { wch: 30 },  // Affiliation
+      { wch: 20 },  // Type of Affiliation
+      { wch: 40 },  // Position
+      { wch: 20 },  // Country
+      { wch: 15 },  // Category
+      { wch: 20 },  // Role
+    ]
+    worksheet['!cols'] = columnWidths
+
+    // Styling header dengan warna hijau
+    const headerStyle = {
+      fill: { fgColor: { rgb: "22C55E" } },
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    }
+    
+    const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1', 'K1', 'L1']
+    headerCells.forEach(cell => {
+      if (worksheet[cell]) {
+        worksheet[cell].s = headerStyle
+      }
+    })
+
+    filteredContacts.forEach((contact, index) => {
+      const rowNum = index + 2 
+      
+      // Email 1
+      if (contact.emails?.[0] && contact.emails[0] !== '-') {
+        const cellC = `C${rowNum}`
+        if (worksheet[cellC]) {
+          worksheet[cellC].l = { Target: `mailto:${contact.emails[0]}` }
+          worksheet[cellC].s = {
+            font: { color: { rgb: "0563C1" }, underline: true }
+          }
+        }
+      }
+      
+      // Email 2
+      if (contact.emails?.[1] && contact.emails[1] !== '-') {
+        const cellD = `D${rowNum}`
+        if (worksheet[cellD]) {
+          worksheet[cellD].l = { Target: `mailto:${contact.emails[1]}` }
+          worksheet[cellD].s = {
+            font: { color: { rgb: "0563C1" }, underline: true }
+          }
+        }
+      }
+    })
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Contact List')
+    XLSX.writeFile(workbook, `Contact_List_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
 
   if (isLoading && contactsData.length === 0) return (
     <div>
@@ -242,6 +332,10 @@ export default function ContactListPage() {
             <SearchBar value={search} onChange={setSearch} placeholder="Search name, email, company..." />
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+            <button onClick={handleDownloadExcel} disabled={filteredContacts.length === 0} className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Excel
+            </button>
             <button onClick={fetchContacts} disabled={isLoading} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center gap-2 disabled:opacity-50 flex-1 sm:flex-none">
               <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Refresh
@@ -252,7 +346,7 @@ export default function ContactListPage() {
           </div>
         </div>
 
-        <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} />
+        <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} valueOptions={{ country: UN_MEMBER_STATES.map(c => ({ label: c, value: c })) }} />
 
         <div className="mt-4">
           <ResponsiveTable<Contact>
@@ -304,6 +398,12 @@ export default function ContactListPage() {
                   : <span className="text-slate-400 text-xs">-</span>,
               },
               {
+                header: 'Country',
+                render: (item) => item.country
+                  ? <span className="text-sm font-medium text-slate-800">{item.country}</span>
+                  : <span className="text-slate-400 text-xs">-</span>,
+              },
+              {
                 header: 'Category',
                 render: (item) => {
                   const partner = item.partner_id ? partnersMap[item.partner_id] : null
@@ -344,9 +444,7 @@ export default function ContactListPage() {
           />
         </div>
 
-        {totalPages > 0 && (
-          <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filteredContacts.length} itemsPerPage={itemsPerPage} onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1) }} />
-        )}
+        <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filteredContacts.length} itemsPerPage={itemsPerPage} onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1) }} />
       </div>
     </div>
   )
