@@ -146,15 +146,15 @@ export default function PurchaseOrderFormPage() {
         const allContacts: Contact[] = Array.isArray(response.data)
           ? response.data
           : response.data?.data?.list ||
-            response.data?.data ||
-            [];
+          response.data?.data ||
+          [];
         const filtered = allContacts.filter(
           (c: any) =>
             Number(c.partner_id) === Number(partnerId) ||
             Number(c.partnerId) === Number(partnerId) ||
             Number(c.partner?.id) === Number(partnerId)
         );
-        setContacts(filtered);
+        setContacts(allContacts);
       } catch (err: any) {
         console.error("Error fetching contacts:", err);
         setContacts([]);
@@ -313,8 +313,8 @@ export default function PurchaseOrderFormPage() {
                     {contactsLoading
                       ? "Loading..."
                       : !partnerId
-                      ? "Select Client first"
-                      : "Select Contact"}
+                        ? "Select Client first"
+                        : "Select Contact"}
                   </option>
                   {contacts.map((contact) => (
                     <option key={contact.id} value={contact.id}>
