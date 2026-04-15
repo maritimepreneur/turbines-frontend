@@ -86,12 +86,15 @@ export default function AbsentPage() {
 
   // Client-side pagination
   const paginatedEmployees = useMemo(() => {
+    if (itemsPerPage >= 99999) return absentEmployees;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return absentEmployees.slice(startIndex, endIndex);
   }, [absentEmployees, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(absentEmployees.length / itemsPerPage);
+  const totalPages = absentEmployees.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(absentEmployees.length / (itemsPerPage >= 99999 ? absentEmployees.length : itemsPerPage)));
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
@@ -265,16 +268,14 @@ export default function AbsentPage() {
 
 
           {/* Pagination */}
-          {totalPages > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={absentEmployees.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
-              onItemsPerPageChange={handleItemsPerPageChange}
-            />
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={absentEmployees.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </div>
       )}
     </div>

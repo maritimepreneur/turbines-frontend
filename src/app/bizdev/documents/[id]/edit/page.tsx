@@ -26,9 +26,11 @@ export default function BizdevEditDocumentPage() {
                     const doc = response.data.data
                     // Transform API data to form data
                     setInitialData({
-                        number: String(doc.number), // Convert to string for form
+                        number: String(doc.number),
                         name: doc.name,
-                        document_type: doc.document_type
+                        document_type: doc.document_type,
+                        url: doc.url || "",
+                        description: doc.description || ""
                     })
                 } else {
                     throw new Error(response.data.message || 'Failed to fetch document')

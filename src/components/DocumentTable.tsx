@@ -382,6 +382,30 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
                             cellClassName: 'text-slate-600',
                         },
                         {
+                            header: 'URL',
+                            render: (doc) => doc.url
+                                ? (
+                                    <a
+                                        href={doc.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={e => e.stopPropagation()}
+                                        className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-800 hover:underline text-xs font-medium max-w-[160px] truncate"
+                                        title={doc.url}
+                                    >
+                                        <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                        <span className="truncate">{doc.url.replace(/^https?:\/\//, '')}</span>
+                                    </a>
+                                )
+                                : <span className="text-slate-300">—</span>,
+                        },
+                        {
+                            header: 'Description',
+                            render: (doc) => doc.description
+                                ? <span className="text-xs text-slate-600 line-clamp-2 max-w-[200px]" title={doc.description}>{doc.description}</span>
+                                : <span className="text-slate-300">—</span>,
+                        },
+                        {
                             header: 'Project ID',
                             render: (doc) => doc.project_id ? `#${doc.project_id}` : <span className="text-slate-300">-</span>,
                             cellClassName: 'text-slate-600',
@@ -431,16 +455,14 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
 
 
             {/* Pagination */}
-            {displayTotalPages > 0 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={displayTotalPages}
-                    totalItems={displayTotalItems}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={handlePageChange}
-                    onItemsPerPageChange={handleItemsPerPageChange}
-                />
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={displayTotalPages}
+                totalItems={displayTotalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+            />
         </div>
     )
 }
