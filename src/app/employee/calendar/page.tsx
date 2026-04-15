@@ -87,58 +87,63 @@ export default function CalendarPage() {
   const [holidaysLoading, setHolidaysLoading] = useState(false);
 
   // ── API hooks ─────────────────────────────────────────────
-  const { data: schedules = [], isLoading: schedulesLoading } = useSchedules();
-  const createSchedule = useCreateSchedule();
   const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const { data: schedules = [], isLoading: schedulesLoading } = useSchedules(isAdmin);
+  const createSchedule = useCreateSchedule();
 
-  // ── Resolve employee_id ────────────────────────────────────
-  // Gunakan /api/employees/profile (accessible semua user)
-  // Jika 403 / tidak ada → coba /api/employees/ (admin only)
+  // ── Resolve employee_id based on role ──────────────────────
   const [employeeId, setEmployeeId] = useState<number>(0);
   const [employeeList, setEmployeeList] = useState<any[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
+
   useEffect(() => {
     if (!user?.id) return;
 
-    // Coba /api/employees/profile terlebih dahulu (untuk regular user)
-    axiosInstance.get('/api/employees/profile')
-      .then((res) => {
-        const profile = res.data?.data ?? res.data;
-        if (profile?.id) {
-          setEmployeeId(profile.id);
-          setIsAdmin(false);
-          console.log('[Calendar] employee_id from profile:', profile.id);
+    if (isAdmin) {
+      // Admin: coba beberapa variasi endpoint untuk dapat semua employee
+      const tryFetchEmployees = async () => {
+        const endpoints = [
+          '/api/employees/',
+          '/api/employees/?limit=200',
+          '/api/employees/?page=1&limit=200',
+        ];
+        for (const endpoint of endpoints) {
+          try {
+            const res = await axiosInstance.get(endpoint);
+            const raw = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+            if (raw.length > 0) {
+              setEmployeeList(raw);
+              setEmployeeId(raw[0].id);
+              console.log('[Calendar] Employee list from', endpoint, ':', raw.length, 'items');
+              return; // berhasil, stop
+            }
+          } catch (err: any) {
+            console.warn('[Calendar] Failed', endpoint, ':', err?.response?.status);
+          }
         }
-      })
-      .catch((profileErr) => {
-        const status = profileErr?.response?.status;
-        // 403/404 → coba list semua employee (admin only)
-        if (status === 403 || status === 404 || status === 500) {
-          axiosInstance.get('/api/employees/')
-            .then((res) => {
-              const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-              setEmployeeList(list);
-              const me = list.find((e: any) => e.user_id === user.id);
-              if (me) {
-                setEmployeeId(me.id);
-                setIsAdmin(false);
-              } else if (list.length > 0) {
-                // Admin: tidak ada di employee list
-                setEmployeeId(list[0].id);
-                setIsAdmin(true);
-                console.log('[Calendar] Admin mode, default employee:', list[0].full_name);
-              }
-            })
-            .catch(() => {
-              // Kedua endpoint gagal — gunakan partner_id dari user jika ada
-              if (user?.partner_id) {
-                setEmployeeId(user.partner_id);
-                console.log('[Calendar] Fallback to partner_id:', user.partner_id);
-              }
-            });
-        }
-      });
-  }, [user?.id]);
+        // Semua endpoint gagal → fallback ke schedule data (handled by effectiveEmployeeList)
+        console.warn('[Calendar] All employee endpoints failed, will use schedule data as fallback');
+      };
+      tryFetchEmployees();
+    } else {
+      // Employee: fetch profil sendiri untuk dapat employee_id
+      axiosInstance.get('/api/employees/profile')
+        .then((res) => {
+          const profile = res.data?.data ?? res.data;
+          if (profile?.id) {
+            setEmployeeId(profile.id);
+            console.log('[Calendar] employee_id from profile:', profile.id);
+          }
+        })
+        .catch(() => {
+          // Fallback ke partner_id dari user jika profil gagal
+          if (user?.partner_id) {
+            setEmployeeId(user.partner_id);
+            console.log('[Calendar] Fallback to partner_id:', user.partner_id);
+          }
+        });
+    }
+  }, [user?.id, isAdmin]);
 
   // ── New event form state ───────────────────────────────────
   const [newEvent, setNewEvent] = useState({
@@ -152,24 +157,75 @@ export default function CalendarPage() {
   const [tagSearch, setTagSearch] = useState('');
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
 
-  // ── Fetch employee list untuk tagging (semua user) ────────
+  // ── Build employee list dari schedules jika /api/employees/ gagal ──
+  // Ambil dari: 1) employee (owner) di setiap schedule, 2) tagged_employees di setiap schedule
+  const employeeListFromSchedules = useMemo(() => {
+    const seen = new Set<number>();
+    const list: any[] = [];
+
+    const addEmployee = (emp: any) => {
+      if (emp?.id && !seen.has(emp.id)) {
+        seen.add(emp.id);
+        list.push({
+          id: emp.id,
+          full_name: emp.full_name ?? '',
+          employee_code: emp.employee_code ?? '',
+          email: emp.email ?? '',
+        });
+      }
+    };
+
+    schedules.forEach((s) => {
+      // Tambahkan owner schedule
+      if (s.employee) addEmployee(s.employee);
+      // Tambahkan semua tagged_employees
+      if (s.tagged_employees?.length) {
+        s.tagged_employees.forEach(addEmployee);
+      }
+    });
+
+    console.log('[Calendar] employeeListFromSchedules:', list.length, 'unique employees');
+    return list;
+  }, [schedules]);
+
+  // Source akhir: pakai employeeList jika ada, fallback ke data dari schedules
+  const effectiveEmployeeList = employeeList.length > 0 ? employeeList : employeeListFromSchedules;
+
+  // Set employeeId default untuk admin jika belum ter-set
+  useEffect(() => {
+    if (isAdmin && employeeId === 0 && effectiveEmployeeList.length > 0) {
+      setEmployeeId(effectiveEmployeeList[0].id);
+      console.log('[Calendar] Admin employeeId fallback from schedules:', effectiveEmployeeList[0].full_name);
+    }
+  }, [isAdmin, employeeId, effectiveEmployeeList]);
+
+  // ── Employee list untuk tagging ───────────────────────────
+  // Admin: `employeeList` sudah di-fetch oleh useEffect di atas
+  // Employee: fetch sendiri (bisa 403 jika tidak ada akses)
   const [allEmployeesForTag, setAllEmployeesForTag] = useState<any[]>([]);
   useEffect(() => {
+    if (isAdmin) return; // Admin sudah punya employeeList
     axiosInstance.get('/api/employees/')
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         setAllEmployeesForTag(list);
       })
       .catch(() => {
-        // 403 untuk regular user — tidak apa, fitur tag employee tidak tersedia
         setAllEmployeesForTag([]);
       });
-  }, []);
+  }, [isAdmin]);
 
-  // Filtered list berdasarkan search
-  const tagSearchResults = allEmployeesForTag.filter((e) =>
+  // Gunakan effectiveEmployeeList (admin) atau allEmployeesForTag (employee)
+  const tagEmployeeSource = effectiveEmployeeList.length > 0 ? effectiveEmployeeList : allEmployeesForTag;
+
+  // Debug
+  console.log('[Calendar] tagEmployeeSource:', tagEmployeeSource.length, 'isAdmin:', isAdmin, 'employeeList:', employeeList.length, 'fromSchedules:', employeeListFromSchedules.length);
+
+  // Filtered list berdasarkan search, exclude employee yang sudah di-assign (admin)
+  const tagSearchResults = tagEmployeeSource.filter((e) =>
     e.full_name?.toLowerCase().includes(tagSearch.toLowerCase()) &&
-    !taggedIds.includes(e.id)
+    !taggedIds.includes(e.id) &&
+    e.id !== employeeId          // jangan tampilkan employee yang sudah di-assign
   ).slice(0, 6); // max 6 hasil
 
   // ── Fetch Google Calendar holidays ────────────────────────
@@ -279,6 +335,16 @@ export default function CalendarPage() {
   const handleCreateEvent = async () => {
     if (!newEvent.title.trim()) return;
 
+    // DEBUG: tampilkan IDs yang akan dikirim
+    console.log('[Calendar] Creating event:');
+    console.log('  employee_id (assigned to):', employeeId);
+    console.log('  tagged_ids:', taggedIds);
+    console.log('  tagged names:', taggedIds.map(id => {
+      const emp = tagEmployeeSource.find((e: any) => e.id === id);
+      return `${id} (${emp?.full_name ?? 'unknown'})`;
+    }));
+    console.log('  tagEmployeeSource sample:', tagEmployeeSource.slice(0, 3).map((e: any) => `id:${e.id} name:${e.full_name}`));
+
     await createSchedule.mutateAsync({
       title:       newEvent.title.trim(),
       description: newEvent.description.trim(),
@@ -358,9 +424,11 @@ export default function CalendarPage() {
           <div className="space-y-3">
             {selectedDateSchedules.map((s) => {
               const colors = SCHEDULE_TYPE_COLORS[s.type] ?? SCHEDULE_TYPE_COLORS['working'];
-              // Cari nama employee dari list (hanya admin yang punya employeeList)
+              // Cari nama employee dari effectiveEmployeeList (admin)
               const empName = isAdmin
-                ? (employeeList.find((e: any) => e.id === s.employee_id)?.full_name ?? `Employee #${s.employee_id}`)
+                ? (effectiveEmployeeList.find((e: any) => e.id === s.employee_id)?.full_name
+                    ?? s.employee?.full_name
+                    ?? `Employee #${s.employee_id}`)
                 : null;
               // Cek apakah type dari localStorage (bukan default)
               const hasLocalType = !s.schedule_id.startsWith('local_')
@@ -372,8 +440,15 @@ export default function CalendarPage() {
               const isTagged = !isAdmin && employeeId > 0 && s.employee_id !== employeeId && s.tagged_ids?.includes(employeeId);
               // Nama owner schedule (untuk card yang di-tag)
               const ownerName = isTagged
-                ? (allEmployeesForTag.find((e) => e.id === s.employee_id)?.full_name ?? `Employee #${s.employee_id}`)
+                ? (s.employee?.full_name ?? tagEmployeeSource.find((e: any) => e.id === s.employee_id)?.full_name ?? `Employee #${s.employee_id}`)
                 : null;
+              // Resolve daftar tagged employees untuk ditampilkan
+              const taggedEmpList = s.tagged_employees && s.tagged_employees.length > 0
+                ? s.tagged_employees
+                : s.tagged_ids?.map((tid) => {
+                    const found = tagEmployeeSource.find((e: any) => e.id === tid);
+                    return found ? { id: tid, full_name: found.full_name, employee_code: found.employee_code } : null;
+                  }).filter(Boolean) ?? [];
               return (
                 <div key={s.schedule_id} className={`rounded-lg border-l-4 ${colors.border} ${colors.bg} p-3`}>
                   {/* Admin: tampilkan nama employee */}
@@ -410,6 +485,25 @@ export default function CalendarPage() {
                   </div>
                   {s.description && (
                     <p className="text-xs text-slate-400 mt-1">{s.description}</p>
+                  )}
+                  {/* Tagged employees */}
+                  {taggedEmpList.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-200/70">
+                      <p className="text-[10px] text-slate-400 mb-1.5">🔖 Tagged</p>
+                      <div className="flex flex-wrap gap-1">
+                        {(taggedEmpList as any[]).map((emp) => (
+                          <span
+                            key={emp.id}
+                            className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-blue-100"
+                          >
+                            <span className="w-3.5 h-3.5 rounded-full bg-blue-200 flex items-center justify-center text-[8px] font-bold flex-shrink-0">
+                              {emp.full_name?.[0]?.toUpperCase()}
+                            </span>
+                            {emp.full_name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               );
@@ -653,26 +747,6 @@ export default function CalendarPage() {
 
             {/* Body */}
             <div className="p-5 space-y-4 max-h-[70vh] sm:max-h-none overflow-y-auto">
-              {/* Admin: pilih employee */}
-              {isAdmin && employeeList.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Assign to Employee <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(Number(e.target.value))}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition bg-white"
-                  >
-                    {employeeList.map((emp: any) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name} ({emp.employee_code})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-amber-500 mt-1">🔑 Admin mode — membuat jadwal untuk employee</p>
-                </div>
-              )}
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -767,8 +841,8 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {/* Tag Employee */}
-              {allEmployeesForTag.length > 0 && (
+              {/* Tag Employee — selalu tampil untuk admin, tampil untuk employee jika ada akses */}
+              {(isAdmin || tagEmployeeSource.length > 0) && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Tag Employee
@@ -781,7 +855,7 @@ export default function CalendarPage() {
                   {taggedIds.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-2">
                       {taggedIds.map((id) => {
-                        const emp = allEmployeesForTag.find((e) => e.id === id);
+                        const emp = tagEmployeeSource.find((e) => e.id === id);
                         return emp ? (
                           <span
                             key={id}
@@ -798,6 +872,11 @@ export default function CalendarPage() {
                         ) : null;
                       })}
                     </div>
+                  )}
+
+                  {/* Warning jika employee list belum loaded */}
+                  {isAdmin && tagEmployeeSource.length === 0 && (
+                    <p className="text-xs text-amber-500 mb-2">⚠️ Employee list sedang dimuat atau tidak tersedia...</p>
                   )}
 
                   {/* Search input */}

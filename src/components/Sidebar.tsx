@@ -117,7 +117,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          sidebar-fixed fixed left-0 top-0 z-50 w-64 bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-hidden
+          sidebar-fixed fixed left-0 top-0 z-50 w-64 h-screen bg-white border-r border-slate-200 px-6 py-5 flex flex-col overflow-hidden
           transition-transform duration-300 ease-in-out
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0

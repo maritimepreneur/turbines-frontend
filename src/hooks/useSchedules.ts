@@ -5,10 +5,10 @@ import {
 } from '@/services/scheduleService'
 import toast from 'react-hot-toast'
 
-export const useSchedules = () => {
+export const useSchedules = (isAdmin?: boolean) => {
   return useQuery({
-    queryKey: ['schedules'],
-    queryFn: scheduleService.getSchedules,
+    queryKey: ['schedules', isAdmin],
+    queryFn: () => scheduleService.getSchedules(isAdmin),
   })
 }
 
