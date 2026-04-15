@@ -29,13 +29,11 @@ type Contact = {
   emails?: string[]
   phone_numbers?: string[]
   company?: string
-  partner_id?: number
+  partners?: Partner[]
   position?: string
   role?: string
-  country?: string
+  nasionality?: string
   created_at?: string
-  // joined from partner
-  partner?: Partner
 }
 
 interface ContactsResponse {
@@ -52,17 +50,10 @@ interface ContactsResponse {
   }
 }
 
-interface PartnersResponse {
-  message: string
-  code: number
-  data: { list: Partner[]; pagination: any }
-}
-
 export default function ContactListPage() {
   const router = useRouter()
   const [showFilter, setShowFilter] = useState(false)
   const [contactsData, setContactsData] = useState<Contact[]>([])
-  const [partnersMap, setPartnersMap] = useState<Record<number, Partner>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<number | null>(null)
@@ -84,7 +75,7 @@ export default function ContactListPage() {
     { label: "Email", value: "emails" },
     { label: "Position", value: "position" },
     { label: "Role", value: "role" },
-    { label: "Country", value: "country" },
+    { label: "Country", value: "nasionality" },
   ]
 
   const fetchContacts = async () => {
@@ -111,22 +102,8 @@ export default function ContactListPage() {
     } finally { setIsLoading(false) }
   }
 
-  const fetchPartners = async () => {
-    try {
-      const res = await axiosInstance.post<PartnersResponse>('/api/partners/', {
-        page_number: 1, page_size: 1000
-      })
-      if (res.data.code === 200) {
-        const map: Record<number, Partner> = {}
-        res.data.data.list.forEach(p => { map[p.id] = p })
-        setPartnersMap(map)
-      }
-    } catch { /* silently fail */ }
-  }
-
   useEffect(() => {
     fetchContacts()
-    fetchPartners()
   }, [])
 
   const filteredContacts = useMemo(() => {
@@ -137,8 +114,8 @@ export default function ContactListPage() {
         c.emails?.some(e => e.toLowerCase().includes(search.toLowerCase())) ||
         c.position?.toLowerCase().includes(search.toLowerCase()) ||
         c.role?.toLowerCase().includes(search.toLowerCase()) ||
-        c.country?.toLowerCase().includes(search.toLowerCase()) ||
-        (c.partner_id && partnersMap[c.partner_id]?.name.toLowerCase().includes(search.toLowerCase()))
+        c.nasionality?.toLowerCase().includes(search.toLowerCase()) ||
+        c.partners?.some(p => p.name.toLowerCase().includes(search.toLowerCase()))
       )
     }
     filters.forEach(filter => {
@@ -150,7 +127,7 @@ export default function ContactListPage() {
       }
     })
     return filtered
-  }, [contactsData, search, filters, partnersMap])
+  }, [contactsData, search, filters])
 
   const paginatedContacts = useMemo(() => {
     if (itemsPerPage >= 99999) return filteredContacts
@@ -184,7 +161,7 @@ export default function ContactListPage() {
 
   const handleDownloadExcel = () => {
     const dataToExport = filteredContacts.map(contact => {
-      const partner = contact.partner_id ? partnersMap[contact.partner_id] : null
+      const partner = contact.partners?.[0] ?? null
       return {
         ID: contact.id,
         Name: contact.name,
@@ -195,7 +172,7 @@ export default function ContactListPage() {
         Affiliation: partner?.name || '-',
         'Type of Affiliation': partner?.company_type || '-',
         Position: contact.position || '-',
-        Country: contact.country || '-',
+        Country: contact.nasionality || '-',
         Category: partner?.partner_type || '-',
         Role: contact.role || '-',
       }
@@ -346,7 +323,7 @@ export default function ContactListPage() {
           </div>
         </div>
 
-        <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} valueOptions={{ country: UN_MEMBER_STATES.map(c => ({ label: c, value: c })) }} />
+        <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} valueOptions={{ nasionality: UN_MEMBER_STATES.map(c => ({ label: c, value: c })) }} />
 
         <div className="mt-4">
           <ResponsiveTable<Contact>
@@ -374,18 +351,15 @@ export default function ContactListPage() {
                 ) : <span className="text-slate-400 text-xs">-</span>,
               },
               {
-                header: 'Affiliation',
-                render: (item) => {
-                  const partner = item.partner_id ? partnersMap[item.partner_id] : null
-                  return partner
-                    ? <span className="text-sm font-medium text-slate-800">{partner.name}</span>
-                    : <span className="text-slate-400 text-xs">-</span>
-                },
+                header: 'Company',
+                render: (item) => item.company
+                  ? <span className="text-sm font-medium text-slate-800">{item.company}</span>
+                  : <span className="text-slate-400 text-xs">-</span>,
               },
               {
                 header: 'Type of Affiliation',
                 render: (item) => {
-                  const partner = item.partner_id ? partnersMap[item.partner_id] : null
+                  const partner = item.partners?.[0] ?? null
                   return partner
                     ? <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{partner.company_type}</span>
                     : <span className="text-slate-400 text-xs">-</span>
@@ -398,15 +372,15 @@ export default function ContactListPage() {
                   : <span className="text-slate-400 text-xs">-</span>,
               },
               {
-                header: 'Country',
-                render: (item) => item.country
-                  ? <span className="text-sm font-medium text-slate-800">{item.country}</span>
+                header: 'Nasionality',
+                render: (item) => item.nasionality
+                  ? <span className="text-sm font-medium text-slate-800">{item.nasionality}</span>
                   : <span className="text-slate-400 text-xs">-</span>,
               },
               {
                 header: 'Category',
                 render: (item) => {
-                  const partner = item.partner_id ? partnersMap[item.partner_id] : null
+                  const partner = item.partners?.[0] ?? null
                   if (!partner) return <span className="text-slate-400 text-xs">-</span>
                   const colorMap: Record<string, string> = {
                     CLIENT: 'bg-green-100 text-green-700',

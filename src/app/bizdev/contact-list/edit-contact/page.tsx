@@ -9,7 +9,7 @@ import axiosInstance from "@/lib/axios"
 import { UN_MEMBER_STATES } from "@/lib/countries"
 
 type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string; goods?: string }
-type Contact = { id: number; name: string; company?: string; emails?: string[]; phone_numbers?: string[]; partner_id?: number; position?: string; role?: string; country?: string }
+type Contact = { id: number; name: string; company?: string; emails?: string[]; phone_numbers?: string[]; partner_id?: number; position?: string; role?: string; nasionality?: string; affiliation_type?: string }
 interface ContactResponse { message: string; code: number; data: Contact }
 interface PartnersResponse { message: string; code: number; data: { list: Partner[]; pagination: any } }
 
@@ -32,6 +32,7 @@ export default function EditContactPage() {
     const [position, setPosition] = useState("")
     const [role, setRole] = useState("")
     const [country, setCountry] = useState("")
+    const [affiliationType, setAffiliationType] = useState("")
 
     const [showCancelModal, setShowCancelModal] = useState(false)
     const [notification, setNotification] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "info" }>({ isOpen: false, title: "", message: "", type: "success" })
@@ -54,12 +55,13 @@ export default function EditContactPage() {
             if (contactRes.data.code === 200) {
                 const c = contactRes.data.data
                 setName(c.name || "")
-                setCompany((c as any).company || "")
+                setCompany(c.company || "")
                 setEmails(c.emails && c.emails.length > 0 ? c.emails : [""])
                 setPhoneNumbers(c.phone_numbers && c.phone_numbers.length > 0 ? c.phone_numbers : [""])
                 setPosition(c.position || "")
                 setRole(c.role || "")
-                setCountry(c.country || "")
+                setCountry(c.nasionality || "")
+                setAffiliationType(c.affiliation_type || "")
                 if (c.partner_id) {
                     setPartnerId(String(c.partner_id))
                     const found = partnerRes.data.data.list.find(p => p.id === c.partner_id)
@@ -99,7 +101,7 @@ export default function EditContactPage() {
         try {
             setIsLoading(true); setSubmitError(null)
 
-            const fullPayload = {
+            const payload = {
                 name: name.trim(),
                 company: company.trim() || undefined,
                 emails: emails.filter(e => e.trim()),
@@ -107,41 +109,20 @@ export default function EditContactPage() {
                 ...(partnerId ? { partner_id: parseInt(partnerId) } : { partner_id: null }),
                 ...(position.trim() ? { position: position.trim() } : {}),
                 ...(role.trim() ? { role: role.trim() } : {}),
-                ...(country.trim() ? { country: country.trim() } : {}),
+                ...(country.trim() ? { nasionality: country.trim() } : {}),
+                ...(affiliationType ? { affiliation_type: affiliationType } : {}),
             }
 
-            const res = await axiosInstance.put(`/api/contacts/${id}`, fullPayload)
+            const res = await axiosInstance.put(`/api/contacts/${id}`, payload)
             if (res.data.code === 200 || res.data.code === 201) {
                 setNotification({ isOpen: true, title: "Success", message: "Contact updated successfully!", type: "success" })
                 setTimeout(() => router.push("/bizdev/contact-list"), 1500)
             } else throw new Error(res.data.message || 'Failed to update contact')
         } catch (err: any) {
-            const status = err.response?.status
             const backendMsg: string = err.response?.data?.message || err.response?.data?.detail || err.message || ''
-
-            // Fallback: try minimal payload if 500
-            if (status === 500) {
-                try {
-                    const minimalPayload = {
-                        name: name.trim(),
-                        emails: emails.filter(e => e.trim()),
-                        phone_numbers: phoneNumbers.filter(p => p.trim()).map(p => p.trim().replace(/[^\d+]/g, '')),
-                    }
-                    const fallbackRes = await axiosInstance.put(`/api/contacts/${id}`, minimalPayload)
-                    if (fallbackRes.data.code === 200 || fallbackRes.data.code === 201) {
-                        setNotification({ isOpen: true, title: "Partial Success", message: "Contact updated, but some fields (partner/position/role) may not be supported by the backend yet.", type: "info" })
-                        setTimeout(() => router.push("/bizdev/contact-list"), 2000)
-                        return
-                    }
-                } catch { /* fallback also failed */ }
-            }
-
-            const displayMsg = status === 500
-                ? `Server Error (500): ${backendMsg || 'Internal server error — the backend may not support all fields yet.'}`
-                : backendMsg || 'Failed to update contact.'
-
+            const displayMsg = backendMsg || 'Failed to update contact.'
             setSubmitError(displayMsg)
-            setNotification({ isOpen: true, title: "Error", message: displayMsg.slice(0, 120), type: "error" })
+            setNotification({ isOpen: true, title: "Error", message: displayMsg.slice(0, 200), type: "error" })
         } finally { setIsLoading(false) }
     }
 
@@ -227,6 +208,19 @@ export default function EditContactPage() {
                                 ))}
                             </div>
                             <button type="button" onClick={addPhone} className="mt-2 flex items-center gap-2 px-4 py-2 text-sm text-sky-600 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded-lg transition font-medium">{plusIcon} Add Another Phone</button>
+                        </div>
+
+                        {/* Type of Affiliation */}
+                        <div>
+                            <label className="text-xs font-semibold text-black block mb-1">Type of Affiliation</label>
+                            <select value={affiliationType} onChange={e => setAffiliationType(e.target.value)} className={inputCls}>
+                                <option value="">— Select type —</option>
+                                <option value="GOVERNMENT">Government</option>
+                                <option value="NGO">NGO</option>
+                                <option value="COMPANY">Company</option>
+                                <option value="ACADEMIC INSTITUTION">Academic Institution</option>
+                                <option value="MEDIA">Media</option>
+                            </select>
                         </div>
 
                         {/* Position, Role, Country */}

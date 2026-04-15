@@ -73,6 +73,7 @@ export default function Sidebar() {
     if (pathname.startsWith("/employee") || pathname === "/user-profile")
       return "employee";
     if (pathname.startsWith("/human-resources")) return "human-resources";
+    if (pathname.startsWith("/training-course")) return "training-course";
     return null;
   }, [pathname, moduleFromQuery]);
 
@@ -81,11 +82,6 @@ export default function Sidebar() {
       return MENU_ITEMS.filter(
         (item) =>
           item.module === "common" || item.module === currentActiveModule,
-      );
-    }
-    if (pathname.startsWith("/training-course")) {
-      return MENU_ITEMS.filter(
-        (item) => item.module === "common" || item.module === "training-course",
       );
     }
     return MENU_ITEMS;
@@ -424,12 +420,6 @@ const MENU_ITEMS = [
     module: "training-course",
   },
   {
-    label: "Data",
-    href: "/training-course/form-data",
-    icon: <CalendarCheck size={18} />,
-    module: "training course",
-  },
-  {
     label: "Interview",
     href: "/training-course/interview",
     icon: <Users size={18} />,
@@ -440,40 +430,28 @@ const MENU_ITEMS = [
     href: "/training-course/registration",
     icon: <FileText size={18} />,
     subMenu: [
-      {
-        label: "All",
-        href: "training-course/form-data/all",
-      },
-      { label: "Foundation", href: "training-course/form-data/foundation" },
-      {
-        label: "Specialization",
-        href: "training-course/form-data/specialization",
-      },
-      {
-        label: "Foundation and Specialization",
-        href: "training-course/form-data/foundation-specialization",
-      },
-      { label: "Executive", href: "training-course/form-data/executive" },
+      { label: "All", href: "/training-course/form-data/all" },
+      { label: "Foundation", href: "/training-course/form-data/foundation" },
+      { label: "Specialization", href: "/training-course/form-data/specialization" },
+      { label: "Foundation and Specialization", href: "/training-course/form-data/foundation-specialization" },
+      { label: "Executive", href: "/training-course/form-data/executive" },
     ],
     module: "training-course",
   },
   {
     label: "Scholarships",
     href: "/training-course/scholarships",
-    icon: <FileText size={18} />,
+    icon: <GraduationCap size={18} />,
+    subMenu: [
+      { label: "List", href: "/training-course/scholarships" },
+      { label: "Scholarships Type", href: "/training-course/scholarships-type" },
+    ],
     module: "training-course",
   },
   {
     label: "Gform",
     href: "/training-course/gform",
     icon: <FileText size={18} />,
-    module: "training-course",
-  },
-
-  {
-    label: "Scholarships Type",
-    href: "/training-course/scholarships-type",
-    icon: <UsersRound size={18} />,
     module: "training-course",
   },
 ];

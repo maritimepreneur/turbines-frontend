@@ -134,9 +134,9 @@ export function ResponsiveTable<T>({
                                 <div className="flex items-start justify-between gap-2 mb-2">
                                     <div className="flex-1 min-w-0">
                                         {primaryCol && (
-                                            <p className="font-semibold text-sm text-slate-900 truncate">
+                                            <div className="font-semibold text-sm text-slate-900 truncate">
                                                 {getCellContent(primaryCol, item, index)}
-                                            </p>
+                                            </div>
                                         )}
                                     </div>
                                     {actionCol && (
@@ -150,12 +150,12 @@ export function ResponsiveTable<T>({
                                 <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                                     {detailCols.map((col, colIndex) => (
                                         <div key={colIndex} className="min-w-0">
-                                            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                                            <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
                                                 {col.header}
-                                            </p>
-                                            <p className="text-xs text-slate-700 truncate">
+                                            </div>
+                                            <div className="text-xs text-slate-700 truncate">
                                                 {getCellContent(col, item, index)}
-                                            </p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
