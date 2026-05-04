@@ -56,7 +56,14 @@ export default function AbsentPage() {
       logger.info("Fetching absent employees list");
 
       const response = await axiosInstance.get<AbsentListResponse>(
-        "/api/attendances/absent"
+        "/api/attendances/absent",
+        {
+          params: {
+            page: 1,
+            page_size: 100,
+            sort_by: "id",
+          },
+        },
       );
 
       if (response.data.code === 200) {
