@@ -71,14 +71,37 @@ export default function NewLeadsPage() {
       setIsLoading(true)
       setError(null)
 
+      const payload: any = {
+        page_number: currentPage,
+        page_size: itemsPerPage,
+        sort_by: 'id',
+        sort_order: 'DESC',
+      }
+      
+      if (search) {
+        payload.search = search;
+      }
+
+      // Map filters
+      const stages: string[] = [];
+      const partners: string[] = [];
+      const contacts: string[] = [];
+
+      filters.forEach(filter => {
+         if (filter.value) {
+            if (filter.field === 'current_stages') stages.push(filter.value);
+            if (filter.field === 'partner_name') partners.push(filter.value);
+            if (filter.field === 'contact_name') contacts.push(filter.value);
+         }
+      });
+      
+      if (stages.length > 0) payload.stages = stages;
+      if (partners.length > 0) payload.partners = partners;
+      if (contacts.length > 0) payload.contacts = contacts;
+
       const response = await axiosInstance.post<LeadsResponse>(
         '/api/leads/',
-        {
-          page_number: 1,
-          page_size: 1000, // Fetch all data
-          sort_by: 'id',
-          sort_order: 'DESC',
-        }
+        payload
       )
 
       console.log('📦 Response:', response.data)
@@ -107,41 +130,15 @@ export default function NewLeadsPage() {
   }
 
   useEffect(() => {
-    fetchLeads()
-  }, [])
+    const delayDebounceFn = setTimeout(() => {
+      fetchLeads()
+    }, 500)
 
-  const filteredLeads = useMemo(() => {
-    let filtered = [...leadsData]
+    return () => clearTimeout(delayDebounceFn)
+  }, [currentPage, itemsPerPage, search, filters])
 
-    if (search) {
-      filtered = filtered.filter(lead =>
-        lead.name.toLowerCase().includes(search.toLowerCase()) ||
-        (lead.company && lead.company.toLowerCase().includes(search.toLowerCase())) ||
-        (lead.contact_name && lead.contact_name.toLowerCase().includes(search.toLowerCase()))
-      )
-    }
-
-    filters.forEach(filter => {
-      if (filter.value) {
-        filtered = filtered.filter(lead => {
-          const fieldValue = lead[filter.field as keyof Lead]
-          return fieldValue &&
-            String(fieldValue).toLowerCase().includes(filter.value.toLowerCase())
-        })
-      }
-    })
-
-    return filtered
-  }, [leadsData, search, filters])
-
-  // Client-side pagination
-  const paginatedLeads = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return filteredLeads.slice(startIndex, endIndex)
-  }, [filteredLeads, currentPage, itemsPerPage])
-
-  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage)
+  const paginatedLeads = leadsData;
+  const totalPages = pagination.total_pages || 1;
 
   const handleIdClick = (leadId: number) => {
     router.push(`/bizdev/new-leads/general-info?id=${leadId}`);
@@ -265,11 +262,13 @@ export default function NewLeadsPage() {
     setFilters(filters.map(f =>
       f.id === id ? { ...f, value } : f
     ))
+    setCurrentPage(1)
   }
 
   const resetFilters = () => {
     setFilters([])
     setSearch('')
+    setCurrentPage(1)
   }
 
   const handlePageChange = (newPage: number) => {
@@ -388,7 +387,10 @@ export default function NewLeadsPage() {
 
             <SearchBar
               value={search}
-              onChange={setSearch}
+              onChange={(val) => {
+                setSearch(val)
+                setCurrentPage(1)
+              }}
               placeholder="Search name, company, or contact..."
             />
           </div>
@@ -513,16 +515,14 @@ export default function NewLeadsPage() {
 
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredLeads.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={pagination.total_items || 0}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
     </div>
   )

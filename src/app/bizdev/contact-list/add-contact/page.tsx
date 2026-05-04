@@ -30,7 +30,7 @@ export default function AddContactPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
-    axiosInstance.post<PartnersResponse>('/api/partners/', { params: { page_size: 1000 } })
+    axiosInstance.post<PartnersResponse>('/api/partners/', { page_size: 1000 })
       .then(res => { if (res.data.code === 200) setPartners(res.data.data.list) })
       .catch(() => { })
   }, [])
@@ -50,7 +50,7 @@ export default function AddContactPage() {
   const validate = () => {
     let valid = true
     if (!name.trim()) { setNameError("Contact name is required"); valid = false } else setNameError("")
-    const errs = emails.map((e, i) => { if (i === 0 && !e.trim()) return "At least one email is required"; if (e.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())) return "Invalid email format"; return "" })
+    const errs = emails.map((e, i) => { if (i === 0 && !e.trim()) return "At least one email is required"; if (e.trim() && (!e.includes('@') || !e.includes('.'))) return "Invalid email format"; return "" })
     setEmailErrors(errs); if (errs.some(e => e)) valid = false
     return valid
   }
@@ -64,7 +64,7 @@ export default function AddContactPage() {
         name: name.trim(),
         company: company.trim() || undefined,
         emails: emails.filter(e => e.trim()),
-        phone_numbers: phoneNumbers.filter(p => p.trim()),
+        phone_numbers: phoneNumbers.filter(p => p.trim()).map(p => p.trim().replace(/[^\d+]/g, '')),
         ...(partnerId ? { partner_id: parseInt(partnerId) } : {}),
         ...(position.trim() ? { position: position.trim() } : {}),
         ...(role.trim() ? { role: role.trim() } : {}),
@@ -86,7 +86,7 @@ export default function AddContactPage() {
           const minimalPayload = {
             name: name.trim(),
             emails: emails.filter(e => e.trim()),
-            phone_numbers: phoneNumbers.filter(p => p.trim()),
+            phone_numbers: phoneNumbers.filter(p => p.trim()).map(p => p.trim().replace(/[^\d+]/g, '')),
           }
           const fallbackRes = await axiosInstance.post('/api/contacts/create', minimalPayload)
           if (fallbackRes.data.code === 200 || fallbackRes.data.code === 201) {

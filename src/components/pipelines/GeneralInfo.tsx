@@ -142,7 +142,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
     if (contactFilled) {
       if (!formData.contact_name.trim()) newErrors.contact_name = "Contact name is required"
       if (!formData.contact_email.trim()) newErrors.contact_email = "Email is required"
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
+      else if (!formData.contact_email.includes('@') || !formData.contact_email.includes('.')) {
         newErrors.contact_email = "Invalid email format"
       }
     }
@@ -186,7 +186,7 @@ export default function GeneralInfo({ lead }: GeneralInfoProps) {
         const contactData = {
           name: formData.contact_name,
           emails: formData.contact_email ? [formData.contact_email] : [],
-          phone_numbers: formData.contact_phone ? [formData.contact_phone] : [],
+          phone_numbers: formData.contact_phone ? [formData.contact_phone.replace(/[^\d+]/g, '')] : [],
           company: formData.contact_company,
         }
 

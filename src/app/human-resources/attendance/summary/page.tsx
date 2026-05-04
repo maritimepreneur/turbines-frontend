@@ -232,12 +232,15 @@ export default function SummaryPage() {
 
   // Client-side pagination
   const paginatedSummary = useMemo(() => {
+    if (itemsPerPage >= 99999) return filteredSummary; // All
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredSummary.slice(startIndex, endIndex);
   }, [filteredSummary, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredSummary.length / itemsPerPage);
+  const totalPages = filteredSummary.length === 0
+    ? 0
+    : Math.max(1, Math.ceil(filteredSummary.length / (itemsPerPage >= 99999 ? filteredSummary.length : itemsPerPage)));
 
   const addFilter = () => {
     const newFilter = {
@@ -508,16 +511,14 @@ export default function SummaryPage() {
 
 
         {/* Pagination */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredSummary.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredSummary.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       </div>
     </div>
   );
