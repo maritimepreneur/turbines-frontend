@@ -213,8 +213,8 @@ export default function EditPartnerPage() {
                       <option value="">Select Company Type</option>
                       <option value="PRIVATE">Private</option>
                       <option value="PUBLIC">Public</option>
-                      <option value="GOVERNMENT">Government</option>
-                      <option value="STATE_OWNED">State Owned</option>
+                      <option value="GOVERMENT">Government</option>
+                      <option value="STATEOWNED">State Owned</option>
                       <option value="NONPROFIT">Nonprofit</option>
                       <option value="OTHER">Other</option>
                     </select>
