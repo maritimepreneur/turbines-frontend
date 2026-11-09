@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/table/EmptyState"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
+import * as XLSX from 'xlsx-js-style'
 
 type Partner = {
   id: number
@@ -263,6 +264,57 @@ export default function PartnerListPage() {
     setSearch('')
   }
 
+  const handleDownloadExcel = () => {
+    const dataToExport = filteredPartners.map((partner, index) => {
+      const pics = contactsByPartnerId[partner.id]
+      const picNames = pics && pics.length > 0 ? pics.map(p => p.name).join(', ') : '-'
+      return {
+        No: index + 1,
+        'Company Name': partner.name,
+        Initial: partner.initials || '-',
+        Industry: partner.industry || '-',
+        Service: partner.service || '-',
+        Goods: partner.goods || '-',
+        'Company Type': partner.company_type || '-',
+        'Partner Type': partner.partner_type || '-',
+        PIC: picNames,
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+
+    const columnWidths = [
+      { wch: 6 },   // No
+      { wch: 35 },  // Company Name
+      { wch: 12 },  // Initial
+      { wch: 25 },  // Industry
+      { wch: 20 },  // Service
+      { wch: 20 },  // Goods
+      { wch: 18 },  // Company Type
+      { wch: 18 },  // Partner Type
+      { wch: 30 },  // PIC
+    ]
+    worksheet['!cols'] = columnWidths
+
+    // Styling header dengan warna hijau
+    const headerStyle = {
+      fill: { fgColor: { rgb: "22C55E" } },
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" }
+    }
+
+    const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1']
+    headerCells.forEach(cell => {
+      if (worksheet[cell]) {
+        worksheet[cell].s = headerStyle
+      }
+    })
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Partner List')
+    XLSX.writeFile(workbook, `Affiliation_List_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
+
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -386,6 +438,18 @@ export default function PartnerListPage() {
 
           <div className="flex gap-2 w-full sm:w-auto">
             <button
+              onClick={handleDownloadExcel}
+              disabled={filteredPartners.length === 0}
+              className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download Excel"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Excel
+            </button>
+
+            <button
               onClick={() => fetchPartners()}
               disabled={isLoading}
               className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm hover:bg-slate-200 transition flex items-center justify-center gap-2 disabled:opacity-50 flex-1 sm:flex-none"
@@ -420,8 +484,8 @@ export default function PartnerListPage() {
           <ResponsiveTable<Partner>
             columns={[
               {
-                header: 'ID',
-                accessor: 'id',
+                header: 'No',
+                render: (_, index) => (currentPage - 1) * itemsPerPage + index + 1,
               },
               {
                 header: 'Company Name',
