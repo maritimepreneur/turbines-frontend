@@ -6,8 +6,8 @@ import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 
-type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string; goods?: string }
-type Contact = { id: number; name: string; company?: string; emails?: string[]; phone_numbers?: string[]; partner_id?: number; position?: string; role?: string }
+type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string | string[]; goods?: string | string[] }
+type Contact = { id: number; name: string; company?: string; emails?: string[]; phone_numbers?: string[]; partner_id?: number | null; partners?: Partner[]; position?: string; role?: string }
 interface ContactResponse { message: string; code: number; data: Contact }
 interface PartnersResponse { message: string; code: number; data: { list: Partner[]; pagination: any } }
 
@@ -56,9 +56,10 @@ export default function EditContactPage() {
                 setPhoneNumbers(c.phone_numbers && c.phone_numbers.length > 0 ? c.phone_numbers : [""])
                 setPosition(c.position || "")
                 setRole(c.role || "")
-                if (c.partner_id) {
-                    setPartnerId(String(c.partner_id))
-                    const found = partnerRes.data.data.list.find(p => p.id === c.partner_id)
+                const effectivePartnerId = c.partner_id ?? c.partners?.[0]?.id
+                if (effectivePartnerId) {
+                    setPartnerId(String(effectivePartnerId))
+                    const found = partnerRes.data.data.list.find(p => p.id === effectivePartnerId)
                     setSelectedPartner(found || null)
                 }
                 setEmailErrors((c.emails && c.emails.length > 0 ? c.emails : [""]).map(() => ""))
@@ -95,14 +96,16 @@ export default function EditContactPage() {
         try {
             setIsLoading(true); setSubmitError(null)
 
+            const parsedPartnerId = partnerId ? parseInt(partnerId) : null
             const fullPayload = {
                 name: name.trim(),
-                company: company.trim() || undefined,
+                company: company.trim() || selectedPartner?.name || "-",
                 emails: emails.filter(e => e.trim()),
                 phone_numbers: phoneNumbers.filter(p => p.trim()).map(p => p.trim().replace(/[^\d+]/g, '')),
-                ...(partnerId ? { partner_id: parseInt(partnerId) } : { partner_id: null }),
-                ...(position.trim() ? { position: position.trim() } : {}),
-                ...(role.trim() ? { role: role.trim() } : {}),
+                partner_id: parsedPartnerId,
+                partner_ids: parsedPartnerId ? [parsedPartnerId] : [],
+                position: position.trim() || null,
+                role: role.trim() || null,
             }
 
             const res = await axiosInstance.put(`/api/contacts/${id}`, fullPayload)
@@ -287,7 +290,7 @@ export default function EditContactPage() {
                                         <p className="text-xs text-slate-400 mb-0.5">Partner Type</p>
                                         {(() => {
                                             const colorMap: Record<string, string> = { CLIENT: 'bg-green-100 text-green-700', VENDOR: 'bg-orange-100 text-orange-700', BOTH: 'bg-purple-100 text-purple-700' }
-                                            const cls = colorMap[selectedPartner.partner_type] || 'bg-slate-100 text-slate-700'
+                                            const cls = colorMap[selectedPartner.partner_type?.toUpperCase()] || 'bg-slate-100 text-slate-700'
                                             return <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{selectedPartner.partner_type || '—'}</span>
                                         })()}
                                     </div>
@@ -297,11 +300,11 @@ export default function EditContactPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                                     <div>
                                         <p className="text-xs text-slate-400 mb-0.5">Service</p>
-                                        <p className="text-sm text-slate-700">{selectedPartner.service || <span className="text-slate-400 italic">—</span>}</p>
+                                        <p className="text-sm text-slate-700">{Array.isArray(selectedPartner.service) ? (selectedPartner.service.length > 0 ? selectedPartner.service.join(', ') : <span className="text-slate-400 italic">—</span>) : (selectedPartner.service || <span className="text-slate-400 italic">—</span>)}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-400 mb-0.5">Goods</p>
-                                        <p className="text-sm text-slate-700">{selectedPartner.goods || <span className="text-slate-400 italic">—</span>}</p>
+                                        <p className="text-sm text-slate-700">{Array.isArray(selectedPartner.goods) ? (selectedPartner.goods.length > 0 ? selectedPartner.goods.join(', ') : <span className="text-slate-400 italic">—</span>) : (selectedPartner.goods || <span className="text-slate-400 italic">—</span>)}</p>
                                     </div>
                                 </div>
                             </div>

@@ -28,12 +28,13 @@ type Contact = {
   emails?: string[]
   phone_numbers?: string[]
   company?: string
-  partner_id?: number
+  partner_id?: number | null
   position?: string
   role?: string
   created_at?: string
   // joined from partner
   partner?: Partner
+  partners?: Partner[]
 }
 
 interface ContactsResponse {
@@ -126,16 +127,30 @@ export default function ContactListPage() {
     fetchPartners()
   }, [])
 
+  const getContactPartner = (item: Contact): Partner | null => {
+    if (item.partner_id && partnersMap[item.partner_id]) {
+      return partnersMap[item.partner_id]
+    }
+    if (item.partners && item.partners.length > 0) {
+      const first = item.partners[0]
+      return partnersMap[first.id] || first
+    }
+    return item.partner || null
+  }
+
   const filteredContacts = useMemo(() => {
     let filtered = [...contactsData]
     if (search) {
-      filtered = filtered.filter(c =>
-        c.name?.toLowerCase().includes(search.toLowerCase()) ||
-        c.emails?.some(e => e.toLowerCase().includes(search.toLowerCase())) ||
-        c.position?.toLowerCase().includes(search.toLowerCase()) ||
-        c.role?.toLowerCase().includes(search.toLowerCase()) ||
-        (c.partner_id && partnersMap[c.partner_id]?.name.toLowerCase().includes(search.toLowerCase()))
-      )
+      filtered = filtered.filter(c => {
+        const partner = getContactPartner(c)
+        return (
+          c.name?.toLowerCase().includes(search.toLowerCase()) ||
+          c.emails?.some(e => e.toLowerCase().includes(search.toLowerCase())) ||
+          c.position?.toLowerCase().includes(search.toLowerCase()) ||
+          c.role?.toLowerCase().includes(search.toLowerCase()) ||
+          partner?.name.toLowerCase().includes(search.toLowerCase())
+        )
+      })
     }
     filters.forEach(filter => {
       if (filter.value) {
@@ -180,7 +195,7 @@ export default function ContactListPage() {
 
   const handleDownloadExcel = () => {
     const dataToExport = filteredContacts.map(contact => {
-      const partner = contact.partner_id ? partnersMap[contact.partner_id] : null
+      const partner = getContactPartner(contact)
       return {
         ID: contact.id,
         Name: contact.name,
@@ -370,7 +385,7 @@ export default function ContactListPage() {
               {
                 header: 'Affiliation',
                 render: (item) => {
-                  const partner = item.partner_id ? partnersMap[item.partner_id] : null
+                  const partner = getContactPartner(item)
                   return partner
                     ? <span className="text-sm font-medium text-slate-800">{partner.name}</span>
                     : <span className="text-slate-400 text-xs">-</span>
@@ -379,7 +394,7 @@ export default function ContactListPage() {
               {
                 header: 'Type of Affiliation',
                 render: (item) => {
-                  const partner = item.partner_id ? partnersMap[item.partner_id] : null
+                  const partner = getContactPartner(item)
                   return partner
                     ? <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">{partner.company_type}</span>
                     : <span className="text-slate-400 text-xs">-</span>
@@ -394,14 +409,14 @@ export default function ContactListPage() {
               {
                 header: 'Category',
                 render: (item) => {
-                  const partner = item.partner_id ? partnersMap[item.partner_id] : null
+                  const partner = getContactPartner(item)
                   if (!partner) return <span className="text-slate-400 text-xs">-</span>
                   const colorMap: Record<string, string> = {
                     CLIENT: 'bg-green-100 text-green-700',
                     VENDOR: 'bg-orange-100 text-orange-700',
                     BOTH: 'bg-purple-100 text-purple-700',
                   }
-                  const cls = colorMap[partner.partner_type] || 'bg-slate-100 text-slate-700'
+                  const cls = colorMap[partner.partner_type?.toUpperCase()] || 'bg-slate-100 text-slate-700'
                   return <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{partner.partner_type}</span>
                 },
               },
