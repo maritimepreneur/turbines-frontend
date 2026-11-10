@@ -6,7 +6,7 @@ import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
 import axiosInstance from "@/lib/axios"
 
-type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string; goods?: string }
+type Partner = { id: number; name: string; initials: string; industry: string; company_type: string; partner_type: string; service?: string | string[]; goods?: string | string[] }
 interface PartnersResponse { message: string; code: number; data: { list: Partner[]; pagination: any } }
 
 export default function AddContactPage() {
@@ -60,12 +60,13 @@ export default function AddContactPage() {
     try {
       setIsLoading(true); setSubmitError(null)
 
+      const parsedPartnerId = partnerId ? parseInt(partnerId) : null
       const fullPayload = {
         name: name.trim(),
-        company: company.trim() || undefined,
+        company: company.trim() || selectedPartner?.name || "-",
         emails: emails.filter(e => e.trim()),
         phone_numbers: phoneNumbers.filter(p => p.trim()).map(p => p.trim().replace(/[^\d+]/g, '')),
-        ...(partnerId ? { partner_id: parseInt(partnerId) } : {}),
+        ...(parsedPartnerId ? { partner_id: parsedPartnerId, partner_ids: [parsedPartnerId] } : {}),
         ...(position.trim() ? { position: position.trim() } : {}),
         ...(role.trim() ? { role: role.trim() } : {}),
       }
@@ -245,7 +246,7 @@ export default function AddContactPage() {
                     <p className="text-xs text-slate-400 mb-0.5">Partner Type</p>
                     {(() => {
                       const colorMap: Record<string, string> = { CLIENT: 'bg-green-100 text-green-700', VENDOR: 'bg-orange-100 text-orange-700', BOTH: 'bg-purple-100 text-purple-700' }
-                      const cls = colorMap[selectedPartner.partner_type] || 'bg-slate-100 text-slate-700'
+                      const cls = colorMap[selectedPartner.partner_type?.toUpperCase()] || 'bg-slate-100 text-slate-700'
                       return <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{selectedPartner.partner_type || '—'}</span>
                     })()}
                   </div>
@@ -255,11 +256,11 @@ export default function AddContactPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                   <div>
                     <p className="text-xs text-slate-400 mb-0.5">Service</p>
-                    <p className="text-sm text-slate-700">{selectedPartner.service || <span className="text-slate-400 italic">—</span>}</p>
+                    <p className="text-sm text-slate-700">{Array.isArray(selectedPartner.service) ? (selectedPartner.service.length > 0 ? selectedPartner.service.join(', ') : <span className="text-slate-400 italic">—</span>) : (selectedPartner.service || <span className="text-slate-400 italic">—</span>)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 mb-0.5">Goods</p>
-                    <p className="text-sm text-slate-700">{selectedPartner.goods || <span className="text-slate-400 italic">—</span>}</p>
+                    <p className="text-sm text-slate-700">{Array.isArray(selectedPartner.goods) ? (selectedPartner.goods.length > 0 ? selectedPartner.goods.join(', ') : <span className="text-slate-400 italic">—</span>) : (selectedPartner.goods || <span className="text-slate-400 italic">—</span>)}</p>
                   </div>
                 </div>
               </div>
