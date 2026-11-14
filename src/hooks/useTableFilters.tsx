@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { FilterItem } from "@/components/table/FilterPanel"
 
 export function useTableFilters<T extends Record<string, any>>(
@@ -11,6 +11,10 @@ export function useTableFilters<T extends Record<string, any>>(
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(defaultItemsPerPage)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, filters])
 
   const addFilter = () => {
     const newFilter: FilterItem = {
@@ -49,9 +53,9 @@ export function useTableFilters<T extends Record<string, any>>(
     setCurrentPage(1) // Reset ke page 1 ketika items per page berubah
   }
 
-  // Filter data
+  // Filter and sort data
   const filteredData = useMemo(() => {
-    return data.filter((item) => {
+    const result = data.filter((item) => {
       // Apply filters
       const matchFilters = filters.every((filter) => {
         if (!filter.value) return true
@@ -68,6 +72,17 @@ export function useTableFilters<T extends Record<string, any>>(
 
       return matchFilters && matchSearch
     })
+
+    // Urutkan sesuai abjad (A-Z)
+    result.sort((a, b) => {
+      const getVal = (x: any) =>
+        (x.name || x.company_name || x.title || x.company || x.code || Object.values(x)[0] || "")
+          .toString()
+          .trim()
+      return getVal(a).localeCompare(getVal(b), undefined, { sensitivity: "base", numeric: true })
+    })
+
+    return result
   }, [data, filters, search])
 
   // Pagination
