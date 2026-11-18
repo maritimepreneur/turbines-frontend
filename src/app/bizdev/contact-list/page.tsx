@@ -78,6 +78,10 @@ export default function ContactListPage() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Array<{ id: string; field: string; value: string }>>([])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, filters])
+
   const fieldOptions = [
     { label: "Name", value: "name" },
     { label: "Email", value: "emails" },
@@ -160,8 +164,32 @@ export default function ContactListPage() {
         })
       }
     })
+
+    // Urutkan sesuai abjad (A-Z) berdasarkan nama kontak
+    filtered.sort((a, b) => {
+      const nameA = a.name ? a.name.trim() : ''
+      const nameB = b.name ? b.name.trim() : ''
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true })
+    })
+
     return filtered
   }, [contactsData, search, filters, partnersMap])
+
+  // Deteksi nama company / partner yang duplikat
+  const duplicateCompanyNames = useMemo(() => {
+    const counts = new Map<string, number>()
+    Object.values(partnersMap).forEach(p => {
+      if (p.name) {
+        const key = p.name.trim().toLowerCase()
+        counts.set(key, (counts.get(key) || 0) + 1)
+      }
+    })
+    const dupes = new Set<string>()
+    counts.forEach((count, key) => {
+      if (count > 1) dupes.add(key)
+    })
+    return dupes
+  }, [partnersMap])
 
   const paginatedContacts = useMemo(() => {
     if (itemsPerPage >= 99999) return filteredContacts
@@ -357,6 +385,17 @@ export default function ContactListPage() {
 
         <FilterPanel show={showFilter} filters={filters} onAddFilter={addFilter} onRemoveFilter={removeFilter} onUpdateField={updateFilterField} onUpdateValue={updateFilterValue} onResetAll={resetFilters} fieldOptions={fieldOptions} />
 
+        {duplicateCompanyNames.size > 0 && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start sm:items-center gap-2.5 text-sm text-amber-800">
+            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <span className="font-semibold">Pemberitahuan Duplikat:</span> Terdapat <strong>{duplicateCompanyNames.size}</strong> nama perusahaan/partner afiliasi yang terdaftar lebih dari satu kali. Afiliasi ganda ditandai dengan badge <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-200 text-amber-900">Duplikat</span>.
+            </div>
+          </div>
+        )}
+
         <div className="mt-4">
           <ResponsiveTable<Contact>
             columns={[
@@ -386,9 +425,21 @@ export default function ContactListPage() {
                 header: 'Affiliation',
                 render: (item) => {
                   const partner = getContactPartner(item)
-                  return partner
-                    ? <span className="text-sm font-medium text-slate-800">{partner.name}</span>
-                    : <span className="text-slate-400 text-xs">-</span>
+                  if (!partner) return <span className="text-slate-400 text-xs">-</span>
+                  const isDupe = duplicateCompanyNames.has((partner.name || '').trim().toLowerCase())
+                  return (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-medium text-slate-800">{partner.name}</span>
+                      {isDupe && (
+                        <span
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300"
+                          title="Pemberitahuan: Nama company ini terdaftar ganda di database"
+                        >
+                          Duplikat
+                        </span>
+                      )}
+                    </div>
+                  )
                 },
               },
               {

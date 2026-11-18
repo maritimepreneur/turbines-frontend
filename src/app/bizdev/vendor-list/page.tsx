@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
@@ -16,6 +16,22 @@ export default function VendorListPage() {
 
   // useVendors tanpa params → ambil semua data, filtering di frontend
   const vendors = response?.data ?? []
+
+  // Deteksi nama vendor yang duplikat
+  const duplicateVendorNames = useMemo(() => {
+    const counts = new Map<string, number>()
+    vendors.forEach((v: any) => {
+      if (v.name) {
+        const key = v.name.trim().toLowerCase()
+        counts.set(key, (counts.get(key) || 0) + 1)
+      }
+    })
+    const dupes = new Set<string>()
+    counts.forEach((count, key) => {
+      if (count > 1) dupes.add(key)
+    })
+    return dupes
+  }, [vendors])
 
   const {
     filters,
@@ -108,6 +124,17 @@ export default function VendorListPage() {
           fieldOptions={fieldOptions}
         />
 
+        {duplicateVendorNames.size > 0 && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start sm:items-center gap-2.5 text-sm text-amber-800">
+            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <span className="font-semibold">Pemberitahuan Duplikat:</span> Terdapat <strong>{duplicateVendorNames.size}</strong> nama vendor yang terdaftar lebih dari satu kali. Baris dengan nama ganda ditandai dengan badge <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-200 text-amber-900">Duplikat</span>.
+            </div>
+          </div>
+        )}
+
         {/* Table */}
         <div className="mt-4">
           <ResponsiveTable
@@ -119,9 +146,27 @@ export default function VendorListPage() {
               },
               {
                 header: 'Company Name',
-                accessor: 'name',
                 isPrimary: true,
                 cellClassName: 'font-medium',
+                render: (item: any) => {
+                  const isDupe = duplicateVendorNames.has((item.name || '').trim().toLowerCase())
+                  return (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{item.name}</span>
+                      {isDupe && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300"
+                          title="Pemberitahuan: Nama vendor ini terdaftar lebih dari 1 kali (Duplikat)"
+                        >
+                          <svg className="w-3 h-3 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          Duplikat
+                        </span>
+                      )}
+                    </div>
+                  )
+                },
               },
               {
                 header: 'Initial',
