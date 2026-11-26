@@ -16,6 +16,16 @@ export default function EditContactPage() {
     const searchParams = useSearchParams()
     const id = parseInt(searchParams.get('id') || '0')
 
+    const getReturnListUrl = () => {
+        const queryPage = searchParams.get('page')
+        const queryLimit = searchParams.get('limit')
+
+        const page = queryPage || (typeof window !== "undefined" ? sessionStorage.getItem("bizdev_contact_list_page") : null) || "1"
+        const limit = queryLimit || (typeof window !== "undefined" ? sessionStorage.getItem("bizdev_contact_list_limit") : null) || "5"
+
+        return `/bizdev/contact-list?page=${page}&limit=${limit}`
+    }
+
     const [isLoading, setIsLoading] = useState(false)
     const [isFetching, setIsFetching] = useState(true)
     const [fetchError, setFetchError] = useState<string | null>(null)
@@ -59,7 +69,7 @@ export default function EditContactPage() {
     }, [selectedPartner])
 
     useEffect(() => {
-        if (!id) { router.push('/bizdev/contact-list'); return }
+        if (!id) { router.push(getReturnListUrl()); return }
 
         // Fetch partners & contact in parallel
         Promise.all([
@@ -166,7 +176,7 @@ export default function EditContactPage() {
             const res = await axiosInstance.put(`/api/contacts/${id}`, fullPayload)
             if (res.data.code === 200 || res.data.code === 201) {
                 setNotification({ isOpen: true, title: "Success", message: "Contact updated successfully!", type: "success" })
-                setTimeout(() => router.push("/bizdev/contact-list"), 1500)
+                setTimeout(() => router.push(getReturnListUrl()), 1500)
             } else throw new Error(res.data.message || 'Failed to update contact')
         } catch (err: any) {
             const status = err.response?.status
@@ -183,7 +193,7 @@ export default function EditContactPage() {
                     const fallbackRes = await axiosInstance.put(`/api/contacts/${id}`, minimalPayload)
                     if (fallbackRes.data.code === 200 || fallbackRes.data.code === 201) {
                         setNotification({ isOpen: true, title: "Partial Success", message: "Contact updated, but some fields (partner/position/role) may not be supported by the backend yet.", type: "info" })
-                        setTimeout(() => router.push("/bizdev/contact-list"), 2000)
+                        setTimeout(() => router.push(getReturnListUrl()), 2000)
                         return
                     }
                 } catch { /* fallback also failed */ }
@@ -215,7 +225,7 @@ export default function EditContactPage() {
 
     return (
         <div>
-            <ConfirmationModal isOpen={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={() => router.push("/bizdev/contact-list")} title="Cancel Edit" message="Are you sure you want to cancel? All unsaved changes will be lost." confirmText="Yes, Cancel" cancelText="No, Keep Editing" type="info" />
+            <ConfirmationModal isOpen={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={() => router.push(getReturnListUrl())} title="Cancel Edit" message="Are you sure you want to cancel? All unsaved changes will be lost." confirmText="Yes, Cancel" cancelText="No, Keep Editing" type="info" />
             <NotificationModal isOpen={notification.isOpen} onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))} title={notification.title} message={notification.message} type={notification.type} />
 
             <div className="mb-6">
