@@ -251,13 +251,7 @@ export default function PipelinesPage() {
     return () => clearTimeout(delayDebounceFn)
   }, [currentPage, itemsPerPage, searchQuery, activeStage])
 
-  const paginatedData = useMemo(() => {
-    return [...leads].sort((a, b) => {
-      const nameA = a.name ? a.name.trim() : ''
-      const nameB = b.name ? b.name.trim() : ''
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true })
-    })
-  }, [leads]);
+  const paginatedData = leads;
   const totalPages = pagination?.total_pages || 1;
 
   const renderRightDetail = () => {

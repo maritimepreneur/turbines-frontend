@@ -89,10 +89,6 @@ export default function PartnerListPage() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Array<{ id: string, field: string, value: string }>>([])
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, filters])
-
   const fieldOptions = [
     { label: "Industry", value: "industry" },
     { label: "Company Type", value: "company_type" },
@@ -166,8 +162,8 @@ export default function PartnerListPage() {
 
     if (search) {
       filtered = filtered.filter(partner =>
-        (partner.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (partner.initials || '').toLowerCase().includes(search.toLowerCase())
+        partner.name.toLowerCase().includes(search.toLowerCase()) ||
+        partner.initials.toLowerCase().includes(search.toLowerCase())
       )
     }
 
@@ -181,31 +177,8 @@ export default function PartnerListPage() {
       }
     })
 
-    // Urutkan sesuai abjad (A-Z) berdasarkan nama perusahaan
-    filtered.sort((a, b) => {
-      const nameA = a.name ? a.name.trim() : ''
-      const nameB = b.name ? b.name.trim() : ''
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true })
-    })
-
     return filtered
   }, [partnersData, search, filters])
-
-  // Deteksi nama company yang duplikat di database
-  const duplicateCompanyNames = useMemo(() => {
-    const counts = new Map<string, number>()
-    partnersData.forEach((p) => {
-      if (p.name) {
-        const key = p.name.trim().toLowerCase()
-        counts.set(key, (counts.get(key) || 0) + 1)
-      }
-    })
-    const dupes = new Set<string>()
-    counts.forEach((count, key) => {
-      if (count > 1) dupes.add(key)
-    })
-    return dupes
-  }, [partnersData])
 
   // Client-side pagination
   const paginatedPartners = useMemo(() => {
@@ -507,17 +480,6 @@ export default function PartnerListPage() {
           fieldOptions={fieldOptions}
         />
 
-        {duplicateCompanyNames.size > 0 && (
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start sm:items-center gap-2.5 text-sm text-amber-800">
-            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <span className="font-semibold">Pemberitahuan Duplikat:</span> Terdapat <strong>{duplicateCompanyNames.size}</strong> nama perusahaan yang terdaftar lebih dari satu kali. Baris dengan nama ganda telah ditandai dengan label <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-200 text-amber-900">Duplikat</span>.
-            </div>
-          </div>
-        )}
-
         <div className="mt-4">
           <ResponsiveTable<Partner>
             columns={[
@@ -527,27 +489,9 @@ export default function PartnerListPage() {
               },
               {
                 header: 'Company Name',
+                accessor: 'name',
                 isPrimary: true,
                 cellClassName: 'font-medium',
-                render: (item) => {
-                  const isDupe = duplicateCompanyNames.has((item.name || '').trim().toLowerCase())
-                  return (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-slate-900">{item.name}</span>
-                      {isDupe && (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300"
-                          title="Pemberitahuan: Nama company ini terdaftar lebih dari 1 kali (Duplikat)"
-                        >
-                          <svg className="w-3 h-3 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                          Duplikat
-                        </span>
-                      )}
-                    </div>
-                  )
-                },
               },
               {
                 header: 'Initial',

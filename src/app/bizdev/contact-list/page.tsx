@@ -57,12 +57,44 @@ interface PartnersResponse {
   data: { list: Partner[]; pagination: any }
 }
 
+const PAGE_STORAGE_KEY = "bizdev_contact_list_page"
+const LIMIT_STORAGE_KEY = "bizdev_contact_list_limit"
+const VALID_PAGE_SIZES = [5, 10, 25, 50, 100]
+
+function parseLimitValue(raw: string | null): number {
+  if (!raw) return 5
+  if (raw.toLowerCase() === "all" || raw === "99999") return 99999
+  const num = parseInt(raw, 10)
+  if (num >= 99999) return 99999
+  return VALID_PAGE_SIZES.includes(num) ? num : 5
+}
+
+function parsePageValue(raw: string | null): number {
+  const num = parseInt(raw || "1", 10)
+  return Number.isFinite(num) && num >= 1 ? num : 1
+}
+
 function ContactListContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
-  const initialLimit = parseInt(searchParams.get('limit') || '5', 10) || 5
+  const getInitialPage = () => {
+    const queryPage = searchParams.get("page")
+    if (queryPage) return parsePageValue(queryPage)
+    if (typeof window !== "undefined") {
+      return parsePageValue(sessionStorage.getItem(PAGE_STORAGE_KEY))
+    }
+    return 1
+  }
+
+  const getInitialLimit = () => {
+    const queryLimit = searchParams.get("limit")
+    if (queryLimit) return parseLimitValue(queryLimit)
+    if (typeof window !== "undefined") {
+      return parseLimitValue(sessionStorage.getItem(LIMIT_STORAGE_KEY))
+    }
+    return 5
+  }
 
   const [showFilter, setShowFilter] = useState(false)
   const [contactsData, setContactsData] = useState<Contact[]>([])
@@ -77,8 +109,8 @@ function ContactListContent() {
     isOpen: boolean; title: string; message: string; type: "success" | "error" | "info"
   }>({ isOpen: false, title: "", message: "", type: "success" })
 
-  const [currentPage, setCurrentPage] = useState(initialPage)
-  const [itemsPerPage, setItemsPerPage] = useState(initialLimit)
+  const [currentPage, setCurrentPage] = useState<number>(getInitialPage)
+  const [itemsPerPage, setItemsPerPage] = useState<number>(getInitialLimit)
   const [pagination, setPagination] = useState({ current_page: 1, page_size: 5, total_pages: 1, total_items: 0 })
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Array<{ id: string; field: string; value: string }>>([])
@@ -95,16 +127,36 @@ function ContactListContent() {
   ]
 
   useEffect(() => {
-    const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
-    const urlLimit = parseInt(searchParams.get('limit') || '5', 10) || 5
-    setCurrentPage(urlPage)
-    setItemsPerPage(urlLimit)
+    const queryPage = searchParams.get("page")
+    const queryLimit = searchParams.get("limit")
+
+    if (queryPage) {
+      setCurrentPage(parsePageValue(queryPage))
+    }
+    if (queryLimit) {
+      setItemsPerPage(parseLimitValue(queryLimit))
+    }
   }, [searchParams])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(PAGE_STORAGE_KEY, String(currentPage))
+    }
+  }, [currentPage])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(
+        LIMIT_STORAGE_KEY,
+        itemsPerPage >= 99999 ? "all" : String(itemsPerPage)
+      )
+    }
+  }, [itemsPerPage])
 
   const updatePaginationUrl = useCallback((nextPage: number, nextLimit: number) => {
     const params = new URLSearchParams(searchParams.toString())
-    params.set('page', String(nextPage))
-    params.set('limit', String(nextLimit))
+    params.set("page", String(nextPage))
+    params.set("limit", nextLimit >= 99999 ? "all" : String(nextLimit))
     router.replace(`?${params.toString()}`, { scroll: false })
   }, [router, searchParams])
 
@@ -528,9 +580,10 @@ function ContactListContent() {
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
           onItemsPerPageChange={(v) => {
-            setItemsPerPage(v)
+            const nextLimit = parseLimitValue(String(v))
+            setItemsPerPage(nextLimit)
             setCurrentPage(1)
-            updatePaginationUrl(1, v)
+            updatePaginationUrl(1, nextLimit)
           }}
         />
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, FormEvent } from "react"
+import { useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
@@ -19,17 +19,6 @@ interface FormData {
 export default function AddPartnerPage() {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
-  const [existingPartnerNames, setExistingPartnerNames] = useState<string[]>([])
-
-  useEffect(() => {
-    axiosInstance.post('/api/partners/', { page_size: 1000 })
-      .then(res => {
-        if (res.data?.code === 200 && res.data.data?.list) {
-          setExistingPartnerNames(res.data.data.list.map((p: any) => (p.name || '').trim().toLowerCase()))
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -40,9 +29,6 @@ export default function AddPartnerPage() {
     service: "",
     goods: ""
   })
-
-  const isDuplicateName = formData.name.trim().length > 0 &&
-    existingPartnerNames.includes(formData.name.trim().toLowerCase())
 
   // Modals state
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -147,15 +133,7 @@ export default function AddPartnerPage() {
                   <label className="text-xs font-semibold text-black block mb-1">
                     Company Name <span className="text-red-500">*</span>
                   </label>
-                  <input type="text" value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} className="w-full h-10 mb-1 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200" required />
-                  {isDuplicateName ? (
-                    <div className="flex items-center gap-1.5 mb-4 text-xs text-amber-700 bg-amber-50 p-2 rounded-md border border-amber-200">
-                      <svg className="w-4 h-4 text-amber-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      <span>Peringatan: Nama perusahaan ini sudah ada di database (Duplikat).</span>
-                    </div>
-                  ) : <div className="mb-4" />}
+                  <input type="text" value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} className="w-full h-10 mb-4 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200" required />
 
                   <label className="text-xs font-semibold text-black block mb-1">
                     Company Initials <span className="text-red-500">*</span>

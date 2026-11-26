@@ -137,13 +137,7 @@ export default function NewLeadsPage() {
     return () => clearTimeout(delayDebounceFn)
   }, [currentPage, itemsPerPage, search, filters])
 
-  const paginatedLeads = useMemo(() => {
-    return [...leadsData].sort((a, b) => {
-      const nameA = a.name ? a.name.trim() : ''
-      const nameB = b.name ? b.name.trim() : ''
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true })
-    })
-  }, [leadsData]);
+  const paginatedLeads = leadsData;
   const totalPages = pagination.total_pages || 1;
 
   const handleIdClick = (leadId: number) => {

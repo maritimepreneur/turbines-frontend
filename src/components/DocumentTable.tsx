@@ -214,27 +214,20 @@ export default function DocumentTable({ moduleId }: DocumentTableProps) {
 
     // Client-side filtering on fetched data
     const filteredData = useMemo(() => {
-        let result = [...data]
-        if (hasActiveFilters) {
-            filters.forEach(f => {
-                if (f.value) {
-                    if (f.field === 'document_type') {
-                        result = result.filter(doc =>
-                            doc.document_type?.toLowerCase().includes(f.value.toLowerCase())
-                        )
-                    } else if (f.field === 'name') {
-                        result = result.filter(doc =>
-                            doc.name?.toLowerCase().includes(f.value.toLowerCase())
-                        )
-                    }
+        if (!hasActiveFilters) return data
+        let result = data
+        filters.forEach(f => {
+            if (f.value) {
+                if (f.field === 'document_type') {
+                    result = result.filter(doc =>
+                        doc.document_type?.toLowerCase().includes(f.value.toLowerCase())
+                    )
+                } else if (f.field === 'name') {
+                    result = result.filter(doc =>
+                        doc.name?.toLowerCase().includes(f.value.toLowerCase())
+                    )
                 }
-            })
-        }
-        // Urutkan dokumen sesuai abjad (A-Z)
-        result.sort((a, b) => {
-            const nameA = a.name ? a.name.trim() : ''
-            const nameB = b.name ? b.name.trim() : ''
-            return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true })
+            }
         })
         return result
     }, [data, filters, hasActiveFilters])
