@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState, useEffect, useMemo } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
@@ -57,8 +57,13 @@ interface PartnersResponse {
   data: { list: Partner[]; pagination: any }
 }
 
-export default function ContactListPage() {
+function ContactListContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+  const initialLimit = parseInt(searchParams.get('limit') || '5', 10) || 5
+
   const [showFilter, setShowFilter] = useState(false)
   const [contactsData, setContactsData] = useState<Contact[]>([])
   const [partnersMap, setPartnersMap] = useState<Record<number, Partner>>({})
@@ -72,8 +77,8 @@ export default function ContactListPage() {
     isOpen: boolean; title: string; message: string; type: "success" | "error" | "info"
   }>({ isOpen: false, title: "", message: "", type: "success" })
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [currentPage, setCurrentPage] = useState(initialPage)
+  const [itemsPerPage, setItemsPerPage] = useState(initialLimit)
   const [pagination, setPagination] = useState({ current_page: 1, page_size: 5, total_pages: 1, total_items: 0 })
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Array<{ id: string; field: string; value: string }>>([])
@@ -88,6 +93,20 @@ export default function ContactListPage() {
     { label: "Position", value: "position" },
     { label: "Role", value: "role" },
   ]
+
+  useEffect(() => {
+    const urlPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+    const urlLimit = parseInt(searchParams.get('limit') || '5', 10) || 5
+    setCurrentPage(urlPage)
+    setItemsPerPage(urlLimit)
+  }, [searchParams])
+
+  const updatePaginationUrl = useCallback((nextPage: number, nextLimit: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', String(nextPage))
+    params.set('limit', String(nextLimit))
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }, [router, searchParams])
 
   const fetchContacts = async () => {
     try {
@@ -240,7 +259,7 @@ export default function ContactListPage() {
     })
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport)
-    
+
     const columnWidths = [
       { wch: 5 },   // ID
       { wch: 25 },  // Name
@@ -262,7 +281,7 @@ export default function ContactListPage() {
       font: { bold: true, color: { rgb: "FFFFFF" } },
       alignment: { horizontal: "center", vertical: "center" }
     }
-    
+
     const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1', 'K1']
     headerCells.forEach(cell => {
       if (worksheet[cell]) {
@@ -271,8 +290,8 @@ export default function ContactListPage() {
     })
 
     filteredContacts.forEach((contact, index) => {
-      const rowNum = index + 2 
-      
+      const rowNum = index + 2
+
       // Email 1
       if (contact.emails?.[0] && contact.emails[0] !== '-') {
         const cellC = `C${rowNum}`
@@ -283,7 +302,7 @@ export default function ContactListPage() {
           }
         }
       }
-      
+
       // Email 2
       if (contact.emails?.[1] && contact.emails[1] !== '-') {
         const cellD = `D${rowNum}`
@@ -498,8 +517,31 @@ export default function ContactListPage() {
           />
         </div>
 
-        <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filteredContacts.length} itemsPerPage={itemsPerPage} onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1) }} />
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredContacts.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={(p) => {
+            setCurrentPage(p)
+            updatePaginationUrl(p, itemsPerPage)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+          onItemsPerPageChange={(v) => {
+            setItemsPerPage(v)
+            setCurrentPage(1)
+            updatePaginationUrl(1, v)
+          }}
+        />
       </div>
     </div>
+  )
+}
+
+export default function ContactListPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-slate-500">Loading...</div>}>
+      <ContactListContent />
+    </Suspense>
   )
 }
