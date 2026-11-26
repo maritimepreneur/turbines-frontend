@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react"
 import { SearchBar } from "@/components/table/SearchBar"
 import { FilterPanel } from "@/components/table/FilterPanel"
 import { Pagination } from "@/components/table/Pagination"
@@ -115,7 +115,13 @@ function ContactListContent() {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<Array<{ id: string; field: string; value: string }>>([])
 
+  const isFirstFilterMount = useRef(true)
+
   useEffect(() => {
+    if (isFirstFilterMount.current) {
+      isFirstFilterMount.current = false
+      return
+    }
     setCurrentPage(1)
   }, [search, filters])
 
@@ -552,7 +558,15 @@ function ContactListContent() {
                 header: 'Action',
                 render: (item) => (
                   <div className="flex gap-3">
-                    <button onClick={(e) => { e.stopPropagation(); router.push(`/bizdev/contact-list/edit-contact?id=${item.id}`) }} className="text-sky-500 hover:text-sky-700 transition" title="Edit">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        const limitParam = itemsPerPage >= 99999 ? "all" : String(itemsPerPage)
+                        router.push(`/bizdev/contact-list/edit-contact?id=${item.id}&page=${currentPage}&limit=${limitParam}`)
+                      }}
+                      className="text-sky-500 hover:text-sky-700 transition"
+                      title="Edit"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); setContactToDelete({ id: item.id, name: item.name }); setShowDeleteModal(true) }} disabled={isDeleting === item.id} className="text-red-500 hover:text-red-700 transition disabled:opacity-50" title="Delete">
