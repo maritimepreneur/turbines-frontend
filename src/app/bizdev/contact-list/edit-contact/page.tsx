@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, FormEvent } from "react"
+import { useState, useEffect, useRef, FormEvent } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ConfirmationModal } from "@/components/modals/ConfirmationModal"
 import { NotificationModal } from "@/components/modals/NotificationModal"
@@ -22,6 +22,11 @@ export default function EditContactPage() {
     const [partners, setPartners] = useState<Partner[]>([])
     const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
 
+    // State untuk searchable dropdown Partner Company
+    const [partnerSearch, setPartnerSearch] = useState("")
+    const [isPartnerDropdownOpen, setIsPartnerDropdownOpen] = useState(false)
+    const partnerDropdownRef = useRef<HTMLDivElement>(null)
+
     const [name, setName] = useState("")
     const [company, setCompany] = useState("")
     const [emails, setEmails] = useState<string[]>([""])
@@ -35,6 +40,23 @@ export default function EditContactPage() {
     const [nameError, setNameError] = useState("")
     const [emailErrors, setEmailErrors] = useState<string[]>([""])
     const [submitError, setSubmitError] = useState<string | null>(null)
+
+    // Tutup dropdown saat klik di luar area Partner Company
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (partnerDropdownRef.current && !partnerDropdownRef.current.contains(event.target as Node)) {
+                setIsPartnerDropdownOpen(false)
+                // Kembalikan teks input ke partner yang sedang terpilih jika user tidak memilih opsi baru
+                if (selectedPartner) {
+                    setPartnerSearch(`${selectedPartner.name} (${selectedPartner.initials})`)
+                } else {
+                    setPartnerSearch("")
+                }
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [selectedPartner])
 
     useEffect(() => {
         if (!id) { router.push('/bizdev/contact-list'); return }
@@ -59,8 +81,9 @@ export default function EditContactPage() {
                 const effectivePartnerId = c.partner_id ?? c.partners?.[0]?.id
                 if (effectivePartnerId) {
                     setPartnerId(String(effectivePartnerId))
-                    const found = partnerRes.data.data.list.find(p => p.id === effectivePartnerId)
-                    setSelectedPartner(found || null)
+                    const found = partnerRes.data.data.list.find(p => p.id === effectivePartnerId) || null
+                    setSelectedPartner(found)
+                    setPartnerSearch(found ? `${found.name} (${found.initials})` : "")
                 }
                 setEmailErrors((c.emails && c.emails.length > 0 ? c.emails : [""]).map(() => ""))
             } else throw new Error(contactRes.data.message)
@@ -71,10 +94,42 @@ export default function EditContactPage() {
         }).finally(() => setIsFetching(false))
     }, [id, router])
 
-    const handlePartnerChange = (pid: string) => {
-        setPartnerId(pid)
-        setSelectedPartner(pid ? (partners.find(p => p.id === parseInt(pid)) || null) : null)
+    const handleSelectPartner = (partner: Partner | null) => {
+        if (partner) {
+            setPartnerId(String(partner.id))
+            setSelectedPartner(partner)
+            setPartnerSearch(`${partner.name} (${partner.initials})`)
+        } else {
+            setPartnerId("")
+            setSelectedPartner(null)
+            setPartnerSearch("")
+        }
+        setIsPartnerDropdownOpen(false)
     }
+
+    const handlePartnerInputChange = (val: string) => {
+        setPartnerSearch(val)
+        setIsPartnerDropdownOpen(true)
+        // Jika user mengosongkan input, reset pilihan partner
+        if (!val.trim()) {
+            setPartnerId("")
+            setSelectedPartner(null)
+        }
+    }
+
+    // Filter daftar partner berdasarkan nama atau inisial (tetap jalan walau sudah ada selectedPartner)
+    const filteredPartners = partners.filter(p => {
+        const query = partnerSearch.trim().toLowerCase()
+        if (!query) return true
+        // Jika teks sama persis dengan label partner yang sedang terpilih, tampilkan semua agar user mudah pilih partner lain
+        if (selectedPartner && query === `${selectedPartner.name} (${selectedPartner.initials})`.toLowerCase()) {
+            return true
+        }
+        return (
+            p.name?.toLowerCase().includes(query) ||
+            p.initials?.toLowerCase().includes(query)
+        )
+    })
 
     const handleEmailChange = (idx: number, value: string) => { setEmails(prev => prev.map((e, i) => i === idx ? value : e)); setEmailErrors(prev => prev.map((e, i) => i === idx ? "" : e)) }
     const addEmail = () => { setEmails(prev => [...prev, ""]); setEmailErrors(prev => [...prev, ""]) }
@@ -146,6 +201,7 @@ export default function EditContactPage() {
     const inputCls = "w-full h-10 px-4 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
     const trashIcon = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
     const plusIcon = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+    const searchIcon = <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
 
     if (isFetching) return (
         <div><div className="mb-6"><p className="text-sm text-slate-400">Bizdev / Contact List / <span className="text-slate-600">Edit</span></p><h1 className="text-2xl font-semibold mt-1 text-black">Edit Contact</h1></div>
@@ -248,12 +304,62 @@ export default function EditContactPage() {
                         <p className="text-xs text-slate-400 mt-0.5">Link this contact to a partner company</p>
                     </div>
                     <div className="p-4 sm:p-6 space-y-4">
-                        <div>
+                        <div ref={partnerDropdownRef} className="relative">
                             <label className="text-xs font-semibold text-black block mb-1">Partner Company</label>
-                            <select value={partnerId} onChange={e => handlePartnerChange(e.target.value)} className={inputCls}>
-                                <option value="">— No affiliation —</option>
-                                {partners.map(p => <option key={p.id} value={p.id}>{p.name} ({p.initials})</option>)}
-                            </select>
+                            <div className="relative flex items-center">
+                                <span className="absolute left-3.5 pointer-events-none">{searchIcon}</span>
+                                <input
+                                    type="text"
+                                    value={partnerSearch}
+                                    onFocus={() => setIsPartnerDropdownOpen(true)}
+                                    onChange={e => handlePartnerInputChange(e.target.value)}
+                                    placeholder="Search partner company by name or initials..."
+                                    className="w-full h-10 pl-10 pr-9 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+                                />
+                                {partnerSearch && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectPartner(null)}
+                                        title="Clear selection"
+                                        className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-sm px-1"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
+
+                            {isPartnerDropdownOpen && (
+                                <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectPartner(null)}
+                                        className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 ${!partnerId ? "bg-sky-50 text-sky-700 font-medium" : "text-slate-500 italic"}`}
+                                    >
+                                        — No affiliation —
+                                    </button>
+
+                                    {filteredPartners.length > 0 ? (
+                                        filteredPartners.map(p => {
+                                            const isSelected = String(p.id) === partnerId
+                                            return (
+                                                <button
+                                                    key={p.id}
+                                                    type="button"
+                                                    onClick={() => handleSelectPartner(p)}
+                                                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-sky-50 transition ${isSelected ? "bg-sky-50 text-sky-700 font-medium" : "text-slate-800"}`}
+                                                >
+                                                    <span>{p.name}</span>
+                                                    <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">{p.initials}</span>
+                                                </button>
+                                            )
+                                        })
+                                    ) : (
+                                        <div className="px-4 py-3 text-sm text-slate-400 text-center">
+                                            No partner company found
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {selectedPartner && (
